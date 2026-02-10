@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
+import html2canvas from 'html2canvas';
 import { parseWorkbook } from './utils/parseWorkbook';
 import ChartCell from './components/ChartCell';
 import './App.css';
@@ -17,6 +18,9 @@ function App() {
   const [enlargedIndex, setEnlargedIndex] = useState(null);
   const [pickOpen, setPickOpen] = useState(false);
   const pickRef = useRef(null);
+  const chartGridRef = useRef(null);
+  const enlargedRef = useRef(null);
+  const [exporting, setExporting] = useState(false);
   const [drag, setDrag] = useState(false);
   const [error, setError] = useState(null);
 
@@ -104,6 +108,32 @@ function App() {
       setSelectedDatesPick((prev) =>
         prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()
       );
+    };
+
+    const handleExportPng = async () => {
+      const el = enlargedIndex != null ? enlargedRef.current : chartGridRef.current;
+      if (!el) return;
+      setExporting(true);
+      try {
+        const canvas = await html2canvas(el, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+        const name =
+          enlargedIndex != null
+            ? `小贝壳作战-详情-${selectedDates[0] ?? 'export'}.png`
+            : `小贝壳作战-${selectedDates[0] ?? 'export'}${selectedDates.length > 1 ? `-${selectedDates.length}天` : ''}.png`;
+        const link = document.createElement('a');
+        link.download = name;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (err) {
+        console.error('导出失败', err);
+      } finally {
+        setExporting(false);
+      }
     };
 
     const seriesForGrid = template.map((t) => {
@@ -241,6 +271,14 @@ function App() {
               </div>
             )}
 
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleExportPng}
+              disabled={exporting}
+            >
+              {exporting ? '导出中…' : '导出 PNG'}
+            </button>
             <button type="button" className="btn btn-ghost" onClick={() => { setView('upload'); setParsedData(null); }}>
               更换数据
             </button>
@@ -248,7 +286,7 @@ function App() {
         </header>
 
         <main className="dashboard-main">
-          <div className="chart-grid">
+          <div className="chart-grid" ref={chartGridRef}>
             {seriesForGrid.map((cell, i) => (
               <ChartCell
                 key={cell.key}
@@ -277,7 +315,7 @@ function App() {
             >
               <HiChevronLeft />
             </button>
-            <div className="dashboard-enlarged" onClick={(e) => e.stopPropagation()}>
+            <div className="dashboard-enlarged" ref={enlargedRef} onClick={(e) => e.stopPropagation()}>
               {seriesForGrid[enlargedIndex] && (
                 <ChartCell
                   seriesItem={seriesForGrid[enlargedIndex].seriesItem}
