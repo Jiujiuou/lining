@@ -28,15 +28,31 @@ function isRateSubCategory(subCategory) {
   return subCategory != null && String(subCategory).includes('转化');
 }
 
+const TARGET_SHEET_NAME = '数据记录-小贝壳';
+
+/**
+ * 选择要解析的工作表：仅一个表时用该表，多表时用「数据记录-小贝壳」。
+ */
+function getSheetToParse(wb) {
+  const names = wb.SheetNames || [];
+  if (names.length <= 1) return names[0] ?? null;
+  return names.find((n) => n === TARGET_SHEET_NAME) ?? names[0];
+}
+
 /**
  * 解析「小贝壳作战」格式的 xlsx，返回标准数据结构。
+ * 仅一个工作表时解析该表；多个工作表时解析「数据记录-小贝壳」。
  * 表格中日期、大类多为合并单元格，只有每块第一格有值，需继承上一行的日期与大类。
  * @param {ArrayBuffer} arrayBuffer - 文件 ArrayBuffer
  * @returns {{ dates: string[], byDate: Record<string, { series: Array<...>, actions: Record<number, string[]> }> }}
  */
 export function parseWorkbook(arrayBuffer) {
   const wb = XLSX.read(arrayBuffer, { type: 'array' });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const sheetName = getSheetToParse(wb);
+  if (!sheetName || !wb.Sheets[sheetName]) {
+    throw new Error('工作簿中没有可解析的工作表');
+  }
+  const sheet = wb.Sheets[sheetName];
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
   const byDate = {};
