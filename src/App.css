@@ -81,38 +81,35 @@
 }
 
 .dashboard-header {
-  background: var(--surface);
-  border-radius: 0 0 var(--radius) var(--radius);
-  box-shadow: var(--shadow);
-  padding: 0;
-}
-
-.dashboard-header-row1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px 8px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.dashboard-header-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .dashboard-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text);
+  margin: 0;
 }
 
 .dashboard-header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.dashboard-header-row2 {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 8px 24px 14px;
-  border-top: 1px solid var(--border);
 }
 
 .dashboard-controls {

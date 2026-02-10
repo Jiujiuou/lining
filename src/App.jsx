@@ -194,23 +194,8 @@ function App() {
     return (
       <div className="dashboard">
         <header className="dashboard-header">
-          <div className="dashboard-header-row1">
+          <div className="dashboard-header-inner">
             <h1 className="dashboard-title">小贝壳作战 · 数据看板</h1>
-            <div className="dashboard-header-actions">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={handleExportPng}
-                disabled={exporting}
-              >
-                {exporting ? '导出中…' : '导出 PNG'}
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={() => { setView('upload'); setParsedData(null); }}>
-                更换数据
-              </button>
-            </div>
-          </div>
-          <div className="dashboard-header-row2">
             <div className="dashboard-tabs" role="tablist">
               <button
                 type="button"
@@ -353,6 +338,19 @@ function App() {
                 </select>
               </label>
             )}
+          </div>
+          <div className="dashboard-header-actions">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={handleExportPng}
+              disabled={exporting}
+            >
+              {exporting ? '导出中…' : '导出 PNG'}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => { setView('upload'); setParsedData(null); }}>
+              更换数据
+            </button>
           </div>
         </header>
 
