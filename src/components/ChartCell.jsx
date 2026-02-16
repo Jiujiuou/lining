@@ -10,8 +10,11 @@ import {
 } from 'recharts';
 import {
   getChartData,
+  getChartDataFromSlots,
   getChartDataMulti,
+  getChartDataMultiSlots,
   getYDomain,
+  getYDomainFromSlotValues,
   getYDomainMulti,
   formatYTick,
   HOURS,
@@ -42,12 +45,25 @@ function ChartTooltipSingle({ payload, active, actions }) {
   );
 }
 
-function ChartTooltipMulti({ payload, active, actionsByDate, isRate }) {
+function ChartTooltipDetail20m({ payload, active }) {
   if (!active || !payload?.length) return null;
-  const hour = payload[0]?.payload?.hour;
+  const p = payload[0].payload;
   return (
     <div className="chart-tooltip">
-      <div className="chart-tooltip-time">{hour} 点</div>
+      <div className="chart-tooltip-time">{p.time}</div>
+      <div className="chart-tooltip-value">{p.value != null ? p.value : '—'}</div>
+    </div>
+  );
+}
+
+function ChartTooltipMulti({ payload, active, actionsByDate, isRate }) {
+  if (!active || !payload?.length) return null;
+  const p0 = payload[0]?.payload;
+  const hour = p0?.hour;
+  const timeLabel = p0?.time != null ? p0.time : (hour != null ? `${hour} 点` : '');
+  return (
+    <div className="chart-tooltip">
+      <div className="chart-tooltip-time">{timeLabel}</div>
       {payload
         .filter((p) => p.value != null)
         .map((p) => (
@@ -59,7 +75,7 @@ function ChartTooltipMulti({ payload, active, actionsByDate, isRate }) {
           </div>
         ))}
       {payload.map((p) => {
-        const list = actionsByDate?.[p.dataKey]?.[hour] ?? [];
+        const list = actionsByDate?.[p.dataKey]?.[hour] ?? actionsByDate?.[p.dataKey]?.[p0?.x] ?? [];
         return list.length > 0 ? (
           <div key={`actions-${p.dataKey}`} className="chart-tooltip-actions">
             <div className="chart-tooltip-action-label">{p.dataKey}</div>
@@ -82,6 +98,7 @@ export default function ChartCell({
   actionsByDate,
   onClick,
   compact = false,
+  detailPoints20m = null,
 }) {
   const isMulti = seriesItems != null && seriesItems.length > 0;
   const items = isMulti ? seriesItems : seriesItem ? [{ ...seriesItem, date: '' }] : [];
@@ -93,10 +110,28 @@ export default function ChartCell({
     ? `${first.category} - ${first.subCategory} %`
     : `${first.category} - ${first.subCategory}`;
 
+  const single = seriesItem ?? first;
+  const useSlots = Array.isArray(single?.slotValues);
+  const useDetail20m = !compact && detailPoints20m && detailPoints20m.length > 0 && !useSlots;
+
   if (!isMulti || items.length === 1) {
-    const single = seriesItem ?? first;
-    const data = getChartData(single.values).map((d) => ({ ...d, isRate }));
-    const domain = getYDomain(single);
+    const data = useSlots
+      ? getChartDataFromSlots(single.slotValues).map((d) => ({ ...d, isRate: single.isRate }))
+      : useDetail20m
+        ? detailPoints20m
+        : getChartData(single.values).map((d) => ({ ...d, isRate }));
+    const domain = useSlots
+      ? getYDomainFromSlotValues(single.slotValues, single.isRate)
+      : useDetail20m
+        ? (() => {
+            const vals = detailPoints20m.map((d) => d.value).filter((v) => v != null && Number.isFinite(v));
+            if (vals.length === 0) return [0, 10];
+            const min = Math.min(...vals);
+            const max = Math.max(...vals);
+            const span = max - min || 1;
+            return [min - span * 0.05, max + span * 0.05];
+          })()
+        : getYDomain(single);
     const act = actions ?? actionsByDate?.[single.date];
     return (
       <div
@@ -112,13 +147,15 @@ export default function ChartCell({
             <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis
-                dataKey="hour"
+                dataKey={useSlots || useDetail20m ? 'x' : 'hour'}
                 type="number"
                 domain={[9, 24]}
-                ticks={HOURS}
-                interval={0}
+                ticks={useSlots ? undefined : HOURS}
+                interval={useSlots ? 'preserveStartEnd' : 0}
                 tick={{ fontSize: compact ? 9 : 12 }}
-                tickFormatter={(h) => `${h}点`}
+                tickFormatter={useSlots || useDetail20m
+                  ? (x) => (data.find((d) => d.x === x)?.time ?? `${Math.floor(x)}:${String(Math.round((x % 1) * 60)).padStart(2, '0')}`)
+                  : (h) => `${h}点`}
               />
               <YAxis
                 domain={domain}
@@ -127,7 +164,7 @@ export default function ChartCell({
                 width={compact ? 28 : 36}
               />
               <Tooltip
-                content={<ChartTooltipSingle actions={act} />}
+                content={useSlots || useDetail20m ? <ChartTooltipDetail20m /> : <ChartTooltipSingle actions={act} />}
                 cursor={{ stroke: 'var(--accent)', strokeWidth: 1 }}
                 position={{ x: 40, y: 8 }}
               />
@@ -136,7 +173,7 @@ export default function ChartCell({
                 dataKey="value"
                 stroke="var(--accent)"
                 strokeWidth={compact ? 1.5 : 2}
-                dot={{ r: compact ? 2 : 4, fill: 'var(--accent)' }}
+                dot={{ r: compact ? 2 : useDetail20m ? 2 : 4, fill: 'var(--accent)' }}
                 connectNulls={true}
                 isAnimationActive={!compact}
               />
@@ -147,7 +184,8 @@ export default function ChartCell({
     );
   }
 
-  const data = getChartDataMulti(seriesItems);
+  const useMultiSlots = Array.isArray(first?.slotValues) && first.slotValues.length > 0;
+  const data = useMultiSlots ? getChartDataMultiSlots(seriesItems) : getChartDataMulti(seriesItems);
   const domain = getYDomainMulti(seriesItems, isRate);
 
   return (
@@ -164,13 +202,13 @@ export default function ChartCell({
           <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: compact ? 20 : 28 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis
-              dataKey="hour"
+              dataKey={useMultiSlots ? 'x' : 'hour'}
               type="number"
               domain={[9, 24]}
-              ticks={HOURS}
-              interval={0}
+              ticks={useMultiSlots ? undefined : HOURS}
+              interval={useMultiSlots ? 'preserveStartEnd' : 0}
               tick={{ fontSize: compact ? 9 : 12 }}
-              tickFormatter={(h) => `${h}点`}
+              tickFormatter={useMultiSlots ? (x) => data.find((d) => d.x === x)?.time ?? `${Math.floor(x)}:${String(Math.round((x % 1) * 60)).padStart(2, '0')}` : (h) => `${h}点`}
             />
             <YAxis
               domain={domain}

@@ -1,0 +1,380 @@
+[
+  {
+    "recorded_at": "2026-02-16:19:05:23",
+    "search_uv": 40,
+    "search_pay_rate": 0.025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:06:24",
+    "search_uv": 40,
+    "search_pay_rate": 0.025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:06:44",
+    "search_uv": 40,
+    "search_pay_rate": 0.025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:07:44",
+    "search_uv": 40,
+    "search_pay_rate": 0.025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:08:44",
+    "search_uv": 40,
+    "search_pay_rate": 0.025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:09:45",
+    "search_uv": 40,
+    "search_pay_rate": 0.025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:10:45",
+    "search_uv": 40,
+    "search_pay_rate": 0.025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:11:45",
+    "search_uv": 40,
+    "search_pay_rate": 0.025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:12:45",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:13:46",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:14:46",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:15:46",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:16:46",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:17:46",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:18:47",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:19:47",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:20:47",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:21:47",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:22:47",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:23:47",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:24:48",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:25:48",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:26:48",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:27:48",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:28:49",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:29:49",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 19,
+    "cart_pay_rate": 0.16
+  },
+  {
+    "recorded_at": "2026-02-16:19:30:49",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 20,
+    "cart_pay_rate": 0.15
+  },
+  {
+    "recorded_at": "2026-02-16:19:31:49",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 20,
+    "cart_pay_rate": 0.15
+  },
+  {
+    "recorded_at": "2026-02-16:19:32:49",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 21,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:33:50",
+    "search_uv": 41,
+    "search_pay_rate": 0.024390243902439025,
+    "cart_uv": 21,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:34:50",
+    "search_uv": 42,
+    "search_pay_rate": 0.023809523809523808,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:35:50",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:36:50",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:37:50",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:38:50",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:39:51",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:40:51",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:41:27",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:42:27",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:43:10",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:44:11",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:45:11",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:46:11",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:47:11",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:48:11",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:49:11",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:50:12",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:51:12",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:52:12",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:53:12",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:54:13",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:55:13",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 22,
+    "cart_pay_rate": 0.14
+  },
+  {
+    "recorded_at": "2026-02-16:19:56:13",
+    "search_uv": 43,
+    "search_pay_rate": 0.023255813953488372,
+    "cart_uv": 23,
+    "cart_pay_rate": 0.13
+  },
+  {
+    "recorded_at": "2026-02-16:19:57:13",
+    "search_uv": 44,
+    "search_pay_rate": 0.022727272727272728,
+    "cart_uv": 23,
+    "cart_pay_rate": 0.13
+  }
+]

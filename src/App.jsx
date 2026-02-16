@@ -1,8 +1,15 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';
 import html2canvas from 'html2canvas';
-import { parseWorkbook } from './utils/parseWorkbook';
 import { getTrendData } from './utils/chartHelpers';
+import {
+  cartLogRowsToChartData,
+  getCartLog20MinPointsForDate,
+  flowSourceRowsToChartData,
+  mergeCartAndFlowChartData,
+} from './utils/supabaseCartLogToChart';
+import { marketRankRowsToChartData, marketRankChartToGridItems } from './utils/supabaseMarketRankToChart';
+import { supabase } from './lib/supabase';
 import ChartCell from './components/ChartCell';
 import TrendChartCell from './components/TrendChartCell';
 import './App.css';
@@ -17,7 +24,10 @@ const TREND_RANGE_OPTIONS = [
 
 function App() {
   const [view, setView] = useState('upload');
-  const [parsedData, setParsedData] = useState(null);
+  const [dataSource, setDataSource] = useState(null); // 'supabase' | null
+  const [rawCartLogRows, setRawCartLogRows] = useState([]);
+  const [rawFlowSourceRows, setRawFlowSourceRows] = useState([]);
+  const [rawMarketRankRows, setRawMarketRankRows] = useState([]);
   const [viewMode, setViewMode] = useState('single');
   const [selectedDate, setSelectedDate] = useState(null);
   const [rangeDays, setRangeDays] = useState(3);
@@ -28,34 +38,111 @@ function App() {
   const chartGridRef = useRef(null);
   const enlargedRef = useRef(null);
   const [exporting, setExporting] = useState(false);
-  const [trendRange, setTrendRange] = useState('all'); // 'all' | '7' | '14'
-  const [drag, setDrag] = useState(false);
+  const [trendRange, setTrendRange] = useState('all');
   const [error, setError] = useState(null);
+  const [supabaseLoading, setSupabaseLoading] = useState(false);
 
-  const handleFile = useCallback((file) => {
-    setError(null);
-    if (!file || !file.name?.toLowerCase().endsWith('.xlsx')) {
-      setError('请上传 .xlsx 格式的 Excel 文件');
+  const parsedData = useMemo(() => {
+    if (dataSource !== 'supabase') return null;
+    const hasCart = rawCartLogRows.length > 0;
+    const hasFlow = rawFlowSourceRows.length > 0;
+    if (!hasCart && !hasFlow) return null;
+    const cartData = cartLogRowsToChartData(rawCartLogRows);
+    const flowData = flowSourceRowsToChartData(rawFlowSourceRows);
+    return mergeCartAndFlowChartData(cartData, flowData);
+  }, [dataSource, rawCartLogRows, rawFlowSourceRows]);
+
+  const marketRankChart = useMemo(
+    () => marketRankRowsToChartData(rawMarketRankRows),
+    [rawMarketRankRows]
+  );
+
+  const loadFromSupabase = useCallback(async () => {
+    if (!supabase) {
+      setError('未配置 Supabase，请在 .env 中设置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = parseWorkbook(e.target.result);
-        setParsedData(data);
-        const first = data.dates[0] ?? null;
-        setSelectedDate(first);
-        setSelectedDatesPick(first ? [first] : []);
-        setEnlargedIndex(null);
+    setError(null);
+    setSupabaseLoading(true);
+    try {
+      const [cartRes, flowRes, rankRes] = await Promise.all([
+        supabase.from('sycm_cart_log').select('item_cart_cnt, recorded_at').order('recorded_at', { ascending: true }),
+        supabase.from('sycm_flow_source_log').select('recorded_at, search_uv, search_pay_rate, cart_uv, cart_pay_rate').order('recorded_at', { ascending: true }),
+        supabase.from('sycm_market_rank_log').select('recorded_at, shop_title, rank').order('recorded_at', { ascending: true }),
+      ]);
+      if (cartRes.error) throw cartRes.error;
+      if (flowRes.error) throw flowRes.error;
+      if (rankRes.error) throw rankRes.error;
+      setRawCartLogRows(cartRes.data ?? []);
+      setRawFlowSourceRows(flowRes.data ?? []);
+      setRawMarketRankRows(rankRes.data ?? []);
+      setDataSource('supabase');
+      const cartData = cartLogRowsToChartData(cartRes.data ?? []);
+      const flowData = flowSourceRowsToChartData(flowRes.data ?? []);
+      const merged = mergeCartAndFlowChartData(cartData, flowData);
+      const rankChart = marketRankRowsToChartData(rankRes.data ?? []);
+      const hasMain = merged.dates?.length > 0;
+      const hasRank = rankChart.shopNames?.length > 0 && Object.keys(rankChart.byDateSlot || {}).length > 0;
+      if (hasMain || hasRank) {
+        if (hasMain) {
+          setSelectedDate(merged.dates[0]);
+          setSelectedDatesPick([merged.dates[0]]);
+        }
         setView('dashboard');
-        console.log('解析结果（标准数据）：', data);
-      } catch (err) {
-        setError('解析失败：' + (err.message || String(err)));
-        console.error(err);
+      } else {
+        setError('未查到数据。请确认 sycm_cart_log、sycm_flow_source_log 或 sycm_market_rank_log 已有数据，且 anon 具备 SELECT 策略。');
       }
-    };
-    reader.readAsArrayBuffer(file);
+    } catch (err) {
+      setError('加载失败：' + (err.message || String(err)));
+    } finally {
+      setSupabaseLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    if (!supabase || dataSource !== 'supabase') return;
+    const channel = supabase
+      .channel('sycm_supabase_inserts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sycm_cart_log' }, (payload) => {
+        const row = payload.new;
+        if (row && typeof row.item_cart_cnt !== 'undefined' && row.recorded_at) {
+          setRawCartLogRows((prev) => [...prev, { item_cart_cnt: row.item_cart_cnt, recorded_at: row.recorded_at }]);
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sycm_flow_source_log' }, (payload) => {
+        const row = payload.new;
+        if (row && row.recorded_at) {
+          setRawFlowSourceRows((prev) => [
+            ...prev,
+            {
+              recorded_at: row.recorded_at,
+              search_uv: row.search_uv,
+              search_pay_rate: row.search_pay_rate,
+              cart_uv: row.cart_uv,
+              cart_pay_rate: row.cart_pay_rate,
+            },
+          ]);
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sycm_market_rank_log' }, (payload) => {
+        const row = payload.new;
+        if (!row) return;
+        const recorded_at = row.recorded_at ?? row.recordedAt;
+        const shop_title = row.shop_title ?? row.shopTitle;
+        const rank = row.rank;
+        if (recorded_at && shop_title != null) {
+          setRawMarketRankRows((prev) => [...prev, { recorded_at, shop_title, rank }]);
+        }
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dataSource]);
+
+  useEffect(() => {
+    if (view === 'upload' && supabase) loadFromSupabase();
+  }, [view, loadFromSupabase]);
 
   useEffect(() => {
     if (enlargedIndex == null) return;
@@ -74,18 +161,6 @@ function App() {
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [pickOpen]);
-
-  const onDrop = (e) => {
-    e.preventDefault();
-    setDrag(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (file) handleFile(file);
-  };
-  const onDragOver = (e) => {
-    e.preventDefault();
-    setDrag(true);
-  };
-  const onDragLeave = () => setDrag(false);
 
   if (view === 'dashboard' && parsedData) {
     const { dates, byDate } = parsedData;
@@ -121,9 +196,18 @@ function App() {
       return acc;
     }, {});
 
-    const seriesSourceDate = viewMode === 'trend' ? (trendDates[0] ?? firstDate) : selectedDates[0];
-    const baseSeries = byDate[seriesSourceDate]?.series ?? [];
-    const template = baseSeries.slice(0, SERIES_ORDER_LIMIT);
+    const seenKeys = new Set();
+    const template = [];
+    for (const d of dates) {
+      for (const s of byDate[d]?.series ?? []) {
+        const key = `${s.category}-${s.subCategory}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          template.push(s);
+        }
+      }
+    }
+    const templateLimited = template.slice(0, SERIES_ORDER_LIMIT);
 
     const togglePickDate = (d) => {
       setSelectedDatesPick((prev) =>
@@ -158,7 +242,7 @@ function App() {
       }
     };
 
-    const seriesForGrid = template.map((t) => {
+    const seriesForGrid = templateLimited.map((t) => {
       const seriesItems = selectedDates
         .map((date) => {
           const day = byDate[date];
@@ -183,7 +267,7 @@ function App() {
 
     const trendForGrid =
       viewMode === 'trend' && trendDates.length > 0
-        ? template.map((t) => ({
+        ? templateLimited.map((t) => ({
             key: t.category + '-' + t.subCategory,
             title: t.isRate ? `${t.category} - ${t.subCategory} %` : `${t.category} - ${t.subCategory}`,
             data: getTrendData(byDate, trendDates, t.category, t.subCategory, t.isRate),
@@ -191,11 +275,24 @@ function App() {
           }))
         : [];
 
+    const marketRankForGrid = marketRankChartToGridItems(marketRankChart, {
+      viewMode,
+      selectedDate: selectedDate ?? null,
+      selectedDates,
+      trendDates,
+    });
+
+    const trendGridItems = [...trendForGrid, ...marketRankForGrid];
+    const seriesGridItems = [
+      ...seriesForGrid.map((s) => ({ type: 'series', ...s })),
+      ...marketRankForGrid.map((m) => ({ type: 'rank', key: m.key, title: m.title, data: m.data, isRate: m.isRate })),
+    ];
+    const totalGridCells = viewMode === 'trend' ? trendGridItems.length : seriesGridItems.length;
+
     return (
       <div className="dashboard">
         <header className="dashboard-header">
           <div className="dashboard-header-inner">
-            <h1 className="dashboard-title">小贝壳作战 · 数据看板</h1>
             <div className="dashboard-tabs" role="tablist">
               <button
                 type="button"
@@ -348,7 +445,17 @@ function App() {
             >
               {exporting ? '导出中…' : '导出 PNG'}
             </button>
-            <button type="button" className="btn btn-ghost" onClick={() => { setView('upload'); setParsedData(null); }}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setView('upload');
+                setDataSource(null);
+                setRawCartLogRows([]);
+                setRawFlowSourceRows([]);
+                setRawMarketRankRows([]);
+              }}
+            >
               更换数据
             </button>
           </div>
@@ -357,7 +464,7 @@ function App() {
         <main className="dashboard-main">
           {viewMode === 'trend' ? (
             <div className="chart-grid" ref={chartGridRef}>
-              {trendForGrid.map((cell, i) => (
+              {trendGridItems.map((cell, i) => (
                 <TrendChartCell
                   key={cell.key}
                   title={cell.title}
@@ -371,17 +478,28 @@ function App() {
             </div>
           ) : (
             <div className="chart-grid" ref={chartGridRef}>
-              {seriesForGrid.map((cell, i) => (
-                <ChartCell
-                  key={cell.key}
-                  seriesItem={cell.seriesItem}
-                  seriesItems={cell.seriesItems}
-                  actions={cell.actions}
-                  actionsByDate={cell.actionsByDate}
-                  compact
-                  onClick={() => setEnlargedIndex(i)}
-                />
-              ))}
+              {seriesGridItems.map((cell, i) =>
+                cell.type === 'rank' ? (
+                  <TrendChartCell
+                    key={cell.key}
+                    title={cell.title}
+                    data={cell.data}
+                    isRate={cell.isRate}
+                    compact
+                    onClick={() => setEnlargedIndex(i)}
+                  />
+                ) : (
+                  <ChartCell
+                    key={cell.key}
+                    seriesItem={cell.seriesItem}
+                    seriesItems={cell.seriesItems}
+                    actions={cell.actions}
+                    actionsByDate={cell.actionsByDate}
+                    compact
+                    onClick={() => setEnlargedIndex(i)}
+                  />
+                )
+              )}
             </div>
           )}
         </main>
@@ -396,38 +514,53 @@ function App() {
               type="button"
               className="dashboard-nav dashboard-nav--left"
               aria-label="上一张"
-              onClick={(e) => { e.stopPropagation(); setEnlargedIndex((enlargedIndex + 8) % 9); }}
+              onClick={(e) => { e.stopPropagation(); setEnlargedIndex((enlargedIndex + totalGridCells - 1) % totalGridCells); }}
             >
               <HiChevronLeft />
             </button>
             <div className="dashboard-enlarged" ref={enlargedRef} onClick={(e) => e.stopPropagation()}>
               {viewMode === 'trend' ? (
-                trendForGrid[enlargedIndex] && (
+                trendGridItems[enlargedIndex] && (
                   <TrendChartCell
-                    title={trendForGrid[enlargedIndex].title}
-                    data={trendForGrid[enlargedIndex].data}
-                    isRate={trendForGrid[enlargedIndex].isRate}
+                    title={trendGridItems[enlargedIndex].title}
+                    data={trendGridItems[enlargedIndex].data}
+                    isRate={trendGridItems[enlargedIndex].isRate}
                     actionCountByDate={trendActionCountByDate}
                     compact={false}
                   />
                 )
               ) : (
-                seriesForGrid[enlargedIndex] && (
-                  <ChartCell
-                    seriesItem={seriesForGrid[enlargedIndex].seriesItem}
-                    seriesItems={seriesForGrid[enlargedIndex].seriesItems}
-                    actions={seriesForGrid[enlargedIndex].actions}
-                    actionsByDate={seriesForGrid[enlargedIndex].actionsByDate}
+                seriesGridItems[enlargedIndex] &&
+                (seriesGridItems[enlargedIndex].type === 'rank' ? (
+                  <TrendChartCell
+                    title={seriesGridItems[enlargedIndex].title}
+                    data={seriesGridItems[enlargedIndex].data}
+                    isRate={seriesGridItems[enlargedIndex].isRate}
                     compact={false}
                   />
-                )
+                ) : (
+                  <ChartCell
+                    seriesItem={seriesGridItems[enlargedIndex].seriesItem}
+                    seriesItems={seriesGridItems[enlargedIndex].seriesItems}
+                    actions={seriesGridItems[enlargedIndex].actions}
+                    actionsByDate={seriesGridItems[enlargedIndex].actionsByDate}
+                    compact={false}
+                    detailPoints20m={
+                      dataSource === 'supabase' &&
+                      seriesGridItems[enlargedIndex]?.key === '小贝壳-商品加购件数' &&
+                      selectedDates[0]
+                        ? getCartLog20MinPointsForDate(rawCartLogRows, selectedDates[0])
+                        : null
+                    }
+                  />
+                ))
               )}
             </div>
             <button
               type="button"
               className="dashboard-nav dashboard-nav--right"
               aria-label="下一张"
-              onClick={(e) => { e.stopPropagation(); setEnlargedIndex((enlargedIndex + 1) % 9); }}
+              onClick={(e) => { e.stopPropagation(); setEnlargedIndex((enlargedIndex + 1) % totalGridCells); }}
             >
               <HiChevronRight />
             </button>
@@ -437,25 +570,26 @@ function App() {
     );
   }
 
+  if (supabaseLoading) {
+    return (
+      <div className="upload-view upload-view--loading">
+        <p className="upload-loading-text">加载中…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="upload-view">
-      <div
-        className={`upload-zone ${drag ? 'upload-zone--drag' : ''}`}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-      >
-        <input
-          type="file"
-          accept=".xlsx"
-          className="upload-input"
-          onChange={(e) => handleFile(e.target.files?.[0])}
-        />
-        <div className="upload-content">
-          <span className="upload-icon">📊</span>
-          <p className="upload-title">上传 Excel 表格</p>
-          <p className="upload-desc">拖拽文件到此处，或点击选择 .xlsx 文件</p>
-        </div>
+      <p className="upload-datasource-hint">数据来源：Supabase（商品加购件数、流量来源 4 指标、市场排名，9～24 点）</p>
+      <div className="upload-actions">
+        <button
+          type="button"
+          className="btn btn-primary upload-btn-supabase"
+          onClick={loadFromSupabase}
+          disabled={!supabase}
+        >
+          从 Supabase 加载
+        </button>
       </div>
       {error && <p className="upload-error">{error}</p>}
     </div>
