@@ -23,6 +23,20 @@ export function getChartData(values) {
 }
 
 /**
+ * 将 46 槽位聚合为按小时 values（9～24），与横轴「X点」统一
+ * 每小时取该小时最后一个槽位的值（9 点取 slot 2，10 点取 slot 5，…，24 点取 slot 45）
+ */
+export function slotValuesToHourlyValues(slotValues) {
+  if (!Array.isArray(slotValues) || slotValues.length < SLOT_COUNT) return {};
+  const values = {};
+  HOURS.forEach((hour) => {
+    const slotIndex = hour < 24 ? (hour - 9) * 3 + 2 : SLOT_COUNT - 1;
+    values[hour] = slotValues[slotIndex] ?? null;
+  });
+  return values;
+}
+
+/**
  * 将 46 槽位数组转为与 getCartLog20MinPointsForDate 一致的 data，供流量来源等 20 分钟点图使用
  * @param {Array<number|null>} slotValues 长度 46
  * @returns {Array<{ x: number, time: string, value: number|null }>}
@@ -111,11 +125,18 @@ export function getYDomainMulti(seriesItems, isRate) {
   return [min - span * 0.05, max + span * 0.05];
 }
 
+/** 转化率展示：×100，一位小数，.0 不展示（如 25%、25.1%） */
+export function formatRate(value) {
+  const s = (Number(value) * 100).toFixed(1);
+  const trimmed = s.endsWith('.0') ? s.slice(0, -2) : s;
+  return `${trimmed}%`;
+}
+
 /**
  * 格式化纵轴刻度：率类显示为百分比
  */
 export function formatYTick(value, isRate) {
-  if (isRate) return `${(Number(value) * 100).toFixed(0)}%`;
+  if (isRate) return formatRate(value);
   return Number.isInteger(value) ? value : value.toFixed(1);
 }
 

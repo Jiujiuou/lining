@@ -1,127 +1,3 @@
-/* 上传页 */
-.upload-view {
-  width: 100%;
-  min-height: 100vh;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.upload-view--loading {
-  background: var(--bg);
-}
-
-.upload-loading-text {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-
-.upload-datasource-hint {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.upload-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  max-width: 420px;
-}
-
-.upload-btn-supabase {
-  padding: 12px 24px;
-  font-size: 1rem;
-  border-radius: var(--radius);
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.upload-btn-supabase:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.upload-btn-supabase:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.upload-actions-divider {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.upload-zone {
-  position: relative;
-  width: 100%;
-  max-width: 420px;
-  padding: 48px 32px;
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  border: 2px dashed var(--border);
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-}
-
-.upload-zone:hover,
-.upload-zone--drag {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  box-shadow: var(--shadow-hover);
-}
-
-.upload-input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.upload-content {
-  pointer-events: none;
-  text-align: center;
-}
-
-.upload-icon {
-  font-size: 2.5rem;
-  display: block;
-  margin-bottom: 12px;
-  opacity: 0.9;
-}
-
-.upload-title {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-
-.upload-desc {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
-.upload-error {
-  margin-top: 16px;
-  padding: 10px 16px;
-  background: #fef2f2;
-  color: #b91c1c;
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-}
-
 /* 数据看板 */
 .dashboard {
   width: 100%;
@@ -139,7 +15,6 @@
   gap: 12px;
   padding: 12px 24px;
   background: var(--surface);
-  border-radius: 0 0 var(--radius) var(--radius);
   box-shadow: var(--shadow);
 }
 
@@ -161,6 +36,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.dashboard-loading-hint {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.dashboard-header-error {
+  font-size: 0.85rem;
+  color: #b91c1c;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-controls {
@@ -188,7 +76,9 @@
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .dashboard-subtab:hover {
@@ -219,7 +109,9 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .dashboard-tab:hover {
@@ -269,7 +161,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .dashboard-pick-trigger:hover {
@@ -324,6 +218,15 @@
   justify-content: center;
 }
 
+.dashboard-empty-hint {
+  align-self: center;
+  justify-self: center;
+  margin: auto;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .chart-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -350,6 +253,10 @@
 
 .chart-cell:hover {
   box-shadow: var(--shadow-hover);
+}
+
+.chart-cell:focus {
+  outline: none;
 }
 
 .chart-cell--compact {
@@ -398,6 +305,11 @@
   text-align: center;
 }
 
+/* 数据点 hover 时显示手型 */
+.chart-cell .recharts-dot {
+  cursor: pointer;
+}
+
 .chart-tooltip {
   background: var(--surface);
   border-radius: var(--radius-sm);
@@ -416,6 +328,19 @@
   font-weight: 600;
   color: var(--accent);
   margin-bottom: 6px;
+}
+
+.chart-tooltip-note {
+  font-size: 0.85rem;
+  color: var(--text);
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.chart-tooltip-note-label {
+  color: var(--text-muted);
+  margin-right: 4px;
 }
 
 .chart-tooltip-actions {
@@ -509,7 +434,9 @@
   box-shadow: var(--shadow);
   cursor: pointer;
   font-size: 1.5rem;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
 }
 
 .dashboard-nav:hover {
@@ -540,7 +467,9 @@
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
 }
 
 .btn-primary {
@@ -552,4 +481,84 @@
 .btn-primary:hover {
   background: #0f766e;
   box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+}
+
+/* 数据点备注弹窗：与看板风格一致 */
+.note-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 110;
+}
+
+.note-modal-panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hover);
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.note-modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.note-modal-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.note-modal-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  min-height: 100px;
+  margin-bottom: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.note-modal-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.note-modal-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.note-modal-textarea:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.note-modal-error {
+  font-size: 0.85rem;
+  color: #b91c1c;
+  margin: -6px 0 12px 0;
+}
+
+.note-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }

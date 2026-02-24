@@ -1,27 +1,41 @@
 {
   "manifest_version": 3,
-  "name": "生意参谋 top.json 数据监听",
+  "name": "数据获取",
   "version": "1.0.5",
-  "description": "监听 sycm.taobao.com 的 /cc/item/live/view/top.json 接口返回，并在控制台输出数据（测试用）",
-  "permissions": ["scripting"],
-  "host_permissions": ["https://sycm.taobao.com/*", "https://*.supabase.co/*"],
+  "description": "获取生意参谋数据",
+  "permissions": [
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://sycm.taobao.com/*",
+    "https://*.supabase.co/*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "生意参谋 top.json 数据监听"
+    "default_title": "数据获取"
   },
   "web_accessible_resources": [
     {
-      "resources": ["inject.js"],
-      "matches": ["https://sycm.taobao.com/*"]
+      "resources": [
+        "inject.js"
+      ],
+      "matches": [
+        "https://sycm.taobao.com/*"
+      ]
     }
   ],
   "content_scripts": [
     {
-      "matches": ["https://sycm.taobao.com/*"],
-      "js": ["content.js"],
+      "matches": [
+        "https://sycm.taobao.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start",
       "all_frames": true
     }

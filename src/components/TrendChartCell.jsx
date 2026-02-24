@@ -7,9 +7,9 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
-import { getTrendYDomain, formatYTick } from '../utils/chartHelpers';
+import { getTrendYDomain, formatYTick, formatRate } from '../utils/chartHelpers';
 
-function TrendTooltip({ payload, active, isRate, actionCount }) {
+function TrendTooltip({ payload, active, isRate, actionCount, note }) {
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   const v = p.value;
@@ -17,19 +17,66 @@ function TrendTooltip({ payload, active, isRate, actionCount }) {
     <div className="chart-tooltip">
       <div className="chart-tooltip-time">{p.date}</div>
       <div className="chart-tooltip-value">
-        {v != null ? (isRate ? `${(Number(v) * 100).toFixed(2)}%` : v) : '—'}
+        {v != null ? (isRate ? formatRate(v) : v) : '—'}
       </div>
-      {actionCount != null && actionCount > 0 && (
+      {note ? (
+        <div className="chart-tooltip-note">
+          <span className="chart-tooltip-note-label">备注：</span>
+          {note}
+        </div>
+      ) : null}
+      {actionCount != null && actionCount > 0 ? (
         <div className="chart-tooltip-actions">
           <div className="chart-tooltip-action">该日 {actionCount} 条动作</div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
-export default function TrendChartCell({ title, data, isRate, actionCountByDate, onClick, compact = false }) {
+export default function TrendChartCell({
+  title,
+  data,
+  isRate,
+  actionCountByDate,
+  onClick,
+  compact = false,
+  chartKey = '',
+  onDotClick,
+  notesMap = {},
+}) {
   const domain = getTrendYDomain(data, isRate);
+  const pointSlot = '';
+  const noteKey = (date) => `${date}|${pointSlot}`;
+  const renderTooltip = (props) => {
+    const date = props.payload?.[0]?.payload?.date;
+    const actionCount = date ? actionCountByDate?.[date] : undefined;
+    const note = date ? notesMap[noteKey(date)] : null;
+    return <TrendTooltip {...props} isRate={isRate} actionCount={actionCount} note={note} />;
+  };
+  const handleDotClick = (payload) => {
+    if (!onDotClick) return;
+    const pointDate = payload?.date ?? '';
+    onDotClick({ chartKey, pointDate, pointSlot, initialNote: notesMap[noteKey(pointDate)] ?? '' });
+  };
+  const r = compact ? 3 : 6;
+  const activeDotComp = onDotClick
+    ? (props) => (
+        <circle
+          cx={props.cx}
+          cy={props.cy}
+          r={r}
+          fill="var(--accent)"
+          stroke="var(--surface)"
+          strokeWidth={1}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDotClick(props.payload);
+          }}
+          style={{ cursor: 'pointer' }}
+        />
+      )
+    : { r: compact ? 3 : 6, fill: 'var(--accent)' };
 
   return (
     <div
@@ -42,7 +89,7 @@ export default function TrendChartCell({ title, data, isRate, actionCountByDate,
         style={!compact ? { height: 280 } : undefined}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 8, right: 8, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis
               dataKey="date"
@@ -56,11 +103,7 @@ export default function TrendChartCell({ title, data, isRate, actionCountByDate,
               width={compact ? 28 : 36}
             />
             <Tooltip
-              content={(props) => {
-                const date = props.payload?.[0]?.payload?.date;
-                const actionCount = date ? actionCountByDate?.[date] : undefined;
-                return <TrendTooltip {...props} isRate={isRate} actionCount={actionCount} />;
-              }}
+              content={renderTooltip}
               cursor={{ stroke: 'var(--accent)', strokeWidth: 1 }}
               position={{ x: 40, y: 8 }}
             />
@@ -70,6 +113,7 @@ export default function TrendChartCell({ title, data, isRate, actionCountByDate,
               stroke="var(--accent)"
               strokeWidth={compact ? 1.5 : 2}
               dot={{ r: compact ? 2 : 4, fill: 'var(--accent)' }}
+              activeDot={activeDotComp}
               connectNulls={true}
               isAnimationActive={!compact}
             />

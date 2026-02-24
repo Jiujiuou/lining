@@ -20,40 +20,64 @@ export const MARKET_RANK_SLOT_LABELS = (() => {
 function getRowValue(row, key) {
   const snake = row[key];
   if (snake !== undefined && snake !== null) return snake;
-  const camel = key === 'recorded_at' ? 'recordedAt' : key === 'shop_title' ? 'shopTitle' : key;
+  const camel = key === 'recorded_at' ? 'recordedAt' : key === 'created_at' ? 'createdAt' : key === 'shop_title' ? 'shopTitle' : key;
   return row[camel];
 }
 
+function isISOStamp(s) {
+  if (typeof s !== 'string' || s.length < 16) return false;
+  return s.includes('T') && (s.includes('Z') || s.includes('+') || /T\d{2}:\d{2}/.test(s));
+}
+
+function parseISOToEast8DateAndSlot(isoStr) {
+  const d = new Date(isoStr.trim());
+  if (Number.isNaN(d.getTime())) return null;
+  const dateStr = d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Shanghai', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(d);
+  let h = 0, m = 0;
+  parts.forEach((p) => { if (p.type === 'hour') h = parseInt(p.value, 10); if (p.type === 'minute') m = parseInt(p.value, 10); });
+  if (h === 0 && m === 0) {
+    const prevDate = new Date(d.getTime() - 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
+    return { dateStr: prevDate, slotIndex: SLOT_COUNT - 1 };
+  }
+  if (h < 9 || h > 24) return null;
+  const minutesFrom9 = (h - 9) * 60 + m;
+  const slotIndex = Math.min(Math.floor(minutesFrom9 / MINUTES_FROM_9), SLOT_COUNT - 1);
+  return { dateStr, slotIndex };
+}
+
 /**
- * 解析 recorded_at "YYYY-MM-DD:HH:mm:ss" 得到 dateStr 与 20 分钟槽位索引 [0..45]
- * 规则与加购表一致：仅 9～24 点参与，0 点视为前一日 24 点。
+ * 解析时间 "YYYY-MM-DD:HH:mm:ss" 或 ISO "YYYY-MM-DDTHH:mm:ss" 得到 dateStr 与 20 分钟槽位索引 [0..45]
+ * ISO 时按东八区取 dateStr。
  */
 function parseRecordedAtToSlot(recordedAt) {
   if (!recordedAt || typeof recordedAt !== 'string') return null;
-  const parts = recordedAt.trim().split(/[:\s-]/);
-  if (parts.length < 5) return null;
-  const y = parseInt(parts[0], 10);
-  const m = parts[1];
-  const d = parts[2];
-  const h = parseInt(parts[3], 10);
-  const min = parseInt(parts[4], 10) || 0;
-  if (!Number.isFinite(h)) return null;
-  const dateStr = `${y}-${m}-${d}`;
-  let hour = h;
-  if (hour === 0) {
-    hour = 24;
-    const prev = new Date(Date.UTC(y, parseInt(m, 10) - 1, parseInt(d, 10) - 1));
+  const s = recordedAt.trim();
+  if (s.length < 16) return null;
+  if (isISOStamp(s)) return parseISOToEast8DateAndSlot(s);
+  const dateStr = s.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  const sep = s[10];
+  const timeStart = sep === 'T' || sep === ' ' || sep === ':' ? 11 : 10;
+  const timePart = s.slice(timeStart);
+  const parts = timePart.split(':');
+  let h = parseInt(parts[0], 10) || 0;
+  const min = parseInt(parts[1], 10) || 0;
+  if (h >= 0 && h < 9) h += 8;
+  if (h === 0) {
+    const prev = new Date(dateStr + 'T00:00:00Z');
+    prev.setUTCDate(prev.getUTCDate() - 1);
     return { dateStr: prev.toISOString().slice(0, 10), slotIndex: SLOT_COUNT - 1 };
   }
-  if (hour < 9 || hour > 24) return null;
-  const minutesFrom9 = (hour - 9) * 60 + min;
+  if (h < 9 || h > 24) return null;
+  const minutesFrom9 = (h - 9) * 60 + min;
   const slotIndex = Math.min(Math.floor(minutesFrom9 / MINUTES_FROM_9), SLOT_COUNT - 1);
   return { dateStr, slotIndex };
 }
 
 /**
  * 按 20 分钟槽位聚合：byDateSlot[dateStr][slotIndex][shopName] = rank（槽位内取最新）
- * @param {Array<{ recorded_at: string, shop_title: string, rank: number }>} rows
+ * @param {Array<{ created_at?: string, recorded_at?: string, shop_title: string, rank: number }>} rows
  * @returns {{ byDateSlot: Record<string, Record<number, Record<string, number>>>, shopNames: string[] }}
  */
 export function marketRankRowsToChartData(rows) {
@@ -63,7 +87,8 @@ export function marketRankRowsToChartData(rows) {
     return { byDateSlot, shopNames: [] };
   }
   for (const row of rows) {
-    const recordedAt = getRowValue(row, 'recorded_at');
+    const created = getRowValue(row, 'created_at');
+    const recordedAt = created != null ? created : getRowValue(row, 'recorded_at');
     if (recordedAt == null) continue;
     const parsed = parseRecordedAtToSlot(recordedAt);
     if (!parsed) continue;
@@ -99,39 +124,51 @@ export function marketRankRowsToChartData(rows) {
 }
 
 /**
- * 生成与趋势图一致的格子数据：单日/多日时 x 为 20 分钟槽位（9:00～24:00）；趋势时 x 为日期、取当日 19:00 槽位值。
+ * 生成格子数据：单日/多日时返回 seriesItem（46 槽位 slotValues，与小图/大图 20 分钟粒度统一）；趋势时返回 data 供 TrendChartCell 使用。
  * @param {{ byDateSlot: Record<string, Record<number, Record<string, number>>>, shopNames: string[] }} chart
  * @param {{ viewMode: string, selectedDate: string | null, selectedDates: string[], trendDates: string[] }} context
  */
 export function marketRankChartToGridItems(chart, context) {
   const { byDateSlot, shopNames } = chart || {};
-  if (!shopNames?.length) return [];
+  if (!shopNames || !shopNames.length) return [];
   const { viewMode, selectedDate, selectedDates = [], trendDates = [] } = context || {};
   const isTrend = viewMode === 'trend';
-  const SLOT_19 = 30; // 19:00 对应槽位 30 (9 + 30*20/60 = 19)
+  const SLOT_19 = 30; // 19:00 对应槽位 30
 
   return shopNames.map((name) => {
-    let data;
     if (isTrend && trendDates.length > 0) {
-      data = trendDates.map((date) => ({
-        date,
-        value: byDateSlot[date]?.[SLOT_19]?.[name] ?? null,
-      }));
-    } else {
-      const dateStr = selectedDate || selectedDates[0];
-      if (!dateStr || !byDateSlot[dateStr]) {
-        data = MARKET_RANK_SLOT_LABELS.map((date, i) => ({ date, value: null }));
-      } else {
-        data = MARKET_RANK_SLOT_LABELS.map((slotLabel, i) => ({
-          date: slotLabel,
-          value: byDateSlot[dateStr][i]?.[name] ?? null,
-        }));
-      }
+      return {
+        key: 'market-rank-' + name,
+        title: '市场排名 - ' + name,
+        data: trendDates.map((date) => ({
+          date,
+          value: (function (d, n) {
+            var daySlot = byDateSlot[d];
+            var slot19 = daySlot && daySlot[SLOT_19];
+            var v = slot19 && slot19[n];
+            return v != null ? v : null;
+          })(date, name),
+        })),
+        isRate: false,
+      };
+    }
+    const dateStr = selectedDate || selectedDates[0];
+    const daySlots = dateStr && byDateSlot[dateStr] ? byDateSlot[dateStr] : {};
+    const slotValues = [];
+    for (var i = 0; i < SLOT_COUNT; i++) {
+      var slotRow = daySlots[i];
+      var v = slotRow && slotRow[name];
+      slotValues.push(v != null ? v : null);
     }
     return {
       key: 'market-rank-' + name,
       title: '市场排名 - ' + name,
-      data,
+      seriesItem: {
+        category: '市场排名',
+        subCategory: name,
+        isRate: false,
+        slotValues,
+      },
       isRate: false,
     };
   });

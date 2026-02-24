@@ -70,7 +70,7 @@ export default function MarketRankChart({ data, shopNames, compact = false }) {
         style={!compact ? { height: 280 } : undefined}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 8, right: 8, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis
               dataKey="recorded_at"
@@ -97,6 +97,7 @@ export default function MarketRankChart({ data, shopNames, compact = false }) {
                 stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
                 strokeWidth={compact ? 1.5 : 2}
                 dot={{ r: compact ? 2 : 4 }}
+                activeDot={{ r: compact ? 3 : 6, onClick: (data, index) => console.log('MarketRankChart 高亮点点击', { data, index, shop: name }) }}
                 connectNulls
                 isAnimationActive={!compact}
               />

@@ -3,6 +3,19 @@
 Chrome 扩展：在 **sycm.taobao.com** 页面内监听接口  
 `https://sycm.taobao.com/cc/item/live/view/top.json` 的响应，并把返回数据打印到控制台，用于验证是否能拿到数据。
 
+## manifest.json 字段说明（阅读用，JSON 不支持注释）
+
+| 字段 | 含义 |
+|------|------|
+| `manifest_version: 3` | 使用 Manifest V3，Chrome 新扩展标准 |
+| `name` / `description` | 扩展名称与描述，在 chrome://extensions 中显示 |
+| `permissions: ["scripting"]` | 允许 background 用 `chrome.scripting.executeScript` 向页面注入脚本 |
+| `host_permissions` | 可访问 sycm.taobao.com（页面请求）和 *.supabase.co（content 写库） |
+| `background.service_worker` | 后台常驻脚本，负责在 sycm 页面加载完成时注入 inject.js |
+| `action.default_popup` | 点击扩展图标时打开的弹窗页面 |
+| `web_accessible_resources` | 允许 sycm 页面通过扩展 URL 加载 inject.js（content 里 `<script src="...">`） |
+| `content_scripts` | 在 sycm 页面注入 content.js；`run_at: document_start` 尽早执行，`all_frames: true` 包含 iframe |
+
 ## 技术方案（第一版：控制台打印）
 
 1. **运行环境**  
@@ -75,9 +88,12 @@ Chrome 扩展：在 **sycm.taobao.com** 页面内监听接口
 
 ```
 src/extension/
-├── manifest.json   # 扩展配置（Manifest V3）
-├── content.js      # 在页面上加载 inject.js，并打日志确认扩展已运行
-├── inject.js       # 在页面上下文执行，劫持 fetch/XHR 并打印 top.json（避免 CSP 拦截）
+├── manifest.json   # 扩展配置（Manifest V3），字段说明见上文
+├── background.js   # Service Worker：sycm 页面加载完成时注入 inject.js，启动时对已开 sycm 补注入
+├── content.js      # Content Script：注入 inject.js 到页面主世界 + 监听 CustomEvent 写 Supabase
+├── inject.js       # 页面主世界脚本：劫持 fetch/XHR、伪造 visibility、按 SOURCES 提取数据并派发事件
+├── popup.html      # 点击扩展图标时的弹窗（当前仅标题）
+├── supabase_sycm_log.sql  # Supabase 建表与 RLS 策略，在 SQL Editor 中执行
 └── README.md       # 本说明
 ```
 
