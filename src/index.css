@@ -5,6 +5,9 @@
   --text-muted: #6b7280;
   --accent: #0d9488;
   --accent-soft: #ccfbf1;
+  /* 有备注的数据点：琥珀色，与主色区分、对比度达标，语义为「已标注」 */
+  --chart-dot-has-note: #b45309;
+  --chart-dot-has-note-stroke: #fef3c7;
   --border: #e5e7eb;
   --radius: 14px;
   --radius-sm: 10px;

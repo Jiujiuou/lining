@@ -80,29 +80,58 @@ export default function TrendChartCell({
     const note = date ? notesMap[noteKey(date)] : null;
     return <TrendTooltip {...props} isRate={isRate} actionCount={actionCount} note={note} />;
   };
+  const getDotFill = (payload) => {
+    if (!payload?.date) return 'var(--accent)';
+    return notesMap[noteKey(payload.date)] ? 'var(--chart-dot-has-note)' : 'var(--accent)';
+  };
+  const getDotStroke = (payload) => {
+    if (!payload?.date) return 'var(--surface)';
+    return notesMap[noteKey(payload.date)] ? 'var(--chart-dot-has-note-stroke)' : 'var(--surface)';
+  };
   const handleDotClick = (payload) => {
     if (!onDotClick) return;
     const pointDate = payload?.date ?? '';
     onDotClick({ chartKey, pointDate, pointSlot, initialNote: notesMap[noteKey(pointDate)] ?? '' });
   };
-  const r = compact ? 3 : 6;
+  const rDot = compact ? 2 : 4;
+  const rActive = compact ? 3 : 6;
+  const dotComp = (props) => {
+    const payload = props.payload;
+    if (payload && (payload.value == null || payload.value === '')) return null;
+    if (props.cx == null || props.cy == null || !Number.isFinite(Number(props.cx)) || !Number.isFinite(Number(props.cy))) return null;
+    return (
+      <circle
+        cx={props.cx}
+        cy={props.cy}
+        r={rDot}
+        fill={getDotFill(payload)}
+        stroke={getDotStroke(payload)}
+        strokeWidth={1}
+      />
+    );
+  };
   const activeDotComp = onDotClick
-    ? (props) => (
-        <circle
-          cx={props.cx}
-          cy={props.cy}
-          r={r}
-          fill="var(--accent)"
-          stroke="var(--surface)"
-          strokeWidth={1}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDotClick(props.payload);
-          }}
-          style={{ cursor: 'pointer' }}
-        />
-      )
-    : { r: compact ? 3 : 6, fill: 'var(--accent)' };
+    ? (props) => {
+        const payload = props.payload;
+        if (payload && (payload.value == null || payload.value === '')) return null;
+        if (props.cx == null || props.cy == null || !Number.isFinite(Number(props.cx)) || !Number.isFinite(Number(props.cy))) return null;
+        return (
+          <circle
+            cx={props.cx}
+            cy={props.cy}
+            r={rActive}
+            fill={getDotFill(payload)}
+            stroke={getDotStroke(payload)}
+            strokeWidth={1}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDotClick(payload);
+            }}
+            style={{ cursor: 'pointer' }}
+          />
+        );
+      }
+    : { r: rActive, fill: 'var(--accent)' };
 
   return (
     <div
@@ -138,7 +167,7 @@ export default function TrendChartCell({
               dataKey="value"
               stroke="var(--accent)"
               strokeWidth={compact ? 1.5 : 2}
-              dot={{ r: compact ? 2 : 4, fill: 'var(--accent)' }}
+              dot={dotComp}
               activeDot={activeDotComp}
               connectNulls={true}
               isAnimationActive={!compact}

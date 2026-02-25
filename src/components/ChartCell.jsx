@@ -214,24 +214,55 @@ export default function ChartCell({
         initialNote: notesMap[noteKey] ?? "",
       });
     };
-    const r = compact ? 3 : 6;
+    const rDot = compact ? 2 : 4;
+    const rActive = compact ? 3 : 6;
+    const getDotFill = (payload) => {
+      if (!payload) return "var(--accent)";
+      const key = `${pointDate}|${getPointSlot(payload)}`;
+      return notesMap[key] ? "var(--chart-dot-has-note)" : "var(--accent)";
+    };
+    const getDotStroke = (payload) => {
+      if (!payload) return "var(--surface)";
+      const key = `${pointDate}|${getPointSlot(payload)}`;
+      return notesMap[key] ? "var(--chart-dot-has-note-stroke)" : "var(--surface)";
+    };
+    const dotComp = (props) => {
+      const payload = props.payload;
+      if (payload && (payload.value == null || payload.value === '')) return null;
+      if (props.cx == null || props.cy == null || !Number.isFinite(Number(props.cx)) || !Number.isFinite(Number(props.cy))) return null;
+      return (
+        <circle
+          cx={props.cx}
+          cy={props.cy}
+          r={rDot}
+          fill={getDotFill(payload)}
+          stroke={getDotStroke(payload)}
+          strokeWidth={1}
+        />
+      );
+    };
     const activeDotComp = onDotClick
-      ? (props) => (
-          <circle
-            cx={props.cx}
-            cy={props.cy}
-            r={r}
-            fill="var(--accent)"
-            stroke="var(--surface)"
-            strokeWidth={1}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDotClick(props.payload);
-            }}
-            style={{ cursor: "pointer" }}
-          />
-        )
-      : { r, fill: "var(--accent)" };
+      ? (props) => {
+          const payload = props.payload;
+          if (payload && (payload.value == null || payload.value === '')) return null;
+          if (props.cx == null || props.cy == null || !Number.isFinite(Number(props.cx)) || !Number.isFinite(Number(props.cy))) return null;
+          return (
+            <circle
+              cx={props.cx}
+              cy={props.cy}
+              r={rActive}
+              fill={getDotFill(payload)}
+              stroke={getDotStroke(payload)}
+              strokeWidth={1}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDotClick(payload);
+              }}
+              style={{ cursor: "pointer" }}
+            />
+          );
+        }
+      : { r: rActive, fill: "var(--accent)" };
     return (
       <div
         className={
@@ -285,7 +316,7 @@ export default function ChartCell({
                 dataKey="value"
                 stroke="var(--accent)"
                 strokeWidth={compact ? 1.5 : 2}
-                dot={{ r: compact ? 2 : 4, fill: "var(--accent)" }}
+                dot={dotComp}
                 activeDot={activeDotComp}
                 connectNulls={true}
                 isAnimationActive={!compact}
@@ -324,7 +355,8 @@ export default function ChartCell({
     );
   };
 
-  const r = compact ? 3 : 6;
+  const rDot = compact ? 2 : 4;
+  const rActive = compact ? 3 : 6;
   return (
     <div
       className={
@@ -374,6 +406,17 @@ export default function ChartCell({
             />
             {seriesItems.map((s, i) => {
               const pointDate = s.date;
+              const seriesColor = SERIES_COLORS[i % SERIES_COLORS.length];
+              const getDotFillMulti = (payload) => {
+                if (!payload) return seriesColor;
+                const key = `${pointDate}|${getPointSlot(payload)}`;
+                return notesMap[key] ? "var(--chart-dot-has-note)" : seriesColor;
+              };
+              const getDotStrokeMulti = (payload) => {
+                if (!payload) return "var(--surface)";
+                const key = `${pointDate}|${getPointSlot(payload)}`;
+                return notesMap[key] ? "var(--chart-dot-has-note-stroke)" : "var(--surface)";
+              };
               const handleDotClick = (payload) => {
                 if (!onDotClick) return;
                 const pointSlot = getPointSlot(payload);
@@ -385,23 +428,45 @@ export default function ChartCell({
                   initialNote: notesMap[noteKey] ?? "",
                 });
               };
+              const dotCompMulti = (props) => {
+                const payload = props.payload;
+                const val = payload && payload[pointDate];
+                if (val == null || val === '') return null;
+                if (props.cx == null || props.cy == null || !Number.isFinite(Number(props.cx)) || !Number.isFinite(Number(props.cy))) return null;
+                return (
+                  <circle
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={rDot}
+                    fill={getDotFillMulti(payload)}
+                    stroke={getDotStrokeMulti(payload)}
+                    strokeWidth={1}
+                  />
+                );
+              };
               const activeDotComp = onDotClick
-                ? (props) => (
-                    <circle
-                      cx={props.cx}
-                      cy={props.cy}
-                      r={r}
-                      fill={SERIES_COLORS[i % SERIES_COLORS.length]}
-                      stroke="var(--surface)"
-                      strokeWidth={1}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDotClick(props.payload);
-                      }}
-                      style={{ cursor: "pointer" }}
-                    />
-                  )
-                : { r };
+                ? (props) => {
+                    const payload = props.payload;
+                    const val = payload && payload[pointDate];
+                    if (val == null || val === '') return null;
+                    if (props.cx == null || props.cy == null || !Number.isFinite(Number(props.cx)) || !Number.isFinite(Number(props.cy))) return null;
+                    return (
+                      <circle
+                        cx={props.cx}
+                        cy={props.cy}
+                        r={rActive}
+                        fill={getDotFillMulti(payload)}
+                        stroke={getDotStrokeMulti(payload)}
+                        strokeWidth={1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDotClick(payload);
+                        }}
+                        style={{ cursor: "pointer" }}
+                      />
+                    );
+                  }
+                : { r: rActive };
               return (
                 <Line
                   key={s.date}
@@ -410,7 +475,7 @@ export default function ChartCell({
                   name={s.date}
                   stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
                   strokeWidth={compact ? 1.5 : 2}
-                  dot={{ r: compact ? 2 : 4 }}
+                  dot={dotCompMulti}
                   activeDot={activeDotComp}
                   connectNulls={true}
                   isAnimationActive={!compact}
