@@ -3,37 +3,39 @@
   "name": "数据获取",
   "version": "1.0.5",
   "description": "获取生意参谋数据",
-  "permissions": [
-    "scripting",
-    "storage"
-  ],
+  "permissions": ["scripting", "storage", "tabs"],
   "host_permissions": [
     "https://sycm.taobao.com/*",
     "https://*.supabase.co/*"
   ],
-  "background": {
-    "service_worker": "background.js"
+  "icons": {
+    "32": "assets/favicon-32x32.png",
+    "48": "assets/favicon-32x32.png"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "数据获取"
+    "default_title": "数据获取",
+    "default_icon": {
+      "32": "assets/favicon-32x32.png"
+    }
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "inject.js"
-      ],
-      "matches": [
-        "https://sycm.taobao.com/*"
-      ]
+      "resources": ["constants/config.js", "inject.js"],
+      "matches": ["https://sycm.taobao.com/*"]
     }
   ],
   "content_scripts": [
     {
-      "matches": [
-        "https://sycm.taobao.com/*"
-      ],
+      "matches": ["https://sycm.taobao.com/*"],
       "js": [
+        "constants/defaults.js",
+        "constants/config.js",
+        "constants/supabase.js",
+        "utils/time.js",
+        "utils/supabase.js",
+        "utils/storage.js",
+        "utils/logger.js",
         "content.js"
       ],
       "run_at": "document_start",

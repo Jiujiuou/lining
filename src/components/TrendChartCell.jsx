@@ -6,8 +6,15 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  LabelList,
 } from 'recharts';
 import { getTrendYDomain, formatYTick, formatRate } from '../utils/chartHelpers';
+
+const NOTE_LABEL_MAX_LEN = 12;
+function truncateNote(str) {
+  if (!str || str.length <= NOTE_LABEL_MAX_LEN) return str;
+  return str.slice(0, NOTE_LABEL_MAX_LEN) + '…';
+}
 
 function TrendTooltip({ payload, active, isRate, actionCount, note }) {
   if (!active || !payload?.length) return null;
@@ -48,6 +55,25 @@ export default function TrendChartCell({
   const domain = getTrendYDomain(data, isRate);
   const pointSlot = '';
   const noteKey = (date) => `${date}|${pointSlot}`;
+  const renderNoteLabelContent = (props) => {
+    const { x, y, index } = props;
+    if (x == null || y == null || !Array.isArray(data) || index == null || index < 0 || index >= data.length) return null;
+    const payload = data[index];
+    if (payload == null) return null;
+    const date = payload.date;
+    const note = date ? notesMap[noteKey(date)] : null;
+    if (!note) return null;
+    return (
+      <text
+        x={Number(x)}
+        y={Number(y) - 14}
+        textAnchor="middle"
+        className="chart-point-note"
+      >
+        {truncateNote(note)}
+      </text>
+    );
+  };
   const renderTooltip = (props) => {
     const date = props.payload?.[0]?.payload?.date;
     const actionCount = date ? actionCountByDate?.[date] : undefined;
@@ -89,7 +115,7 @@ export default function TrendChartCell({
         style={!compact ? { height: 280 } : undefined}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, left: 10, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 24, right: 8, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis
               dataKey="date"
@@ -116,7 +142,9 @@ export default function TrendChartCell({
               activeDot={activeDotComp}
               connectNulls={true}
               isAnimationActive={!compact}
-            />
+            >
+              <LabelList content={renderNoteLabelContent} />
+            </Line>
           </LineChart>
         </ResponsiveContainer>
       </div>

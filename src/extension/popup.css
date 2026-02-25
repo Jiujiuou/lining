@@ -1,0 +1,214 @@
+/* 扩展弹窗 - 统一设计语言：清晰层级、一致圆角与阴影 */
+:root {
+  --popup-bg: #f2f5f4;
+  --popup-surface: #ffffff;
+  --popup-surface-hover: #fafbfb;
+  --popup-text: #1a242e;
+  --popup-text-muted: #5c6b7a;
+  --popup-accent: #0d9488;
+  --popup-accent-hover: #0b8278;
+  --popup-accent-soft: #ccfbf1;
+  --popup-border: #e2e8e6;
+  --popup-radius: 12px;
+  --popup-radius-sm: 8px;
+  --popup-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --popup-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --popup-shadow-hover: 0 4px 20px rgba(13, 148, 136, 0.15);
+  --popup-font: "Outfit", "Noto Sans SC", system-ui, sans-serif;
+  --popup-space: 16px;
+  --popup-space-sm: 10px;
+}
+
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  min-height: 280px;
+  padding: 0;
+  font-family: var(--popup-font);
+  font-size: 14px;
+  color: var(--popup-text);
+  background: var(--popup-bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+}
+
+/* ---------- 区块通用 ---------- */
+.popup-section {
+  display: flex;
+  flex-direction: column;
+  padding: var(--popup-space);
+  background: var(--popup-surface);
+  border-bottom: 1px solid var(--popup-border);
+}
+
+.popup-section:last-of-type {
+  flex: 1;
+  border-bottom: none;
+  min-height: 0;
+}
+
+/* ---------- 主操作：打开生意参谋 ---------- */
+.popup-section--open-links {
+  padding: var(--popup-space) var(--popup-space) calc(var(--popup-space) + 2px);
+}
+
+.popup-open-sites {
+  width: 100%;
+  padding: 12px var(--popup-space);
+  font-family: var(--popup-font);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--popup-surface);
+  background: var(--popup-accent);
+  border: none;
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  box-shadow: var(--popup-shadow-sm);
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+
+.popup-open-sites:hover {
+  background: var(--popup-accent-hover);
+  box-shadow: var(--popup-shadow-hover);
+}
+
+.popup-open-sites:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--popup-accent-soft);
+}
+
+.popup-open-sites:active {
+  transform: scale(0.99);
+}
+
+/* ---------- 扩展日志区块 ---------- */
+.popup-section--logs {
+  gap: var(--popup-space-sm);
+  min-height: 200px;
+}
+
+.popup-logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--popup-space-sm);
+}
+
+.popup-logs-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--popup-text);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.popup-logs-clear {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font-family: var(--popup-font);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--popup-text-muted);
+  background: var(--popup-surface);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.popup-logs-clear:hover {
+  color: var(--popup-accent);
+  border-color: var(--popup-accent);
+  background: var(--popup-accent-soft);
+}
+
+.popup-logs-clear:focus {
+  outline: none;
+  border-color: var(--popup-accent);
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+/* ---------- 日志列表容器 ---------- */
+.popup-logs-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 160px;
+  max-height: 340px;
+  padding: var(--popup-space-sm);
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.popup-logs-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- 单条日志卡片 ---------- */
+.popup-log-card {
+  padding: 10px 12px;
+  background: var(--popup-surface);
+  border-radius: var(--popup-radius-sm);
+  box-shadow: var(--popup-shadow-sm);
+  border: 1px solid var(--popup-border);
+  transition: box-shadow 0.15s ease;
+}
+
+.popup-log-card:hover {
+  box-shadow: var(--popup-shadow);
+}
+
+.popup-log-entry {
+  word-break: break-word;
+}
+
+.popup-log-entry--log {
+  color: var(--popup-text);
+}
+
+.popup-log-entry--warn {
+  color: #b45309;
+}
+
+.popup-log-entry--error {
+  color: #b91c1c;
+}
+
+.popup-log-time {
+  color: var(--popup-text-muted);
+  margin-right: 8px;
+  font-size: 0.75em;
+  font-weight: bolder;
+  color: var(--popup-accent);
+}
+
+/* 暂无日志：与日志卡片同风格，弱化视觉权重 */
+.popup-log-card--empty {
+  color: var(--popup-text-muted);
+  text-align: center;
+  font-size: 0.9em;
+}

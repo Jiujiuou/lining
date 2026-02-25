@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Legend,
+  LabelList,
 } from "recharts";
 import {
   getChartData,
@@ -104,6 +105,35 @@ function getPointSlot(payload) {
   if (payload.time != null) return String(payload.time);
   if (payload.x != null) return String(payload.x);
   return "";
+}
+
+const NOTE_LABEL_MAX_LEN = 12;
+function truncateNote(str) {
+  if (!str || str.length <= NOTE_LABEL_MAX_LEN) return str;
+  return str.slice(0, NOTE_LABEL_MAX_LEN) + "…";
+}
+
+/** 在数据点旁渲染备注文案（仅当该点有备注时）。用 index + data 取 payload，因 Recharts LabelList 未必把 payload 传给 content。 */
+function renderNoteLabel(pointDate, notesMap, getSlot, data) {
+  return function NoteLabelContent(props) {
+    const { x, y, index } = props;
+    if (x == null || y == null || !Array.isArray(data) || index == null || index < 0 || index >= data.length) return null;
+    const payload = data[index];
+    if (payload == null) return null;
+    const key = `${pointDate}|${getSlot(payload)}`;
+    const note = notesMap[key];
+    if (!note) return null;
+    return (
+      <text
+        x={Number(x)}
+        y={Number(y) - 14}
+        textAnchor="middle"
+        className="chart-point-note"
+      >
+        {truncateNote(note)}
+      </text>
+    );
+  };
 }
 
 export default function ChartCell({
@@ -227,7 +257,7 @@ export default function ChartCell({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={data}
-              margin={{ top: 8, right: 8, left: 10, bottom: 0 }}
+              margin={{ top: 24, right: 8, left: 10, bottom: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis
@@ -259,7 +289,11 @@ export default function ChartCell({
                 activeDot={activeDotComp}
                 connectNulls={true}
                 isAnimationActive={!compact}
-              />
+              >
+                <LabelList
+                  content={renderNoteLabel(pointDate, notesMap, getPointSlot, data)}
+                />
+              </Line>
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -312,11 +346,11 @@ export default function ChartCell({
         }
         style={!compact ? { height: 280 } : undefined}
       >
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={data}
-            margin={{ top: 8, right: 8, left: 10, bottom: compact ? 20 : 28 }}
-          >
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={data}
+              margin={{ top: 24, right: 8, left: 10, bottom: compact ? 20 : 28 }}
+            >
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis
               dataKey={dataKey}
@@ -380,7 +414,16 @@ export default function ChartCell({
                   activeDot={activeDotComp}
                   connectNulls={true}
                   isAnimationActive={!compact}
-                />
+                >
+                  <LabelList
+                    content={renderNoteLabel(
+                      s.date,
+                      notesMap,
+                      getPointSlot,
+                      data
+                    )}
+                  />
+                </Line>
               );
             })}
             <Legend

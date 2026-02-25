@@ -595,7 +595,6 @@ function App() {
                   actionCountByDate={trendActionCountByDate}
                   compact
                   chartKey={cell.key}
-                  onDotClick={(ctx) => setNoteModal(ctx)}
                   notesMap={chartNotes[cell.key] ?? {}}
                   onClick={() => setEnlargedIndex(i)}
                 />
@@ -613,7 +612,6 @@ function App() {
                   compact
                   chartKey={cell.key}
                   currentDate={selectedDates[0]}
-                  onDotClick={(ctx) => setNoteModal(ctx)}
                   notesMap={chartNotes[cell.key] ?? {}}
                   detailPoints20m={
                     dataSource === 'supabase' && cell.key === '小贝壳-商品加购件数' && selectedDates[0]

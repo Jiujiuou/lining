@@ -310,6 +310,15 @@
   cursor: pointer;
 }
 
+/* 数据点旁的备注文案（常显，非 tooltip） */
+.chart-point-note {
+  fill: var(--text-muted);
+  font-size: 10px;
+  font-family: inherit;
+  user-select: none;
+  pointer-events: none;
+}
+
 .chart-tooltip {
   background: var(--surface);
   border-radius: var(--radius-sm);

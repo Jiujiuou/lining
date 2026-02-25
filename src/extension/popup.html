@@ -1,44 +1,43 @@
 <!doctype html>
-<!--
-  popup.html - 扩展点击工具栏图标时弹出的页面
-  当前仅展示标题「数据获取」，无交互逻辑。
-  若需在弹窗中配置 Supabase、开关上报等，可在此页增加表单并配合 background/content 通信。
--->
-<html>
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <style>
-      /* 弹窗固定宽度，避免过宽 */
-      body {
-        width: 280px;
-        padding: 12px;
-        font-family: sans-serif;
-        font-size: 13px;
-        margin: 0;
-      }
-      h3 {
-        margin: 0 0 8px 0;
-        font-size: 14px;
-      }
-      p {
-        margin: 0 0 8px 0;
-        line-height: 1.5;
-        color: #333;
-      }
-      code {
-        background: #f0f0f0;
-        padding: 1px 4px;
-        border-radius: 2px;
-      }
-      .tip {
-        font-size: 12px;
-        color: #666;
-        margin-top: 12px;
-      }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>数据获取</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <h3>数据获取</h3>
+    <div class="popup">
+      <section class="popup-section popup-section--open-links">
+        <button type="button" id="open-sites" class="popup-open-sites">
+          打开生意参谋页面
+        </button>
+      </section>
+
+      <section class="popup-section popup-section--logs">
+        <header class="popup-logs-header">
+          <h2 class="popup-logs-title">扩展日志</h2>
+          <button type="button" id="logs-clear" class="popup-logs-clear" aria-label="清空扩展日志">
+            清空
+          </button>
+        </header>
+        <div
+          id="logs-list"
+          class="popup-logs-list"
+          role="log"
+          aria-live="polite"
+        ></div>
+      </section>
+    </div>
+    <script src="constants/defaults.js"></script>
+    <script src="utils/storage.js"></script>
+    <script src="utils/logger.js"></script>
+    <script src="popup.js"></script>
   </body>
 </html>
-
