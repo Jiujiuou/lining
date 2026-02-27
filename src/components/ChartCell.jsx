@@ -159,9 +159,7 @@ export default function ChartCell({
 
   const first = items[0];
   const isRate = first.isRate;
-  const title = isRate
-    ? `${first.category} - ${first.subCategory} %`
-    : `${first.category} - ${first.subCategory}`;
+  const title = isRate ? `${first.subCategory} %` : first.subCategory;
 
   const single = seriesItem || first;
   const useSlots =

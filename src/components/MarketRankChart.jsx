@@ -7,8 +7,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Legend,
-} from 'recharts';
-import { SERIES_COLORS } from '../utils/chartHelpers';
+} from "recharts";
+import { SERIES_COLORS } from "../utils/chartHelpers";
 
 function RankTooltip({ payload, active, shopNames }) {
   if (!active || !payload?.length) return null;
@@ -20,7 +20,9 @@ function RankTooltip({ payload, active, shopNames }) {
       {shopNames.map((name) => (
         <div key={name} className="chart-tooltip-row">
           <span className="chart-tooltip-date">{name}</span>
-          <span className="chart-tooltip-value">{p[name] != null ? `第 ${p[name]} 名` : '—'}</span>
+          <span className="chart-tooltip-value">
+            {p[name] != null ? `第 ${p[name]} 名` : "—"}
+          </span>
         </div>
       ))}
     </div>
@@ -49,7 +51,10 @@ export default function MarketRankChart({ data, shopNames, compact = false }) {
     return (
       <div className="chart-cell chart-cell--compact">
         <div className="chart-cell-title">市场排名</div>
-        <div className="chart-cell-chart-wrap" style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          className="chart-cell-chart-wrap"
+          style={{ alignItems: "center", justifyContent: "center" }}
+        >
           <span className="chart-empty-hint">暂无排名数据</span>
         </div>
       </div>
@@ -57,20 +62,31 @@ export default function MarketRankChart({ data, shopNames, compact = false }) {
   }
   const domain = getRankYDomain(data, shopNames);
   const tickFormatter = (recorded_at) => {
-    if (!recorded_at || typeof recorded_at !== 'string') return '';
-    const part = recorded_at.indexOf(':') >= 0 ? recorded_at.split(':').slice(1).join(':') : recorded_at;
+    if (!recorded_at || typeof recorded_at !== "string") return "";
+    const part =
+      recorded_at.indexOf(":") >= 0
+        ? recorded_at.split(":").slice(1).join(":")
+        : recorded_at;
     return part.length > 8 ? part.slice(0, 8) : part;
   };
 
   return (
-    <div className={`chart-cell ${compact ? 'chart-cell--compact' : 'chart-cell--large'}`} style={compact ? {} : { gridColumn: '1 / -1' }}>
+    <div
+      className={`chart-cell ${compact ? "chart-cell--compact" : "chart-cell--large"}`}
+      style={compact ? {} : { gridColumn: "1 / -1" }}
+    >
       <div className="chart-cell-title">市场排名（数字越小越靠前）</div>
       <div
-        className={compact ? 'chart-cell-chart-wrap' : 'chart-cell-chart-wrap-large'}
+        className={
+          compact ? "chart-cell-chart-wrap" : "chart-cell-chart-wrap-large"
+        }
         style={!compact ? { height: 280 } : undefined}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, left: 10, bottom: 0 }}>
+          <LineChart
+            data={data}
+            margin={{ top: 8, right: 8, left: 10, bottom: 0 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis
               dataKey="recorded_at"
@@ -84,8 +100,10 @@ export default function MarketRankChart({ data, shopNames, compact = false }) {
               reversed
             />
             <Tooltip
-              content={(props) => <RankTooltip {...props} shopNames={shopNames} />}
-              cursor={{ stroke: 'var(--accent)', strokeWidth: 1 }}
+              content={(props) => (
+                <RankTooltip {...props} shopNames={shopNames} />
+              )}
+              cursor={{ stroke: "var(--accent)", strokeWidth: 1 }}
             />
             <Legend />
             {shopNames.map((name, i) => (
@@ -97,7 +115,15 @@ export default function MarketRankChart({ data, shopNames, compact = false }) {
                 stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
                 strokeWidth={compact ? 1.5 : 2}
                 dot={{ r: compact ? 2 : 4 }}
-                activeDot={{ r: compact ? 3 : 6, onClick: (data, index) => console.log('MarketRankChart 高亮点点击', { data, index, shop: name }) }}
+                activeDot={{
+                  r: compact ? 3 : 6,
+                  onClick: (data, index) =>
+                    console.log("MarketRankChart 高亮点点击", {
+                      data,
+                      index,
+                      shop: name,
+                    }),
+                }}
                 connectNulls
                 isAnimationActive={!compact}
               />

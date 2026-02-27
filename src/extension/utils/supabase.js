@@ -82,9 +82,62 @@ function batchSendToSupabase(tableName, records, credentials, opts) {
   });
 }
 
+/**
+ * 调用 merge_goods_detail_slot_log RPC，按 (item_id, slot_ts) 合并写入
+ * @param {object} row - 至少含 item_id, slot_ts；其余列可选（只更新传入的）
+ * @param {{ url: string, anonKey: string }} credentials
+ * @param {{ prefix?: string, logger?: { appendLog: function(string, string) } }} opts
+ */
+function mergeGoodsDetailSlot(row, credentials, opts) {
+  var prefix = opts && opts.prefix ? opts.prefix + ' ' : '';
+  var logger = opts && opts.logger;
+  if (!credentials || !credentials.url || !credentials.anonKey) {
+    if (logger) logger.appendLog('warn', prefix + '未配置 SUPABASE，跳过 merge');
+    return Promise.resolve();
+  }
+  var url = credentials.url.replace(/\/$/, '') + '/rest/v1/rpc/merge_goods_detail_slot_log';
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': credentials.anonKey,
+      'Authorization': 'Bearer ' + credentials.anonKey,
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({ p_row: row })
+  }).then(function (res) {
+    if (res.ok) {
+      if (logger) logger.appendLog('log', prefix + '已 merge goods_detail_slot_log');
+      return { ok: true };
+    }
+    return res.text().then(function (t) {
+      if (logger) logger.appendLog('warn', prefix + 'merge_goods_detail_slot_log 失败 ' + res.status + ' ' + t);
+      return { ok: false };
+    });
+  }).catch(function (err) {
+    if (logger) logger.appendLog('warn', prefix + 'merge RPC 请求异常 ' + String(err));
+    return { ok: false };
+  });
+}
+
+/**
+ * 批量 merge（多商品加购时逐条调用 RPC）
+ * @param {object[]} rows - 每项含 item_id, slot_ts 及要写入的列
+ */
+function mergeGoodsDetailSlotBatch(rows, credentials, opts) {
+  if (!Array.isArray(rows) || rows.length === 0) return Promise.resolve({ ok: true });
+  var p = Promise.resolve();
+  rows.forEach(function (row) {
+    p = p.then(function () { return mergeGoodsDetailSlot(row, credentials, opts); });
+  });
+  return p.then(function (last) { return last; });
+}
+
 (function (global) {
   (typeof globalThis !== 'undefined' ? globalThis : global).__SYCM_SUPABASE_UTIL__ = {
     sendToSupabase: sendToSupabase,
-    batchSendToSupabase: batchSendToSupabase
+    batchSendToSupabase: batchSendToSupabase,
+    mergeGoodsDetailSlot: mergeGoodsDetailSlot,
+    mergeGoodsDetailSlotBatch: mergeGoodsDetailSlotBatch
   };
 })();

@@ -1,0 +1,435 @@
+{
+  "traceId": "213e049f17720919499453743e10d1",
+  "code": 0,
+  "message": "操作成功",
+  "data": {
+    "updateTime": "2026-02-26 15:45:50",
+    "interval": 30,
+    "data": {
+      "recordCount": 5,
+      "data": [
+        {
+          "statDate": {
+            "value": 1772035200000
+          },
+          "item": {
+            "itemId": "917619860130",
+            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i2\/2212656730171\/O1CN01KEGEX51D8MqqH8Bkj_!!4611686018427383867-2-item_pic.png",
+            "isOnline": true,
+            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=917619860130&amp;mi_id=8b3If-D0EeNmx-SRcSFmR_2so01LSkyMA1X4T6ok7h0PXq6kzKwS-jXnRv_kstBGYhtG8StNTo3Xk-Mc8MAUzg",
+            "title": "【papi酱同款】图拉斯Yoga鹅卵石挂包充电宝3C认证可上飞机2026新款快充适用苹果17伸缩线便携大容量移动电源"
+          },
+          "payByrCnt": {
+            "cycleCrc": -0.0434782609,
+            "value": 22
+          },
+          "itemTag": "池",
+          "payRate": {
+            "cycleCrc": 0.0858542560,
+            "value": 0.002694427434170239
+          },
+          "hasSku": true,
+          "taoSeUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "hasCrowd": {
+            "value": true
+          },
+          "itemCartByrCnt": {
+            "cycleCrc": -0.1523178808,
+            "value": 128
+          },
+          "isTmallNewItem": false,
+          "payAmt": {
+            "cycleCrc": -0.0484889254,
+            "value": 7892.87
+          },
+          "taoRecUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "itemCartCnt": {
+            "cycleCrc": -0.1401273885,
+            "value": 135
+          },
+          "itemId": {
+            "cycleCrc": 0E-10,
+            "value": "917619860130"
+          },
+          "itemCltByrCnt": {
+            "cycleCrc": -0.8914141414,
+            "value": 43
+          },
+          "sellerId": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "payItmCnt": {
+            "cycleCrc": -0.0800000000,
+            "value": 23
+          },
+          "payPct": {
+            "cycleCrc": -0.0052384580,
+            "value": 358.76681818181817
+          },
+          "itmPv": {
+            "cycleCrc": -0.2401778604,
+            "value": 11449
+          },
+          "visitCartRate": {
+            "cycleCrc": -0.0377017069,
+            "value": 0.01567666870789957
+          },
+          "itemStatus": "当前在线",
+          "isMonitored": true,
+          "itmUv": {
+            "cycleCrc": -0.1191066998,
+            "value": 8165
+          },
+          "visitCltRate": {
+            "cycleCrc": -0.8767321098,
+            "value": 0.005266380894060012
+          }
+        },
+        {
+          "statDate": {
+            "value": 1772035200000
+          },
+          "item": {
+            "itemId": "668180737814",
+            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i1\/2212656730171\/O1CN01JLrYiT1D8Mqt7qINK_!!4611686018427383867-2-item_pic.png",
+            "isOnline": true,
+            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=668180737814&amp;mi_id=sZzBLw6B5e5WgjqJ7Ie2Vth0Sn5wuh5M6dF1R6yIoLZHGBLBsj_PTRI9vYp3foF2h5FRETqmHnnceFmaK_PMrg",
+            "title": "图拉斯小云团插座插排USB排插线板床头宿舍多功能扩展充电转换器"
+          },
+          "payByrCnt": {
+            "cycleCrc": 0.0270270270,
+            "value": 38
+          },
+          "itemTag": "池,插排",
+          "payRate": {
+            "cycleCrc": 0.2604508309,
+            "value": 0.006976317238847072
+          },
+          "hasSku": true,
+          "taoSeUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "hasCrowd": {
+            "value": true
+          },
+          "itemCartByrCnt": {
+            "cycleCrc": -0.3081395349,
+            "value": 238
+          },
+          "isTmallNewItem": false,
+          "payAmt": {
+            "cycleCrc": 0.0881950633,
+            "value": 10501.3
+          },
+          "taoRecUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "itemCartCnt": {
+            "cycleCrc": -0.3025210084,
+            "value": 249
+          },
+          "itemId": {
+            "cycleCrc": 0E-10,
+            "value": "668180737814"
+          },
+          "itemCltByrCnt": {
+            "cycleCrc": -0.9013867488,
+            "value": 64
+          },
+          "sellerId": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "payItmCnt": {
+            "cycleCrc": 0.0270270270,
+            "value": 38
+          },
+          "payPct": {
+            "cycleCrc": 0.0595584170,
+            "value": 276.34999999999997
+          },
+          "itmPv": {
+            "cycleCrc": -0.2519859729,
+            "value": 10452
+          },
+          "visitCartRate": {
+            "cycleCrc": -0.1508927466,
+            "value": 0.04369377639067377
+          },
+          "itemStatus": "当前在线",
+          "isMonitored": true,
+          "itmUv": {
+            "cycleCrc": -0.1851907255,
+            "value": 5447
+          },
+          "visitCltRate": {
+            "cycleCrc": -0.8789738234,
+            "value": 0.011749586928584542
+          }
+        },
+        {
+          "statDate": {
+            "value": 1772035200000
+          },
+          "item": {
+            "itemId": "991144862513",
+            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i1\/2212656730171\/O1CN01sN8oZx1D8MqrhtsAs_!!4611686018427383867-2-item_pic.png",
+            "isOnline": true,
+            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=991144862513&amp;mi_id=P5ZL2t-Nti4TDpQ0IM8_yJvwAtqkopQzBKwVSQAdHkgALL8HokN0eS73WN-SMuaK3NzDgm1bGiFp4x5uvo7OLQ",
+            "title": "图拉斯20000毫安小方块充电宝2026新款3C认证可上飞机快充大容量45W双线超薄小巧移动电源适用苹果17华为官方"
+          },
+          "payByrCnt": {
+            "cycleCrc": -0.2571428571,
+            "value": 26
+          },
+          "itemTag": "池",
+          "payRate": {
+            "cycleCrc": 0.2930241976,
+            "value": 0.01842664776754075
+          },
+          "hasSku": true,
+          "taoSeUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "hasCrowd": {
+            "value": true
+          },
+          "itemCartByrCnt": {
+            "cycleCrc": -0.2906976744,
+            "value": 122
+          },
+          "isTmallNewItem": false,
+          "payAmt": {
+            "cycleCrc": -0.2978671860,
+            "value": 10288.97
+          },
+          "taoRecUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "itemCartCnt": {
+            "cycleCrc": -0.2857142857,
+            "value": 130
+          },
+          "itemId": {
+            "cycleCrc": 0E-10,
+            "value": "991144862513"
+          },
+          "itemCltByrCnt": {
+            "cycleCrc": -0.2727272727,
+            "value": 24
+          },
+          "sellerId": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "payItmCnt": {
+            "cycleCrc": -0.2972972973,
+            "value": 26
+          },
+          "payPct": {
+            "cycleCrc": -0.0548212442,
+            "value": 395.7296153846154
+          },
+          "itmPv": {
+            "cycleCrc": -0.4356123772,
+            "value": 3046
+          },
+          "visitCartRate": {
+            "cycleCrc": 0.2346183640,
+            "value": 0.08646350106307583
+          },
+          "itemStatus": "当前在线",
+          "isMonitored": true,
+          "itmUv": {
+            "cycleCrc": -0.4254885993,
+            "value": 1411
+          },
+          "visitCltRate": {
+            "cycleCrc": 0.2658978159,
+            "value": 0.01700921332388377
+          }
+        },
+        {
+          "statDate": {
+            "value": 1772035200000
+          },
+          "item": {
+            "itemId": "1017849608938",
+            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i3\/2212656730171\/O1CN014GmKgw1D8MqqHH9hS_!!4611686018427383867-2-item_pic.png",
+            "isOnline": true,
+            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=1017849608938&amp;mi_id=eQXygm8kB_bWsiQz3W3frHiIRlOQaBhuYg5r6jnvdOAf55Rgmp0C6Tfv23D1zxFClxwD52PePZuMEfSyDnAwdA",
+            "title": "图拉斯小贝壳充电宝3C认证可上飞机2026新款小巧便携移动电源45W快充大容量适用苹果17华为手机自带线旗舰店"
+          },
+          "payByrCnt": {
+            "cycleCrc": 0.3076923077,
+            "value": 17
+          },
+          "itemTag": "池",
+          "payRate": {
+            "cycleCrc": 0.4660741649,
+            "value": 0.013545816733067729
+          },
+          "hasSku": true,
+          "taoSeUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "hasCrowd": {
+            "value": true
+          },
+          "itemCartByrCnt": {
+            "cycleCrc": -0.0281690141,
+            "value": 69
+          },
+          "isTmallNewItem": false,
+          "payAmt": {
+            "cycleCrc": 0.1534932323,
+            "value": 7064.8
+          },
+          "taoRecUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "itemCartCnt": {
+            "cycleCrc": 0.0273972603,
+            "value": 75
+          },
+          "itemId": {
+            "cycleCrc": 0E-10,
+            "value": "1017849608938"
+          },
+          "itemCltByrCnt": {
+            "cycleCrc": 0.3750000000,
+            "value": 11
+          },
+          "sellerId": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "payItmCnt": {
+            "cycleCrc": 0.1333333333,
+            "value": 17
+          },
+          "payPct": {
+            "cycleCrc": -0.1179169976,
+            "value": 415.5764705882353
+          },
+          "itmPv": {
+            "cycleCrc": -0.1475866337,
+            "value": 2755
+          },
+          "visitCartRate": {
+            "cycleCrc": 0.0895348185,
+            "value": 0.0549800796812749
+          },
+          "itemStatus": "当前在线",
+          "isMonitored": true,
+          "itmUv": {
+            "cycleCrc": -0.1080312722,
+            "value": 1255
+          },
+          "visitCltRate": {
+            "cycleCrc": 0.5415338645,
+            "value": 0.008764940239043825
+          }
+        },
+        {
+          "statDate": {
+            "value": 1772035200000
+          },
+          "item": {
+            "itemId": "829860764248",
+            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i2\/2212656730171\/O1CN01Nfa5mR1D8MqqbQYhX_!!4611686018427383867-2-item_pic.png",
+            "isOnline": true,
+            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=829860764248&amp;mi_id=yEFajXUHbLt5nP5EttxVrkUcYKoiHzQILegaHo8HlHjgXkYSIwAYRSSCvb-cSwsK6lRBsTh7Q5P3gxsv-1qceQ",
+            "title": "图拉斯20000毫安双线小冰片45W充电宝快充大容量2026新款3C认证可上飞机适用苹果17超薄小巧便携移动电源官方"
+          },
+          "payByrCnt": {
+            "cycleCrc": null,
+            "value": 6
+          },
+          "itemTag": "池,售后全店充电宝",
+          "payRate": {
+            "cycleCrc": null,
+            "value": 0.0125
+          },
+          "hasSku": true,
+          "taoSeUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "hasCrowd": {
+            "value": true
+          },
+          "itemCartByrCnt": {
+            "cycleCrc": 0.1923076923,
+            "value": 31
+          },
+          "isTmallNewItem": false,
+          "payAmt": {
+            "cycleCrc": null,
+            "value": 2046.7
+          },
+          "taoRecUv": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "itemCartCnt": {
+            "cycleCrc": 0.2307692308,
+            "value": 32
+          },
+          "itemId": {
+            "cycleCrc": 0E-10,
+            "value": "829860764248"
+          },
+          "itemCltByrCnt": {
+            "cycleCrc": -0.6666666667,
+            "value": 3
+          },
+          "sellerId": {
+            "cycleCrc": -1.0000000000,
+            "value": 0
+          },
+          "payItmCnt": {
+            "cycleCrc": null,
+            "value": 6
+          },
+          "payPct": {
+            "cycleCrc": null,
+            "value": 341.1166666666667
+          },
+          "itmPv": {
+            "cycleCrc": 0.0489130435,
+            "value": 965
+          },
+          "visitCartRate": {
+            "cycleCrc": 0.2618589744,
+            "value": 0.06458333333333334
+          },
+          "itemStatus": "当前在线",
+          "isMonitored": true,
+          "itmUv": {
+            "cycleCrc": -0.0551181102,
+            "value": 480
+          },
+          "visitCltRate": {
+            "cycleCrc": -0.6472222222,
+            "value": 0.00625
+          }
+        }
+      ]
+    },
+    "timestamp": 1772091950174
+  }
+}

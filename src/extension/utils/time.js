@@ -32,7 +32,19 @@ function toCreatedAtISO(recordedAt) {
   return s;
 }
 
+/**
+ * 从 recordedAt 算出 20 分钟槽的 slot_ts（ISO，供 goods_detail_slot_log upsert）
+ * @param {string} recordedAtStr - "YYYY-MM-DD:HH:mm:ss"
+ * @param {number} throttleMinutes - 节流粒度（建议 20）
+ * @returns {string} "YYYY-MM-DDTHH:mm:00+08:00" 槽起点
+ */
+function getSlotTsISO(recordedAtStr, throttleMinutes) {
+  var slotKey = getSlotKey(recordedAtStr, throttleMinutes);
+  if (!slotKey) return '';
+  return slotKey.slice(0, 10) + 'T' + slotKey.slice(11) + ':00+08:00';
+}
+
 (function (global) {
-  var obj = { getSlotKey: getSlotKey, toCreatedAtISO: toCreatedAtISO };
+  var obj = { getSlotKey: getSlotKey, toCreatedAtISO: toCreatedAtISO, getSlotTsISO: getSlotTsISO };
   (typeof globalThis !== 'undefined' ? globalThis : global).__SYCM_TIME__ = obj;
 })();

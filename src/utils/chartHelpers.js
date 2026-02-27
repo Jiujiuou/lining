@@ -159,27 +159,3 @@ export function getDayAggregate(valuesOrSlotValues) {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
-/**
- * 按日趋势 data：dates 内每个日期的该指标汇总值 → [{ date, value }]
- */
-export function getTrendData(byDate, dates, category, subCategory, isRate) {
-  return dates.map((date) => {
-    const day = byDate[date];
-    const s = day?.series?.find((x) => x.category === category && x.subCategory === subCategory);
-    const value = s ? getDayAggregate(s.slotValues ?? s.values) : null;
-    return { date, value };
-  });
-}
-
-/**
- * 趋势图 Y 轴 domain
- */
-export function getTrendYDomain(data, isRate) {
-  const vals = data.map((d) => d.value).filter((v) => v != null && Number.isFinite(v));
-  if (vals.length === 0) return [0, 10];
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  if (isRate) return [0, max * 1.1];
-  const span = max - min || 1;
-  return [min - span * 0.05, max + span * 0.05];
-}

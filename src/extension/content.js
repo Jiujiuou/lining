@@ -27,9 +27,12 @@
   var logOpts = logger ? { prefix: PREFIX, logger: logger } : null;
 
   var getSlotKey = timeUtil.getSlotKey;
+  var getSlotTsISO = timeUtil.getSlotTsISO;
   var toCreatedAtISO = timeUtil.toCreatedAtISO;
   var sendToSupabase = supabaseUtil.sendToSupabase;
   var batchSendToSupabase = supabaseUtil.batchSendToSupabase;
+  var mergeGoodsDetailSlot = supabaseUtil.mergeGoodsDetailSlot;
+  var mergeGoodsDetailSlotBatch = supabaseUtil.mergeGoodsDetailSlotBatch;
   var getThrottleMinutes = storageUtil.getThrottleMinutes;
   var setLastSlot = storageUtil.setLastSlot;
   var setLastWrite = storageUtil.setLastWrite;
@@ -39,8 +42,59 @@
     var recordedAt = String(d.recordedAt);
     var slotKey = getSlotKey(recordedAt, throttleMinutes);
     if (!slotKey) return;
-    var storageKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName;
 
+    if (sink.mergeGoodsDetail) {
+      var slotTs = getSlotTsISO(recordedAt, throttleMinutes);
+      if (!slotTs) return;
+      var storageKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName + (d.itemId ? '_' + d.itemId : '');
+      chrome.storage.local.get([storageKey], function (result) {
+        var lastSlot = result[storageKey];
+        if (lastSlot === slotKey) {
+          if (logger) logger.log(PREFIX + ' 已捕获 [' + sink.eventName + ']，未写入（本时段已写入过）');
+          return;
+        }
+        if (sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
+          var rows = d.payload.items.map(function (item) {
+            return {
+              item_id: item.item_id,
+              slot_ts: slotTs,
+              item_name: item.item_name || null,
+              item_cart_cnt: item.item_cart_cnt != null ? item.item_cart_cnt : null
+            };
+          });
+          mergeGoodsDetailSlotBatch(rows, credentials, logOpts).then(function (res) {
+            if (res && res.ok) {
+              setLastSlot(sink.eventName, slotKey, function () { });
+              setLastWrite({ at: new Date().toISOString(), slotKey: slotKey, eventName: sink.eventName }, function () { });
+              if (logger) logger.log(PREFIX + ' 已捕获 [多商品加购]，已 merge ' + rows.length + ' 条');
+            }
+          });
+        } else {
+          if (!d.itemId) {
+            if (logger) logger.warn(PREFIX + ' 详情数据缺少 itemId，跳过');
+            return;
+          }
+          var row = {
+            item_id: d.itemId,
+            slot_ts: slotTs,
+            search_uv: d.payload && d.payload.search_uv != null ? d.payload.search_uv : null,
+            search_pay_rate: d.payload && d.payload.search_pay_rate != null ? d.payload.search_pay_rate : null,
+            cart_uv: d.payload && d.payload.cart_uv != null ? d.payload.cart_uv : null,
+            cart_pay_rate: d.payload && d.payload.cart_pay_rate != null ? d.payload.cart_pay_rate : null
+          };
+          mergeGoodsDetailSlot(row, credentials, logOpts).then(function (res) {
+            if (res && res.ok) {
+              setLastSlot(sink.eventName + '_' + d.itemId, slotKey, function () { });
+              setLastWrite({ at: new Date().toISOString(), slotKey: slotKey, eventName: sink.eventName }, function () { });
+              if (logger) logger.log(PREFIX + ' 已捕获 [详情]，已 merge item ' + d.itemId);
+            }
+          });
+        }
+      });
+      return;
+    }
+
+    var storageKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName;
     chrome.storage.local.get([storageKey], function (result) {
       var lastSlot = result[storageKey];
       if (lastSlot === slotKey) {
@@ -116,15 +170,17 @@
 
   // ========== 仅通过 script 注入：先 config 再 inject ==========
   try {
-    if (logger) logger.log(PREFIX + ' content script 已加载，已注册 ' + PIPELINES.length + ' 个上报');
+    var pageUrl = typeof document !== 'undefined' && document.location ? document.location.href : '';
+    if (logger) logger.log(PREFIX + ' content 已加载，当前页: ' + (pageUrl.slice(0, 60) || '') + (pageUrl.length > 60 ? '...' : '') + '，将注入 config + inject');
     var configScript = document.createElement('script');
     configScript.src = chrome.runtime.getURL('constants/config.js');
     configScript.onload = function () {
       this.remove();
+      if (logger) logger.log(PREFIX + ' config.js 已加载，正在注入 inject.js 到页面主世界');
       var injectScript = document.createElement('script');
       injectScript.src = chrome.runtime.getURL('inject.js');
       injectScript.onload = function () { this.remove(); };
-      injectScript.onerror = function () { if (logger) logger.warn(PREFIX + ' inject.js 加载失败'); };
+      injectScript.onerror = function () { if (logger) logger.warn(PREFIX + ' inject.js 加载失败，请检查扩展资源'); };
       (document.head || document.documentElement).appendChild(injectScript);
     };
     configScript.onerror = function () { if (logger) logger.warn(PREFIX + ' constants/config.js 加载失败'); };

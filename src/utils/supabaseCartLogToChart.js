@@ -304,3 +304,115 @@ export function mergeCartAndFlowChartData(cartData, flowData) {
   });
   return { dates, byDate };
 }
+
+// ========== goods_detail_slot_log：按 (item_id, slot_ts) 的宽表 ==========
+/** 从 slot_ts (timestamptz) 解析东八区 dateStr 与 slotIndex (0～45) */
+function parseSlotTsToDateAndSlot(slotTs) {
+  if (slotTs == null) return null;
+  const s = typeof slotTs === 'string' ? slotTs.trim() : (slotTs && slotTs.toISOString ? slotTs.toISOString() : String(slotTs));
+  if (s.length < 16) return null;
+  return parseISOToEast8DateAndSlot(s);
+}
+
+/**
+ * 将 goods_detail_slot_log 行（同一商品）转为与 mergeCartAndFlowChartData 一致的结构
+ * @param {Array<{ item_id, slot_ts, item_name?, item_cart_cnt?, search_uv?, search_pay_rate?, cart_uv?, cart_pay_rate? }>} rows
+ * @param {string} itemDisplayName - 图表中「商品加购件数」的 category 显示名（如 item_name 或 item_id）
+ */
+export function goodsDetailSlotRowsToChartData(rows, itemDisplayName) {
+  const byDate = {};
+  const dateSet = new Set();
+  const keyToLatest = {};
+
+  for (const row of rows || []) {
+    const parsed = parseSlotTsToDateAndSlot(row.slot_ts);
+    if (!parsed) continue;
+    const { dateStr, slotIndex } = parsed;
+    const key = `${dateStr}-${slotIndex}`;
+    const existing = keyToLatest[key];
+    if (!existing) {
+      const num = (v) => (v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
+      keyToLatest[key] = {
+        dateStr,
+        slotIndex,
+        item_cart_cnt: row.item_cart_cnt != null ? Number(row.item_cart_cnt) : null,
+        search_uv: num(row.search_uv),
+        search_pay_rate: num(row.search_pay_rate),
+        cart_uv: num(row.cart_uv),
+        cart_pay_rate: num(row.cart_pay_rate),
+      };
+    }
+  }
+
+  for (const entry of Object.values(keyToLatest)) {
+    const { dateStr, slotIndex } = entry;
+    const d = toDateOnly(dateStr) || dateStr;
+    dateSet.add(d);
+    if (!byDate[d]) {
+      byDate[d] = { series: [], actions: {}, hourValue: {}, slotValue: {} };
+      HOURS.forEach((h) => { byDate[d].actions[h] = []; });
+    }
+    if (!byDate[d].slotValue[slotIndex]) byDate[d].slotValue[slotIndex] = {};
+    byDate[d].slotValue[slotIndex].item_cart_cnt = entry.item_cart_cnt;
+    byDate[d].slotValue[slotIndex].search_uv = entry.search_uv;
+    byDate[d].slotValue[slotIndex].search_pay_rate = entry.search_pay_rate;
+    byDate[d].slotValue[slotIndex].cart_uv = entry.cart_uv;
+    byDate[d].slotValue[slotIndex].cart_pay_rate = entry.cart_pay_rate;
+    const hour = 9 + Math.floor((slotIndex * MINUTES_FROM_9) / 60);
+    if (entry.item_cart_cnt != null && (byDate[d].hourValue[hour] == null || slotIndex > (byDate[d]._lastSlotForHour?.[hour] ?? -1))) {
+      byDate[d].hourValue[hour] = entry.item_cart_cnt;
+      if (!byDate[d]._lastSlotForHour) byDate[d]._lastSlotForHour = {};
+      byDate[d]._lastSlotForHour[hour] = slotIndex;
+    }
+  }
+
+  const dates = Array.from(dateSet).filter(Boolean).sort();
+  const categoryName = itemDisplayName || '商品';
+  dates.forEach((dateStr) => {
+    const day = byDate[dateStr];
+    const hourValue = day.hourValue || {};
+    const slotValue = day.slotValue || {};
+    const values = {};
+    HOURS.forEach((h) => { values[h] = hourValue[h] ?? null; });
+    day.series = [
+      { category: categoryName, subCategory: '商品加购件数', isRate: false, values },
+      ...FLOW_SERIES.map((s) => {
+        const slotValues = Array.from({ length: SLOT_COUNT }, (_, i) =>
+          slotValue[i] && slotValue[i][s.key] != null ? slotValue[i][s.key] : null
+        );
+        return { category: s.category, subCategory: s.subCategory, isRate: s.isRate, slotValues };
+      }),
+    ];
+    delete day.hourValue;
+    delete day.slotValue;
+    delete day._lastSlotForHour;
+  });
+
+  return { dates, byDate };
+}
+
+/**
+ * 从 goods_detail_slot_log 行中取某日的 20 分钟点（用于大图详情）
+ */
+export function getGoodsDetail20MinPointsForDate(rows, dateStr) {
+  if (!dateStr || !Array.isArray(rows)) return [];
+  const slotToLatest = {};
+  for (const row of rows) {
+    const parsed = parseSlotTsToDateAndSlot(row.slot_ts);
+    if (!parsed || parsed.dateStr !== dateStr) continue;
+    const value = Number(row.item_cart_cnt);
+    if (!Number.isFinite(value)) continue;
+    const { slotIndex } = parsed;
+    slotToLatest[slotIndex] = { value };
+  }
+  const out = [];
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const x = 9 + (i * MINUTES_FROM_9) / 60;
+    const h = 9 + Math.floor((i * MINUTES_FROM_9) / 60);
+    const mm = (i * MINUTES_FROM_9) % 60;
+    const time = `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    const entry = slotToLatest[i];
+    out.push({ x, time, value: entry ? entry.value : null });
+  }
+  return out;
+}

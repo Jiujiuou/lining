@@ -124,7 +124,7 @@ export function marketRankRowsToChartData(rows) {
 }
 
 /**
- * 生成格子数据：单日/多日时返回 seriesItem（46 槽位 slotValues，与小图/大图 20 分钟粒度统一）；趋势时返回 data 供 TrendChartCell 使用。
+ * 生成格子数据：返回 seriesItem（46 槽位 slotValues，与小图/大图 20 分钟粒度统一）。
  * @param {{ byDateSlot: Record<string, Record<number, Record<string, number>>>, shopNames: string[] }} chart
  * @param {{ viewMode: string, selectedDate: string | null, selectedDates: string[], trendDates: string[] }} context
  */
