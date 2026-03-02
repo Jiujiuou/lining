@@ -11,10 +11,17 @@ import {
 } from "./utils/supabaseMarketRankToChart";
 import { supabase } from "./lib/supabase";
 import { fetchChartNotes, upsertChartNote } from "./lib/chartNotes";
+import {
+  goodsDetailRowsToTableRows,
+  downloadTableXlsx,
+} from "./utils/exportGoodsDetailTable";
 import ChartCell from "./components/ChartCell";
 import NoteModal from "./components/NoteModal";
 import GoodsSelect from "./components/GoodsSelect";
 import "./App.css";
+
+/** Supabase 单次查询默认最多返回行数，超过需分页 */
+const SUPABASE_PAGE_SIZE = 1000;
 
 const SERIES_ORDER_LIMIT = 9;
 const RANGE_DAY_OPTIONS = [2, 3, 5, 7];
@@ -425,6 +432,64 @@ function App() {
       }
     };
 
+    /** 分页拉取 goods_detail_slot_log 全量（避免 Supabase 单次 1000 行上限） */
+    const fetchAllGoodsDetailRows = async (rangeStartStr, dayEnd) => {
+      const rows = [];
+      let from = 0;
+      while (true) {
+        const to = from + SUPABASE_PAGE_SIZE - 1;
+        const { data, error } = await supabase
+          .from("goods_detail_slot_log")
+          .select(
+            "item_id, item_name, slot_ts, item_cart_cnt, search_uv, search_pay_rate, cart_uv, cart_pay_rate",
+          )
+          .gte("slot_ts", rangeStartStr)
+          .lte("slot_ts", dayEnd)
+          .order("slot_ts", { ascending: true })
+          .range(from, to);
+        if (error) throw error;
+        const chunk = data ?? [];
+        rows.push(...chunk);
+        if (chunk.length < SUPABASE_PAGE_SIZE) break;
+        from = to + 1;
+      }
+      return rows;
+    };
+
+    const handleExportTable = async () => {
+      if (!supabase) {
+        setError("未配置 Supabase，无法导出表格");
+        return;
+      }
+      setExporting(true);
+      setError(null);
+      try {
+        const day =
+          selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
+            ? selectedDate
+            : getTodayEast8();
+        const dayEnd = `${day}T23:59:59.999+08:00`;
+        const rangeStart = new Date(day);
+        rangeStart.setDate(rangeStart.getDate() - 14);
+        const rangeStartStr =
+          rangeStart.toISOString().slice(0, 10) + "T00:00:00+08:00";
+
+        const allRows = await fetchAllGoodsDetailRows(rangeStartStr, dayEnd);
+        if (allRows.length === 0) {
+          setError("该日期范围内无商品数据，无法导出");
+          return;
+        }
+        const tableRows = goodsDetailRowsToTableRows(allRows);
+        const name = `小贝壳作战-表格-${day}.xlsx`;
+        downloadTableXlsx(tableRows, name);
+      } catch (err) {
+        console.error("导出表格失败", err);
+        setError("导出表格失败：" + (err.message || String(err)));
+      } finally {
+        setExporting(false);
+      }
+    };
+
     const seriesForGrid = isMarketRankView
       ? []
       : templateLimited.map((t) => {
@@ -623,14 +688,24 @@ function App() {
               <span className="dashboard-loading-hint">加载中…</span>
             ) : dataSource === "supabase" &&
               (rawGoodsDetailRows.length > 0 || rawMarketRankRows.length > 0) ? (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={handleExportPng}
-                disabled={exporting}
-              >
-                {exporting ? "导出中…" : "导出 PNG"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={handleExportPng}
+                  disabled={exporting}
+                >
+                  {exporting ? "导出中…" : "导出 PNG"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={handleExportTable}
+                  disabled={exporting}
+                >
+                  {exporting ? "导出中…" : "导出表格"}
+                </button>
+              </>
             ) : null}
             {error && <span className="dashboard-header-error">{error}</span>}
           </div>
