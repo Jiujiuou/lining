@@ -41,7 +41,7 @@ function App() {
   const [selectedItemId, setSelectedItemId] = useState("");
   const [rawMarketRankRows, setRawMarketRankRows] = useState([]);
   const [viewMode, setViewMode] = useState("single");
-  const [selectedDate, setSelectedDate] = useState(getTodayEast8);
+  const [selectedDate, setSelectedDate] = useState(() => getTodayEast8());
   const [rangeDays, setRangeDays] = useState(3);
   const [selectedDatesPick, setSelectedDatesPick] = useState([]);
   const [enlargedIndex, setEnlargedIndex] = useState(null);
@@ -102,16 +102,33 @@ function App() {
       rangeStart.setDate(rangeStart.getDate() - 14);
       const rangeStartStr =
         rangeStart.toISOString().slice(0, 10) + "T00:00:00+08:00";
-      try {
-        const [goodsRes, rankRes] = await Promise.all([
-          supabase
+
+      const fetchAllGoodsRows = async () => {
+        const rows = [];
+        let from = 0;
+        while (true) {
+          const to = from + SUPABASE_PAGE_SIZE - 1;
+          const { data, error } = await supabase
             .from("goods_detail_slot_log")
             .select(
               "item_id, item_name, slot_ts, item_cart_cnt, search_uv, search_pay_rate, cart_uv, cart_pay_rate",
             )
             .gte("slot_ts", rangeStartStr)
             .lte("slot_ts", dayEnd)
-            .order("slot_ts", { ascending: true }),
+            .order("slot_ts", { ascending: true })
+            .range(from, to);
+          if (error) throw error;
+          const chunk = data ?? [];
+          rows.push(...chunk);
+          if (chunk.length < SUPABASE_PAGE_SIZE) break;
+          from = to + 1;
+        }
+        return rows;
+      };
+
+      try {
+        const [goodsRows, rankRes] = await Promise.all([
+          fetchAllGoodsRows(),
           supabase
             .from("sycm_market_rank_log")
             .select("created_at, shop_title, rank")
@@ -119,9 +136,7 @@ function App() {
             .lte("created_at", dayEnd)
             .order("created_at", { ascending: true }),
         ]);
-        if (goodsRes.error) throw goodsRes.error;
         if (rankRes.error) throw rankRes.error;
-        const goodsRows = goodsRes.data ?? [];
         setRawGoodsDetailRows(goodsRows);
         setRawMarketRankRows(rankRes.data ?? []);
 
@@ -167,7 +182,7 @@ function App() {
           if (merged.dates?.length > 0) {
             const dateToSelect = merged.dates.includes(day)
               ? day
-              : merged.dates[0];
+              : merged.dates[merged.dates.length - 1];
             setSelectedDate(dateToSelect);
             setSelectedDatesPick([dateToSelect]);
           } else {
@@ -479,6 +494,10 @@ function App() {
           setError("该日期范围内无商品数据，无法导出");
           return;
         }
+        console.log(
+          "[导出表格] Supabase 原始行样例（前 5 条，用于核对 item_id/item_name）：",
+          JSON.stringify(allRows.slice(0, 5), null, 2),
+        );
         const tableRows = goodsDetailRowsToTableRows(allRows);
         const name = `小贝壳作战-表格-${day}.xlsx`;
         downloadTableXlsx(tableRows, name);

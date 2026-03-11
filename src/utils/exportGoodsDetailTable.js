@@ -75,20 +75,25 @@ export function goodsDetailRowsToTableRows(rows) {
   const byKey = {};
   const num = (v) =>
     v != null && v !== "" && Number.isFinite(Number(v)) ? Number(v) : null;
+  const nonEmptyName = (v) =>
+    v != null && String(v).trim() !== "" ? String(v).trim() : "";
 
   for (const row of rows || []) {
     const parsed = parseSlotTsToDateAndSlot(row.slot_ts);
     if (!parsed) continue;
     const { dateStr, slotIndex } = parsed;
     const itemId = row.item_id ?? "";
-    const itemName = row.item_name ?? itemId;
-    const key = `${dateStr}\t${itemId}\t${itemName}`;
+    const key = `${dateStr}\t${itemId}`;
     if (!byKey[key]) {
       byKey[key] = {
         date: dateStr,
-        item_name: itemName,
+        item_name: nonEmptyName(row.item_name),
         slotValue: {},
       };
+    } else {
+      const rec = byKey[key];
+      if (!rec.item_name && nonEmptyName(row.item_name))
+        rec.item_name = nonEmptyName(row.item_name);
     }
     const rec = byKey[key];
     if (!rec.slotValue[slotIndex]) rec.slotValue[slotIndex] = {};
@@ -133,6 +138,20 @@ export function goodsDetailRowsToTableRows(rows) {
  */
 /** 商品名列固定宽度（字符数），过长内容靠换行显示 */
 const GOODS_NAME_COLUMN_WCH = 24;
+
+/**
+ * 不同日期使用的柔和背景色（ARGB hex），多日期时循环使用
+ */
+const DATE_BG_COLORS = [
+  "FFF0F4F8", // 雾蓝灰
+  "FFF5F0F5", // 淡薰衣草
+  "FFF2F5F0", // 薄薄荷
+  "FFF8F4EE", // 暖米
+  "FFF5EEF0", // 浅玫瑰灰
+  "FFEEF4F8", // 冰蓝
+  "FFF5F2EE", // 杏仁
+  "FFF0F5F5", // 青灰
+];
 
 export function downloadTableXlsx(tableRows, filename = "小贝壳作战-表格导出.xlsx") {
   const header = ["日期", "商品名", "数据", ...SLOT_LABELS];
@@ -189,7 +208,26 @@ export function downloadTableXlsx(tableRows, filename = "小贝壳作战-表格�
     }
     i = j;
   }
+  for (let r = 1; r < data.length; r++) {
+    if (data[r][0] === "") {
+      merges.push({ s: { r: r, c: 0 }, e: { r: r, c: colCount - 1 } });
+    }
+  }
   if (merges.length) ws["!merges"] = merges;
+
+  const uniqueDates = [];
+  const seenDates = new Set();
+  for (let r = 1; r < data.length; r++) {
+    if (data[r][0] === "") continue;
+    const d = data[r][0];
+    if (!seenDates.has(d)) {
+      seenDates.add(d);
+      uniqueDates.push(d);
+    }
+  }
+  const dateToColorIndex = new Map(
+    uniqueDates.map((d, i) => [d, i % DATE_BG_COLORS.length]),
+  );
 
   const centerAlign = {
     alignment: { horizontal: "center", vertical: "center" },
@@ -197,11 +235,27 @@ export function downloadTableXlsx(tableRows, filename = "小贝壳作战-表格�
   const centerWrap = {
     alignment: { horizontal: "center", vertical: "center", wrapText: true },
   };
+  const fillForDate = (colorIndex) => ({
+    fill: {
+      patternType: "solid",
+      fgColor: { rgb: DATE_BG_COLORS[colorIndex] },
+    },
+  });
+
   for (let r = 0; r < data.length; r++) {
+    const isHeader = r === 0;
+    const isEmpty = !isHeader && data[r][0] === "";
+    const colorIndex =
+      !isHeader && !isEmpty ? dateToColorIndex.get(data[r][0]) ?? 0 : null;
+
     for (let c = 0; c < colCount; c++) {
       const addr = XLSX.utils.encode_cell({ r, c });
       if (!ws[addr]) ws[addr] = { t: "s", v: "" };
-      ws[addr].s = c === 1 ? centerWrap : centerAlign;
+      const align = c === 1 ? centerWrap : centerAlign;
+      ws[addr].s =
+        colorIndex != null
+          ? { ...align, ...fillForDate(colorIndex) }
+          : align;
     }
   }
 
