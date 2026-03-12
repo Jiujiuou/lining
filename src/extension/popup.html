@@ -15,9 +15,19 @@
   <body>
     <div class="popup">
       <section class="popup-section popup-section--open-links">
-        <button type="button" id="open-sites" class="popup-open-sites">
-          打开生意参谋页面
+        <button type="button" id="open-promo-record" class="popup-open-sites">
+          打开推广记录页
         </button>
+      </section>
+
+      <section class="popup-section popup-section--findpage" id="findpage-section">
+        <header class="popup-findpage-header">
+          <h2 class="popup-findpage-title">推广列表</h2>
+        </header>
+        <div id="findpage-list" class="popup-findpage-list" role="list"></div>
+        <div class="popup-findpage-actions">
+          <button type="button" id="findpage-action" class="popup-findpage-btn">登记</button>
+        </div>
       </section>
 
       <section class="popup-section popup-section--logs">
@@ -36,6 +46,7 @@
       </section>
     </div>
     <script src="constants/defaults.js"></script>
+    <script src="constants/supabase.js"></script>
     <script src="utils/storage.js"></script>
     <script src="utils/logger.js"></script>
     <script src="popup.js"></script>

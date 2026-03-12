@@ -6,7 +6,8 @@
   "permissions": ["scripting", "storage", "tabs"],
   "host_permissions": [
     "https://sycm.taobao.com/*",
-    "https://*.supabase.co/*"
+    "https://*.supabase.co/*",
+    "https://one.alimama.com/*"
   ],
   "icons": {
     "32": "assets/favicon-32x32.png",
@@ -23,6 +24,10 @@
     {
       "resources": ["constants/config.js", "inject.js"],
       "matches": ["https://sycm.taobao.com/*"]
+    },
+    {
+      "resources": ["capture-findpage-main.js"],
+      "matches": ["https://one.alimama.com/*"]
     }
   ],
   "content_scripts": [
@@ -38,6 +43,12 @@
         "utils/logger.js",
         "content.js"
       ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": ["https://one.alimama.com/*"],
+      "js": ["capture-findpage.js"],
       "run_at": "document_start",
       "all_frames": true
     }

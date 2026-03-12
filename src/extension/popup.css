@@ -212,3 +212,109 @@ body {
   text-align: center;
   font-size: 0.9em;
 }
+
+/* ---------- 推广列表（findPage 捕获） ---------- */
+.popup-section--findpage {
+  gap: var(--popup-space-sm);
+}
+
+.popup-findpage-header {
+  display: flex;
+  align-items: center;
+}
+
+.popup-findpage-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--popup-text);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.popup-findpage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: var(--popup-space-sm);
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  scrollbar-width: thin;
+}
+
+.popup-findpage-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popup-findpage-list::-webkit-scrollbar-thumb {
+  background: var(--popup-border);
+  border-radius: 3px;
+}
+
+.popup-findpage-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--popup-surface);
+  border-radius: var(--popup-radius-sm);
+  border: 1px solid var(--popup-border);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.popup-findpage-item:hover {
+  background: var(--popup-surface-hover);
+  border-color: var(--popup-accent-soft);
+}
+
+.popup-findpage-item input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--popup-accent);
+  cursor: pointer;
+}
+
+.popup-findpage-item .popup-findpage-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--popup-text);
+  word-break: break-word;
+}
+
+.popup-findpage-list--empty {
+  color: var(--popup-text-muted);
+  text-align: center;
+  font-size: 0.85rem;
+  padding: 20px 12px;
+}
+
+.popup-findpage-actions {
+  padding-top: 4px;
+}
+
+.popup-findpage-btn {
+  width: 100%;
+  padding: 10px var(--popup-space);
+  font-family: var(--popup-font);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--popup-surface);
+  background: var(--popup-accent);
+  border: none;
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.popup-findpage-btn:hover {
+  background: var(--popup-accent-hover);
+}
+
+.popup-findpage-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--popup-accent-soft);
+}
