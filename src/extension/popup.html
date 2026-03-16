@@ -14,26 +14,67 @@
   </head>
   <body>
     <div class="popup">
-      <section class="popup-section popup-section--open-links">
-        <button type="button" id="open-promo-record" class="popup-open-sites">
-          打开推广记录页
-        </button>
-      </section>
-
-      <section class="popup-section popup-section--findpage" id="findpage-section">
-        <header class="popup-findpage-header">
-          <h2 class="popup-findpage-title">推广列表</h2>
-        </header>
-        <div id="findpage-list" class="popup-findpage-list" role="list"></div>
-        <div class="popup-findpage-actions">
-          <button type="button" id="findpage-action" class="popup-findpage-btn">登记</button>
-        </div>
-      </section>
-
+      <div class="popup-left">
+        <section class="popup-section popup-section--open-links">
+          <button
+            type="button"
+            id="open-onesite-record"
+            class="popup-open-sites"
+          >
+            货品全站推广
+          </button>
+          <button
+            type="button"
+            id="open-search-record"
+            class="popup-open-sites"
+          >
+            关键词推广
+          </button>
+          <button type="button" id="open-promo-record" class="popup-open-sites">
+            人群推广
+          </button>
+          <button
+            type="button"
+            id="open-content-record"
+            class="popup-open-sites"
+          >
+            内容营销
+          </button>
+        </section>
+        <section
+          class="popup-section popup-section--findpage"
+          id="findpage-section"
+        >
+          <header class="popup-findpage-header">
+            <h2 class="popup-findpage-title">推广列表</h2>
+            <button
+              type="button"
+              id="findpage-action"
+              class="popup-findpage-refresh"
+            >
+              登记
+            </button>
+            <button
+              type="button"
+              id="findpage-refresh"
+              class="popup-findpage-refresh"
+              aria-label="刷新列表"
+            >
+              刷新列表
+            </button>
+          </header>
+          <div id="findpage-list" class="popup-findpage-list" role="list"></div>
+        </section>
+      </div>
       <section class="popup-section popup-section--logs">
         <header class="popup-logs-header">
           <h2 class="popup-logs-title">扩展日志</h2>
-          <button type="button" id="logs-clear" class="popup-logs-clear" aria-label="清空扩展日志">
+          <button
+            type="button"
+            id="logs-clear"
+            class="popup-logs-clear"
+            aria-label="清空扩展日志"
+          >
             清空
           </button>
         </header>

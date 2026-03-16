@@ -13,22 +13,13 @@
 
   function logResponse(data, requestUrl) {
     try {
-      if (requestUrl) console.log(LOG_PREFIX + ' 请求:', requestUrl);
-      console.log(LOG_PREFIX + ' 响应:', data);
-      if (data && typeof data === 'object') {
-        console.log(LOG_PREFIX + ' 响应 JSON:', JSON.stringify(data, null, 2));
-      }
-      try {
-        window.postMessage({
-          type: 'FIND_PAGE_CAPTURED',
-          payload: data,
-          requestUrl: requestUrl,
-          pageUrl: typeof window.location !== 'undefined' ? window.location.href : ''
-        }, '*');
-      } catch (e) { /* ignore */ }
-    } catch (e) {
-      console.warn(LOG_PREFIX + ' 打印失败', e);
-    }
+      window.postMessage({
+        type: 'FIND_PAGE_CAPTURED',
+        payload: data,
+        requestUrl: requestUrl,
+        pageUrl: typeof window.location !== 'undefined' ? window.location.href : ''
+      }, '*');
+    } catch (e) { /* ignore */ }
   }
 
   var origFetch = window.fetch;
@@ -37,7 +28,6 @@
       var url = typeof input === 'string' ? input : (input && input.url);
       if (isFindPageUrl(url)) {
         var requestUrl = url;
-        console.log(LOG_PREFIX + ' 拦截到请求 (fetch):', requestUrl);
         return origFetch.apply(this, arguments).then(function (response) {
           var clone = response.clone();
           clone.json().then(function (data) { logResponse(data, requestUrl); }).catch(function () {
@@ -45,7 +35,6 @@
           });
           return response;
         }).catch(function (err) {
-          console.warn(LOG_PREFIX + ' 请求失败', err);
           throw err;
         });
       }
@@ -60,7 +49,6 @@
       this._findPageUrl = isFindPageUrl(url);
       if (this._findPageUrl) {
         this._findPageRequestUrl = url;
-        console.log(LOG_PREFIX + ' 拦截到请求 (XHR):', url);
       }
       return origOpen.apply(this, arguments);
     };
@@ -82,5 +70,4 @@
       return origSend.apply(this, arguments);
     };
   }
-  console.log(LOG_PREFIX + ' 监听已注入（主世界）');
 })();

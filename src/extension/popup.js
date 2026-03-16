@@ -12,17 +12,54 @@
   var logsListEl = document.getElementById('logs-list');
   var logsClearBtn = document.getElementById('logs-clear');
   var openPromoRecordBtn = document.getElementById('open-promo-record');
+  var openOnesiteRecordBtn = document.getElementById('open-onesite-record');
+  var openSearchRecordBtn = document.getElementById('open-search-record');
+  var openContentRecordBtn = document.getElementById('open-content-record');
   var findpageListEl = document.getElementById('findpage-list');
   var findpageActionBtn = document.getElementById('findpage-action');
+  var findpageRefreshBtn = document.getElementById('findpage-refresh');
 
   var lastFindPageResponse = null;
   var lastFindPageRequestUrl = '';
   var lastFindPagePageUrl = '';
+  var lastFindPageBizCode = '';
 
-  var PROMO_RECORD_URL = 'https://one.alimama.com/index.html#!/manage/display?mx_bizCode=onebpDisplay&bizCode=onebpDisplay&tab=campaign&startTime=2026-03-11&endTime=2026-03-11&offset=0&searchKey=campaignNameLike&searchValue=%E6%B1%A0&pageSize=100';
+  /** 东八区昨天 YYYY-MM-DD，用于推广记录页链接的 startTime/endTime */
+  function getYesterdayEast8() {
+    var today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
+    var d = new Date(today + 'T12:00:00+08:00');
+    d.setDate(d.getDate() - 1);
+    return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
+  }
+
+  function buildPromoRecordUrl() {
+    var d = getYesterdayEast8();
+    return 'https://one.alimama.com/index.html#!/manage/display?mx_bizCode=onebpDisplay&bizCode=onebpDisplay&tab=campaign&startTime=' + d + '&endTime=' + d + '&offset=0&pageSize=100&searchKey=campaignNameLike&searchValue=%E6%B1%A0';
+  }
+  function buildOnesiteRecordUrl() {
+    var d = getYesterdayEast8();
+    return 'https://one.alimama.com/index.html#!/manage/onesite?mx_bizCode=onebpSite&bizCode=onebpSite&tab=campaign&startTime=' + d + '&endTime=' + d + '&effectEqual=15&unifyType=last_click_by_effect_time&offset=0&searchKey=campaignNameLike&searchValue=%E6%B1%A0&pageSize=100';
+  }
+  function buildSearchRecordUrl() {
+    var d = getYesterdayEast8();
+    return 'https://one.alimama.com/index.html#!/manage/search?mx_bizCode=onebpSearch&bizCode=onebpSearch&tab=campaign&startTime=' + d + '&endTime=' + d + '&offset=0&pageSize=100&searchKey=campaignNameLike&searchValue=%E6%B1%A0';
+  }
+  function buildContentRecordUrl() {
+    var d = getYesterdayEast8();
+    return 'https://one.alimama.com/index.html#!/manage/content?mx_bizCode=onebpShortVideo&bizCode=onebpShortVideo&tab=campaign&startTime=' + d + '&endTime=' + d + '&unifyType=video_kuan&offset=0&pageSize=100&searchKey=campaignNameLike&searchValue=%E6%B1%A0';
+  }
 
   function openPromoRecord() {
-    chrome.tabs.create({ url: PROMO_RECORD_URL });
+    chrome.tabs.create({ url: buildPromoRecordUrl() });
+  }
+  function openOnesiteRecord() {
+    chrome.tabs.create({ url: buildOnesiteRecordUrl() });
+  }
+  function openSearchRecord() {
+    chrome.tabs.create({ url: buildSearchRecordUrl() });
+  }
+  function openContentRecord() {
+    chrome.tabs.create({ url: buildContentRecordUrl() });
   }
 
   function formatLogTime(isoStr) {
@@ -41,7 +78,7 @@
     var el = logsListEl;
     var wasAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 20;
     if (!Array.isArray(entries) || entries.length === 0) {
-      el.innerHTML = '<div class="popup-log-card popup-log-card--empty popup-log-entry popup-log-entry--log">暂无日志</div>';
+      el.innerHTML = '<div class="popup-logs-empty">暂无日志</div>';
       return;
     }
     el.innerHTML = entries.map(function (entry) {
@@ -67,20 +104,24 @@
     });
   }
 
-  function renderFindPageList(response) {
+  function renderFindPageList(response, bizCode) {
     if (!findpageListEl) return;
     lastFindPageResponse = response;
     var list = (response && response.data && Array.isArray(response.data.list)) ? response.data.list : [];
     if (list.length === 0) {
-      findpageListEl.innerHTML = '<div class="popup-findpage-list--empty">暂无捕获数据，请先在推广记录页打开列表</div>';
+      findpageListEl.innerHTML = '<div class="popup-findpage-list--empty"><span>暂无捕获数据，请先在推广记录页打开列表</span></div>';
       findpageListEl.classList.add('popup-findpage-list--empty');
       return;
     }
     findpageListEl.classList.remove('popup-findpage-list--empty');
     findpageListEl.innerHTML = list.map(function (item, index) {
-      var name = (item && item.campaignName != null) ? String(item.campaignName) : '';
+      var report = item && Array.isArray(item.reportInfoList) && item.reportInfoList[0];
+      var name = getCampaignNameForRegister(item, report, bizCode || '');
       var safeName = name.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-      return '<div class="popup-findpage-item" role="listitem">' +
+      var titleAttr = name ? ' title="' + name.replace(/"/g, '&quot;') + '"' : '';
+      var isEffective = item && (item.displayStatus === 'start' || item.onlineStatus === 1);
+      var statusClass = isEffective ? ' popup-findpage-item--effective' : ' popup-findpage-item--paused';
+      return '<div class="popup-findpage-item' + statusClass + '" role="listitem"' + titleAttr + '>' +
         '<input type="checkbox" id="findpage-cb-' + index + '" data-index="' + index + '" aria-label="勾选' + safeName + '">' +
         '<label class="popup-findpage-name" for="findpage-cb-' + index + '">' + safeName + '</label>' +
         '</div>';
@@ -89,15 +130,17 @@
 
   function loadFindPageResponse() {
     try {
-      chrome.storage.local.get(['findPageResponse', 'findPageRequestUrl', 'findPagePageUrl'], function (stored) {
+      chrome.storage.local.get(['findPageResponse', 'findPageRequestUrl', 'findPagePageUrl', 'findPageBizCode'], function (stored) {
         lastFindPageRequestUrl = stored.findPageRequestUrl || '';
         lastFindPagePageUrl = stored.findPagePageUrl || '';
-        renderFindPageList(stored.findPageResponse || null);
+        lastFindPageBizCode = stored.findPageBizCode || '';
+        renderFindPageList(stored.findPageResponse || null, stored.findPageBizCode || '');
       });
     } catch (e) {
       lastFindPageRequestUrl = '';
       lastFindPagePageUrl = '';
-      renderFindPageList(null);
+      lastFindPageBizCode = '';
+      renderFindPageList(null, '');
     }
   }
 
@@ -149,6 +192,23 @@
     return getDateRangeForRegister().startDate;
   }
 
+  /** 商品名截取：格式「名称T备注」时只取 T 前部分，无 T 则原样返回 */
+  function getSlicedCampaignName(name) {
+    if (name == null) return '';
+    var s = String(name).trim();
+    var idx = s.indexOf('T');
+    return idx >= 0 ? s.slice(0, idx).trim() : s;
+  }
+
+  /** 登记用商品名：货品全站仅用列表项根级 campaignName；其它页优先 reportInfoList[0].campaignName */
+  function getCampaignNameForRegister(item, report, bizCode) {
+    if (bizCode === 'onebpSite') {
+      return (item && item.campaignName != null) ? String(item.campaignName) : '';
+    }
+    if (report && report.campaignName != null) return String(report.campaignName);
+    return (item && item.campaignName != null) ? String(item.campaignName) : '';
+  }
+
   /** 从 list 项取 report_date：优先 reportInfoList[0].condition.startTime，否则东八区当天 */
   function getReportDate(item) {
     var report = item && Array.isArray(item.reportInfoList) && item.reportInfoList[0];
@@ -158,27 +218,31 @@
     return getTodayEast8();
   }
 
-  /** 推广登记表 upsert：按 (report_date, campaign_name) 覆盖 */
-  function upsertCampaignRegister(rows, credentials, opts) {
+  /** 推广登记表：按 bizCode 只更新对应两列，调用 RPC campaign_register_upsert_by_biz */
+  function upsertCampaignRegisterByBiz(rows, bizCode, credentials, opts) {
     var logger = opts && opts.logger;
     if (!credentials || !credentials.url || !credentials.anonKey) {
       if (logger) logger.appendLog('warn', '推广登记：未配置 SUPABASE，跳过');
       return Promise.resolve({ ok: false });
     }
     if (!Array.isArray(rows) || rows.length === 0) return Promise.resolve({ ok: true });
-    var url = credentials.url.replace(/\/$/, '') + '/rest/v1/campaign_register?on_conflict=report_date,campaign_name';
+    var validBiz = { onebpDisplay: 1, onebpSite: 1, onebpSearch: 1, onebpShortVideo: 1 };
+    if (!bizCode || !validBiz[bizCode]) {
+      if (logger) logger.appendLog('warn', '推广登记：未知来源 bizCode=' + bizCode);
+      return Promise.resolve({ ok: false });
+    }
+    var url = credentials.url.replace(/\/$/, '') + '/rest/v1/rpc/campaign_register_upsert_by_biz';
     return fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': credentials.anonKey,
-        'Authorization': 'Bearer ' + credentials.anonKey,
-        'Prefer': 'return=minimal,resolution=merge-duplicates'
+        'Authorization': 'Bearer ' + credentials.anonKey
       },
-      body: JSON.stringify(rows)
+      body: JSON.stringify({ p_rows: rows, p_biz_code: bizCode })
     }).then(function (res) {
       if (res.ok) {
-        if (logger) logger.appendLog('log', '推广登记：已上报 ' + rows.length + ' 条');
+        if (logger) logger.appendLog('log', '推广登记：已上报 ' + rows.length + ' 条（' + bizCode + '）');
         return { ok: true };
       }
       return res.text().then(function (t) {
@@ -215,19 +279,47 @@
         return;
       }
       var batchReportDate = dateRange.startDate || getReportDate(selected[0]);
-      var rows = [];
+      var bizCode = lastFindPageBizCode;
+      var rawRows = [];
       for (var i = 0; i < selected.length; i++) {
         var item = selected[i];
         var report = item && Array.isArray(item.reportInfoList) && item.reportInfoList[0];
-        var campaignName = (item && item.campaignName != null) ? String(item.campaignName) : '';
-        var charge = report && report.charge != null ? roundMoney(Number(report.charge)) : null;
-        var alipayInshopAmt = report && report.alipayInshopAmt != null ? roundMoney(Number(report.alipayInshopAmt)) : null;
-        if (!campaignName) continue;
-        rows.push({
+        var campaignName = getCampaignNameForRegister(item, report, bizCode);
+        var displayName = getSlicedCampaignName(campaignName);
+        var charge = report && report.charge != null ? Number(report.charge) : 0;
+        var alipayInshopAmt = report && report.alipayInshopAmt != null ? Number(report.alipayInshopAmt) : 0;
+        if (!displayName) continue;
+        rawRows.push({
           report_date: batchReportDate,
-          campaign_name: campaignName,
+          campaign_name: displayName,
           charge: charge,
           alipay_inshop_amt: alipayInshopAmt
+        });
+      }
+      /* 按 (report_date, campaign_name) 合并：截取后重名的多条加和后只上报一条 */
+      var keyToRow = {};
+      for (var j = 0; j < rawRows.length; j++) {
+        var r = rawRows[j];
+        var key = r.report_date + '\n' + r.campaign_name;
+        if (!keyToRow[key]) {
+          keyToRow[key] = {
+            report_date: r.report_date,
+            campaign_name: r.campaign_name,
+            charge: 0,
+            alipay_inshop_amt: 0
+          };
+        }
+        keyToRow[key].charge += r.charge;
+        keyToRow[key].alipay_inshop_amt += r.alipay_inshop_amt;
+      }
+      var rows = [];
+      for (var k in keyToRow) {
+        var merged = keyToRow[k];
+        rows.push({
+          report_date: merged.report_date,
+          campaign_name: merged.campaign_name,
+          charge: roundMoney(merged.charge),
+          alipay_inshop_amt: roundMoney(merged.alipay_inshop_amt)
         });
       }
       if (rows.length === 0) {
@@ -235,8 +327,14 @@
         loadLogs();
         return;
       }
+      var validBiz = { onebpDisplay: 1, onebpSite: 1, onebpSearch: 1, onebpShortVideo: 1 };
+      if (!bizCode || !validBiz[bizCode]) {
+        if (logger) logger.appendLog('warn', '推广登记：未识别来源，请先在对应推广记录页打开列表后再登记');
+        loadLogs();
+        return;
+      }
       var creds = typeof __SYCM_SUPABASE__ !== 'undefined' ? __SYCM_SUPABASE__ : null;
-      upsertCampaignRegister(rows, creds, { logger: logger }).then(function () {
+      upsertCampaignRegisterByBiz(rows, bizCode, creds, { logger: logger }).then(function () {
         loadLogs();
       });
     });
@@ -263,7 +361,13 @@
 
   loadThrottle();
   loadLogs();
-  loadFindPageResponse();
+  /* 打开 popup 时推广列表不自动读 storage，仅显示空状态；列表在「捕获到新数据」或点击「刷新列表」时再加载 */
+  renderFindPageList(null);
+
+  chrome.storage.onChanged.addListener(function (changes, areaName) {
+    if (areaName !== 'local') return;
+    if (changes.findPageResponse || changes.findPagePageUrl || changes.findPageBizCode) loadFindPageResponse();
+  });
 
   if (throttleEl) {
     throttleEl.addEventListener('change', saveThrottle);
@@ -274,8 +378,20 @@
   if (openPromoRecordBtn) {
     openPromoRecordBtn.addEventListener('click', openPromoRecord);
   }
+  if (openOnesiteRecordBtn) {
+    openOnesiteRecordBtn.addEventListener('click', openOnesiteRecord);
+  }
+  if (openSearchRecordBtn) {
+    openSearchRecordBtn.addEventListener('click', openSearchRecord);
+  }
+  if (openContentRecordBtn) {
+    openContentRecordBtn.addEventListener('click', openContentRecord);
+  }
   if (findpageActionBtn) {
     findpageActionBtn.addEventListener('click', onFindPageAction);
+  }
+  if (findpageRefreshBtn) {
+    findpageRefreshBtn.addEventListener('click', loadFindPageResponse);
   }
 
   /* 打开 popup 时只刷新日志；推广列表仅在首次加载，避免重绘导致 checkbox 勾选态丢失 */

@@ -1,40 +1,26 @@
 -- ============================================================
--- 推广登记表（campaign_register）：一天一行，按 bizCode 前缀分列
--- 在 Supabase SQL Editor 中执行（新建表时用此脚本；已有表用 migration 脚本）
+-- 推广登记表 迁移：一天一行，按 bizCode 前缀分列（人群 onebpDisplay / 货品全站 onebpSite）
+-- 旧数据已删除时在 Supabase SQL Editor 中执行
 -- ============================================================
 
-create table if not exists public.campaign_register (
-  id bigint generated always as identity primary key,
-  report_date date not null,
-  campaign_name text not null,
-  charge_onebpDisplay numeric,
-  alipay_inshop_amt_onebpDisplay numeric,
-  charge_onebpSite numeric,
-  alipay_inshop_amt_onebpSite numeric,
-  unique (report_date, campaign_name)
-);
+-- 新增按 bizCode 前缀的列
+alter table public.campaign_register
+  add column if not exists charge_onebpDisplay numeric,
+  add column if not exists alipay_inshop_amt_onebpDisplay numeric,
+  add column if not exists charge_onebpSite numeric,
+  add column if not exists alipay_inshop_amt_onebpSite numeric;
 
-comment on table public.campaign_register is '推广登记表：按东八区日期与商品名，一天一行；各推广类型用前缀列存销售额与花费';
+-- 删除旧列（执行前请确认无需要保留的旧数据）
+alter table public.campaign_register
+  drop column if exists charge,
+  drop column if exists alipay_inshop_amt;
 
-comment on column public.campaign_register.report_date is '东八区日期 YYYY-MM-DD';
-comment on column public.campaign_register.campaign_name is '推广名称（findPage 的 campaignName）';
 comment on column public.campaign_register.charge_onebpDisplay is '人群推广-花费';
 comment on column public.campaign_register.alipay_inshop_amt_onebpDisplay is '人群推广-总成交金额';
 comment on column public.campaign_register.charge_onebpSite is '货品全站推广-花费';
 comment on column public.campaign_register.alipay_inshop_amt_onebpSite is '货品全站推广-总成交金额';
 
-alter table public.campaign_register enable row level security;
-
-create policy "Allow anon insert for campaign_register"
-  on public.campaign_register for insert to anon with check (true);
-
-create policy "Allow anon select for campaign_register"
-  on public.campaign_register for select to anon using (true);
-
-create policy "Allow anon update for campaign_register"
-  on public.campaign_register for update to anon using (true) with check (true);
-
--- RPC：按 bizCode 仅更新对应两列
+-- RPC：按 bizCode 仅更新对应两列，避免覆盖其他类型数据
 create or replace function public.campaign_register_upsert_by_biz(p_rows jsonb, p_biz_code text)
 returns void
 language plpgsql

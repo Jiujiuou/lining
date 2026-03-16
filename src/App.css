@@ -256,7 +256,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 8px;
+  padding: 8px 40px;
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -269,6 +269,54 @@
   font-size: 0.95rem;
   color: var(--text-muted);
   text-align: center;
+}
+
+/* 推广数据列表：左右约 40px 由 dashboard-main 留出，表格占满剩余宽度 */
+.campaign-register-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.campaign-register-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  font-family: var(--font);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.campaign-register-table thead {
+  background: var(--accent-soft);
+}
+
+.campaign-register-table th {
+  padding: 12px 14px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.campaign-register-table td {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-align: center;
+}
+
+.campaign-register-table tbody tr:hover {
+  background: var(--bg);
+}
+
+.campaign-register-table .campaign-register-num {
+  font-variant-numeric: tabular-nums;
 }
 
 .chart-grid {

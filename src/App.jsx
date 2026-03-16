@@ -27,6 +27,8 @@ const SERIES_ORDER_LIMIT = 9;
 const RANGE_DAY_OPTIONS = [2, 3, 5, 7];
 /** 店铺排名在 GoodsSelect 中的占位 value，选中时仅展示市场排名图表 */
 const MARKET_RANK_ITEM_ID = "__market_rank__";
+/** 推广数据在 GoodsSelect 中的占位 value，选中时展示 campaign_register 列表 */
+const CAMPAIGN_REGISTER_ITEM_ID = "__campaign_register__";
 
 /** 东八区当天日期 YYYY-MM-DD */
 function getTodayEast8() {
@@ -54,6 +56,8 @@ function App() {
   const [supabaseLoading, setSupabaseLoading] = useState(false);
   const [noteModal, setNoteModal] = useState(null);
   const [chartNotes, setChartNotes] = useState({});
+  const [campaignRegisterRows, setCampaignRegisterRows] = useState([]);
+  const [campaignRegisterLoading, setCampaignRegisterLoading] = useState(false);
 
   useEffect(() => {
     const today = getTodayEast8();
@@ -152,8 +156,11 @@ function App() {
         const list = Array.from(itemMap.values());
         setGoodsList(list);
         setDataSource("supabase");
-        if (selectedItemId === MARKET_RANK_ITEM_ID) {
-          // 保持「店铺排名」选中不变
+        if (
+          selectedItemId === MARKET_RANK_ITEM_ID ||
+          selectedItemId === CAMPAIGN_REGISTER_ITEM_ID
+        ) {
+          // 保持「店铺排名」或「推广数据」选中不变
         } else if (list.length > 0 && !selectedItemId) {
           setSelectedItemId(list[0].item_id);
         } else if (
@@ -280,6 +287,36 @@ function App() {
     loadFromSupabase();
   }, [loadFromSupabase]);
 
+  useEffect(() => {
+    if (!supabase || selectedItemId !== CAMPAIGN_REGISTER_ITEM_ID) {
+      if (selectedItemId !== CAMPAIGN_REGISTER_ITEM_ID)
+        setCampaignRegisterRows([]);
+      return;
+    }
+    let cancelled = false;
+    setCampaignRegisterLoading(true);
+    supabase
+      .from("campaign_register")
+      .select(
+        "report_date, campaign_name, charge_onebpdisplay, alipay_inshop_amt_onebpdisplay, charge_onebpsite, alipay_inshop_amt_onebpsite, charge_onebpsearch, alipay_inshop_amt_onebpsearch, charge_onebpshortvideo, alipay_inshop_amt_onebpshortvideo",
+      )
+      .order("report_date", { ascending: false })
+      .order("campaign_name")
+      .limit(1000)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        setCampaignRegisterLoading(false);
+        if (error) {
+          setError("推广数据加载失败：" + (error.message || String(error)));
+          return;
+        }
+        setCampaignRegisterRows(data ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedItemId]);
+
   const noteFetchScope = useMemo(() => {
     if (dataSource !== "supabase") return { chartKeys: [], pointDates: [] };
     const { dates = [], byDate = {} } = parsedData || {};
@@ -368,6 +405,7 @@ function App() {
 
   if (view === "dashboard") {
     const isMarketRankView = selectedItemId === MARKET_RANK_ITEM_ID;
+    const isCampaignRegisterView = selectedItemId === CAMPAIGN_REGISTER_ITEM_ID;
     const { dates, byDate } = parsedData || { dates: [], byDate: {} };
     const rankDates = Object.keys(marketRankChart.byDateSlot || {}).sort();
     const datesForSelection = isMarketRankView ? rankDates : dates;
@@ -381,7 +419,8 @@ function App() {
           ? [firstDate]
           : [];
     } else if (viewMode === "multiRange") {
-      const base = selectedDate ?? datesForSelection[datesForSelection.length - 1];
+      const base =
+        selectedDate ?? datesForSelection[datesForSelection.length - 1];
       if (base) {
         const i = datesForSelection.indexOf(base);
         if (i >= 0) {
@@ -411,7 +450,9 @@ function App() {
         }
       }
     }
-    const templateLimited = isMarketRankView ? [] : template.slice(0, SERIES_ORDER_LIMIT);
+    const templateLimited = isMarketRankView
+      ? []
+      : template.slice(0, SERIES_ORDER_LIMIT);
 
     const togglePickDate = (d) => {
       setSelectedDatesPick((prev) =>
@@ -516,7 +557,8 @@ function App() {
             .map((date) => {
               const day = byDate[date];
               const s = day?.series?.find(
-                (x) => x.category === t.category && x.subCategory === t.subCategory,
+                (x) =>
+                  x.category === t.category && x.subCategory === t.subCategory,
               );
               return s ? { date, ...s } : null;
             })
@@ -555,142 +597,158 @@ function App() {
           }))
       : seriesForGrid.map((s) => ({ type: "series", ...s }));
     const totalGridCells = seriesGridItems.length;
-    const hasNoDataForSelection = totalGridCells === 0;
+    const hasNoDataForSelection = isCampaignRegisterView
+      ? !campaignRegisterLoading && campaignRegisterRows.length === 0
+      : totalGridCells === 0;
+
+    const formatReportDate = (d) => {
+      if (!d) return "";
+      const s = typeof d === "string" ? d : (d.slice && d.slice(0, 10)) || "";
+      return s.replace(/-/g, "/");
+    };
+    const formatMoney = (n) =>
+      n != null && !Number.isNaN(Number(n)) ? Number(n).toFixed(2) : "";
     return (
       <div className="dashboard">
         <header className="dashboard-header">
           <div className="dashboard-header-left">
-            <div className="dashboard-tabs" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={viewMode === "single"}
-                className={`dashboard-tab ${viewMode === "single" ? "dashboard-tab--active" : ""}`}
-                onClick={() => setViewMode("single")}
-              >
-                单日
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={
-                  viewMode === "multiRange" || viewMode === "multiPick"
-                }
-                className={`dashboard-tab ${viewMode === "multiRange" || viewMode === "multiPick" ? "dashboard-tab--active" : ""}`}
-                onClick={() => setViewMode("multiRange")}
-              >
-                多日
-              </button>
-            </div>
-
-            {viewMode === "single" && (
-              <label className="dashboard-date-label">
-                日期
-                <input
-                  type="date"
-                  className="dashboard-date-select"
-                  value={selectedDate ?? ""}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setSelectedDate(next);
-                    if (dataSource === "supabase" && view === "dashboard") {
-                      loadFromSupabase(next);
-                    }
-                  }}
-                />
-              </label>
-            )}
-
-            {(viewMode === "multiRange" || viewMode === "multiPick") && (
+            {!isCampaignRegisterView && (
               <>
-                <div className="dashboard-subtabs">
+                <div className="dashboard-tabs" role="tablist">
                   <button
                     type="button"
-                    className={`dashboard-subtab ${viewMode === "multiRange" ? "dashboard-subtab--active" : ""}`}
+                    role="tab"
+                    aria-selected={viewMode === "single"}
+                    className={`dashboard-tab ${viewMode === "single" ? "dashboard-tab--active" : ""}`}
+                    onClick={() => setViewMode("single")}
+                  >
+                    单日
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={
+                      viewMode === "multiRange" || viewMode === "multiPick"
+                    }
+                    className={`dashboard-tab ${viewMode === "multiRange" || viewMode === "multiPick" ? "dashboard-tab--active" : ""}`}
                     onClick={() => setViewMode("multiRange")}
                   >
-                    连续
-                  </button>
-                  <button
-                    type="button"
-                    className={`dashboard-subtab ${viewMode === "multiPick" ? "dashboard-subtab--active" : ""}`}
-                    onClick={() => setViewMode("multiPick")}
-                  >
-                    自选
+                    多日
                   </button>
                 </div>
-                {viewMode === "multiRange" && (
-                  <>
-                    <label className="dashboard-date-label">
-                      日期
-                      <select
-                        className="dashboard-date-select"
-                        value={selectedDate ?? ""}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                      >
-                        {datesForSelection.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="dashboard-date-label">
-                      共
-                      <select
-                        className="dashboard-date-select dashboard-date-select--narrow"
-                        value={rangeDays}
-                        onChange={(e) => setRangeDays(Number(e.target.value))}
-                      >
-                        {RANGE_DAY_OPTIONS.map((n) => (
-                          <option key={n} value={n}>
-                            {n} 天
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </>
+
+                {viewMode === "single" && (
+                  <label className="dashboard-date-label">
+                    日期
+                    <input
+                      type="date"
+                      className="dashboard-date-select"
+                      value={selectedDate ?? ""}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setSelectedDate(next);
+                        if (dataSource === "supabase" && view === "dashboard") {
+                          loadFromSupabase(next);
+                        }
+                      }}
+                    />
+                  </label>
                 )}
-                {viewMode === "multiPick" && (
-                  <div className="dashboard-pick-wrap" ref={pickRef}>
-                    <button
-                      type="button"
-                      className="dashboard-pick-trigger"
-                      onClick={() => setPickOpen((o) => !o)}
-                      aria-expanded={pickOpen}
-                    >
-                      选日期
-                      {selectedDatesPick.length > 0
-                        ? `（${selectedDatesPick.length} 天）`
-                        : ""}
-                    </button>
-                    {pickOpen && (
-                      <div className="dashboard-pick-dropdown">
-                        {datesForSelection.map((d) => (
-                          <label key={d} className="dashboard-pick-option">
-                            <input
-                              type="checkbox"
-                              checked={selectedDatesPick.includes(d)}
-                              onChange={() => togglePickDate(d)}
-                            />
-                            <span>{d}</span>
-                          </label>
-                        ))}
+
+                {(viewMode === "multiRange" || viewMode === "multiPick") && (
+                  <>
+                    <div className="dashboard-subtabs">
+                      <button
+                        type="button"
+                        className={`dashboard-subtab ${viewMode === "multiRange" ? "dashboard-subtab--active" : ""}`}
+                        onClick={() => setViewMode("multiRange")}
+                      >
+                        连续
+                      </button>
+                      <button
+                        type="button"
+                        className={`dashboard-subtab ${viewMode === "multiPick" ? "dashboard-subtab--active" : ""}`}
+                        onClick={() => setViewMode("multiPick")}
+                      >
+                        自选
+                      </button>
+                    </div>
+                    {viewMode === "multiRange" && (
+                      <>
+                        <label className="dashboard-date-label">
+                          日期
+                          <select
+                            className="dashboard-date-select"
+                            value={selectedDate ?? ""}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                          >
+                            {datesForSelection.map((d) => (
+                              <option key={d} value={d}>
+                                {d}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="dashboard-date-label">
+                          共
+                          <select
+                            className="dashboard-date-select dashboard-date-select--narrow"
+                            value={rangeDays}
+                            onChange={(e) =>
+                              setRangeDays(Number(e.target.value))
+                            }
+                          >
+                            {RANGE_DAY_OPTIONS.map((n) => (
+                              <option key={n} value={n}>
+                                {n} 天
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </>
+                    )}
+                    {viewMode === "multiPick" && (
+                      <div className="dashboard-pick-wrap" ref={pickRef}>
+                        <button
+                          type="button"
+                          className="dashboard-pick-trigger"
+                          onClick={() => setPickOpen((o) => !o)}
+                          aria-expanded={pickOpen}
+                        >
+                          选日期
+                          {selectedDatesPick.length > 0
+                            ? `（${selectedDatesPick.length} 天）`
+                            : ""}
+                        </button>
+                        {pickOpen && (
+                          <div className="dashboard-pick-dropdown">
+                            {datesForSelection.map((d) => (
+                              <label key={d} className="dashboard-pick-option">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedDatesPick.includes(d)}
+                                  onChange={() => togglePickDate(d)}
+                                />
+                                <span>{d}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
-                  </div>
+                  </>
                 )}
               </>
             )}
           </div>
 
-          {dataSource === "supabase" &&
-            (goodsList.length > 0 || rawMarketRankRows.length > 0) && (
+          {dataSource === "supabase" && (
             <div className="dashboard-header-center">
               <GoodsSelect
                 id="dashboard-goods-select"
                 label=""
                 options={[
+                  { item_id: CAMPAIGN_REGISTER_ITEM_ID, item_name: "推广数据" },
                   { item_id: MARKET_RANK_ITEM_ID, item_name: "店铺排名" },
                   ...goodsList,
                 ]}
@@ -706,7 +764,9 @@ function App() {
             {supabaseLoading ? (
               <span className="dashboard-loading-hint">加载中…</span>
             ) : dataSource === "supabase" &&
-              (rawGoodsDetailRows.length > 0 || rawMarketRankRows.length > 0) ? (
+              !isCampaignRegisterView &&
+              (rawGoodsDetailRows.length > 0 ||
+                rawMarketRankRows.length > 0) ? (
               <>
                 <button
                   type="button"
@@ -760,8 +820,69 @@ function App() {
         <main className="dashboard-main">
           {hasNoDataForSelection ? (
             <p className="dashboard-empty-hint">
-              当前日期暂无数据，请切换日期后查看
+              {isCampaignRegisterView
+                ? "暂无推广数据，请使用扩展在推广记录页登记后再查看"
+                : "当前日期暂无数据，请切换日期后查看"}
             </p>
+          ) : isCampaignRegisterView ? (
+            <div className="campaign-register-wrap">
+              {campaignRegisterLoading ? (
+                <p className="dashboard-empty-hint">加载中…</p>
+              ) : (
+                <table className="campaign-register-table">
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>商品名称</th>
+                      <th>人群-推广消耗</th>
+                      <th>人群-销售额</th>
+                      <th>货品全站-推广消耗</th>
+                      <th>货品全站-销售额</th>
+                      <th>关键词-推广消耗</th>
+                      <th>关键词-销售额</th>
+                      <th>内容营销-推广消耗</th>
+                      <th>内容营销-销售额</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaignRegisterRows.map((row, i) => (
+                      <tr
+                        key={`${row.report_date}-${row.campaign_name ?? ""}-${i}`}
+                      >
+                        <td>{formatReportDate(row.report_date)}</td>
+                        <td title={row.campaign_name ?? ""}>
+                          {row.campaign_name ?? ""}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.charge_onebpdisplay)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.alipay_inshop_amt_onebpdisplay)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.charge_onebpsite)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.alipay_inshop_amt_onebpsite)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.charge_onebpsearch)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.alipay_inshop_amt_onebpsearch)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.charge_onebpshortvideo)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.alipay_inshop_amt_onebpshortvideo)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           ) : (
             <div className="chart-grid" ref={chartGridRef}>
               {seriesGridItems.map((cell, i) => (
