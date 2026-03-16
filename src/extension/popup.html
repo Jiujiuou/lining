@@ -66,6 +66,40 @@
           <div id="findpage-list" class="popup-findpage-list" role="list"></div>
         </section>
       </div>
+      <div class="popup-center">
+        <section class="popup-section popup-section--userdata">
+          <h2 class="popup-userdata-title">获取用户数据</h2>
+          <div class="popup-userdata-filters">
+            <label class="popup-userdata-label">
+              <span class="popup-userdata-label-text">联盟/店铺 ID</span>
+              <input type="text" id="userdata-union-search" class="popup-userdata-input" placeholder="可选，如 1017849608938" />
+            </label>
+            <label class="popup-userdata-label">
+              <span class="popup-userdata-label-text">搜索词</span>
+              <input type="text" id="userdata-buyer-nick" class="popup-userdata-input" placeholder="可选，买家昵称/宝贝关键词" />
+            </label>
+            <label class="popup-userdata-label">
+              <span class="popup-userdata-label-text">订单状态</span>
+              <select id="userdata-order-status" class="popup-userdata-select" aria-label="订单状态">
+                <option value="SUCCESS" selected>已成功</option>
+                <option value="NOT_PAID">待付款</option>
+                <option value="PAID">待发货</option>
+                <option value="SEND">已发货</option>
+                <option value="DROP">交易关闭</option>
+                <option value="ALL">全部</option>
+              </select>
+            </label>
+          </div>
+          <button
+            type="button"
+            id="findpage-userdata"
+            class="popup-userdata-btn"
+            aria-label="获取已卖出订单的用户与订单号并导出"
+          >
+            获取用户数据
+          </button>
+        </section>
+      </div>
       <section class="popup-section popup-section--logs">
         <header class="popup-logs-header">
           <h2 class="popup-logs-title">扩展日志</h2>

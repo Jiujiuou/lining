@@ -26,10 +26,15 @@
   box-sizing: border-box;
 }
 
+/* Chrome 扩展 popup 最大宽度约 800px，超出会出现横向滚动，故总宽限制在 800px */
 body {
-  width: 760px;
+  width: 800px;
+  max-width: 800px;
+  height: 560px;
   min-height: 560px;
   padding: 0;
+  margin: 0;
+  overflow: hidden;
   font-family: var(--popup-font);
   font-size: var(--popup-font-size);
   color: var(--popup-text);
@@ -41,7 +46,11 @@ body {
 .popup {
   display: flex;
   flex-direction: row;
+  width: 800px;
+  max-width: 800px;
+  height: 560px;
   min-height: 560px;
+  overflow: hidden;
 }
 
 .popup-left {
@@ -49,6 +58,16 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.popup-center {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--popup-border);
+  overflow: hidden;
 }
 
 /* ---------- 区块通用 ---------- */
@@ -66,12 +85,12 @@ body {
   min-height: 0;
 }
 
-/* ---------- 主操作：推广记录页入口（一行四按钮，样式对齐刷新列表，保留主色） ---------- */
+/* ---------- 主操作：推广记录页入口（四按钮，空间不足时换行） ---------- */
 .popup-section--open-links {
   padding: var(--popup-space) var(--popup-space) calc(var(--popup-space) + 2px);
   display: flex;
   flex-direction: row;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
 }
@@ -79,6 +98,7 @@ body {
 .popup-open-sites {
   flex: 0 0 auto;
   white-space: nowrap;
+  min-width: 0;
   padding: 8px 14px;
   font-family: var(--popup-font);
   font-size: var(--popup-font-size);
@@ -104,9 +124,52 @@ body {
   box-shadow: 0 0 0 2px var(--popup-accent-soft);
 }
 
+/* ---------- 获取用户数据（中间列） ---------- */
+.popup-section--userdata {
+  padding: var(--popup-space);
+  display: flex;
+  flex-direction: column;
+  gap: var(--popup-space-sm);
+  flex: 1;
+  min-height: 0;
+  background: var(--popup-surface);
+}
+
+.popup-userdata-title {
+  font-size: var(--popup-font-size-title);
+  font-weight: 600;
+  color: var(--popup-text);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.popup-userdata-btn {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  font-family: var(--popup-font);
+  font-size: var(--popup-font-size);
+  font-weight: 500;
+  color: var(--popup-surface);
+  background: var(--popup-accent);
+  border: 1px solid var(--popup-accent);
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.popup-userdata-btn:hover {
+  background: var(--popup-accent-hover);
+  border-color: var(--popup-accent-hover);
+}
+
+.popup-userdata-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
 /* ---------- 扩展日志区块（右侧列） ---------- */
 .popup-section--logs {
-  width: 280px;
+  width: 260px;
   flex-shrink: 0;
   border-bottom: none;
   border-left: 1px solid var(--popup-border);
@@ -114,6 +177,7 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .popup-logs-header {
@@ -160,11 +224,13 @@ body {
   box-shadow: 0 0 0 2px var(--popup-accent-soft);
 }
 
-/* ---------- 日志列表容器 ---------- */
+/* ---------- 日志列表容器（仅此区域滚动，popup 整体不滚动） ---------- */
 .popup-logs-list {
   flex: 1;
+  min-height: 0;
+  min-width: 0;
   overflow-y: auto;
-  min-height: 180px;
+  overflow-x: hidden;
   padding: var(--popup-space-sm);
   background: var(--popup-bg);
   border: 1px solid var(--popup-border);
@@ -175,6 +241,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  align-content: flex-start;
   scrollbar-width: thin;
   -ms-overflow-style: none;
 }
@@ -204,6 +271,8 @@ body {
 
 .popup-log-entry {
   word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 .popup-log-entry--log {
@@ -288,6 +357,72 @@ body {
   margin: 0;
   margin-right: auto;
   letter-spacing: 0.01em;
+}
+
+/* ---------- 获取用户数据：搜索词、订单状态（中间列内竖排） ---------- */
+.popup-section--userdata .popup-userdata-filters {
+  flex-direction: column;
+  align-items: stretch;
+  border-bottom: none;
+  padding: 0;
+}
+
+.popup-userdata-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--popup-space-sm);
+  padding: var(--popup-space-sm) 0;
+  border-bottom: 1px solid var(--popup-border);
+}
+
+.popup-section--userdata .popup-userdata-input {
+  width: 100%;
+  min-width: 0;
+}
+
+.popup-userdata-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--popup-font-size);
+  color: var(--popup-text);
+}
+
+.popup-userdata-label-text {
+  flex-shrink: 0;
+  color: var(--popup-text-muted);
+}
+
+.popup-userdata-input {
+  width: 140px;
+  padding: 6px 10px;
+  font-family: var(--popup-font);
+  font-size: var(--popup-font-size);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  background: var(--popup-surface);
+}
+
+.popup-userdata-input:focus {
+  outline: none;
+  border-color: var(--popup-accent);
+}
+
+.popup-userdata-select {
+  padding: 6px 10px;
+  font-family: var(--popup-font);
+  font-size: var(--popup-font-size);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  background: var(--popup-surface);
+  color: var(--popup-text);
+  cursor: pointer;
+}
+
+.popup-userdata-select:focus {
+  outline: none;
+  border-color: var(--popup-accent);
 }
 
 .popup-findpage-list {

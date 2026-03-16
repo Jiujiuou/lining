@@ -7,7 +7,9 @@
   "host_permissions": [
     "https://sycm.taobao.com/*",
     "https://*.supabase.co/*",
-    "https://one.alimama.com/*"
+    "https://one.alimama.com/*",
+    "https://trade.taobao.com/*",
+    "https://qn.taobao.com/*"
   ],
   "icons": {
     "32": "assets/favicon-32x32.png",
@@ -28,6 +30,13 @@
     {
       "resources": ["capture-findpage-main.js"],
       "matches": ["https://one.alimama.com/*"]
+    },
+    {
+      "resources": ["sold-userdata-main.js"],
+      "matches": [
+        "https://qn.taobao.com/*",
+        "https://trade.taobao.com/*"
+      ]
     }
   ],
   "content_scripts": [
@@ -51,6 +60,14 @@
       "js": ["capture-findpage.js"],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "https://qn.taobao.com/*",
+        "https://trade.taobao.com/*"
+      ],
+      "js": ["sold-userdata.js"],
+      "run_at": "document_start"
     }
   ]
 }
