@@ -30,6 +30,34 @@ const MARKET_RANK_ITEM_ID = "__market_rank__";
 /** 推广数据在 GoodsSelect 中的占位 value，选中时展示 campaign_register 列表 */
 const CAMPAIGN_REGISTER_ITEM_ID = "__campaign_register__";
 
+const DASHBOARD_SELECTED_ITEM_STORAGE_KEY = "lining_dashboard_selected_item_id";
+
+/** 推广数据表格「商品名称」列展示顺序（从上到下） */
+const CAMPAIGN_NAME_ORDER = [
+  "池_2万小方块",
+  "池_2万小云宝",
+  "池_鹅卵石",
+  "池_小贝壳",
+  "池_小云团",
+  "池_大云团",
+];
+
+/** 汇总1：在「池_小贝壳」下展示，加和以下四项 */
+const CAMPAIGN_SUMMARY_GROUP1 = ["池_2万小方块", "池_2万小云宝", "池_鹅卵石", "池_小贝壳"];
+/** 汇总2：在「池_大云团」下展示，加和以下两项 */
+const CAMPAIGN_SUMMARY_GROUP2 = ["池_小云团", "池_大云团"];
+
+const CAMPAIGN_NUMERIC_KEYS = [
+  "charge_onebpsearch",
+  "alipay_inshop_amt_onebpsearch",
+  "charge_onebpdisplay",
+  "alipay_inshop_amt_onebpdisplay",
+  "charge_onebpsite",
+  "alipay_inshop_amt_onebpsite",
+  "charge_onebpshortvideo",
+  "alipay_inshop_amt_onebpshortvideo",
+];
+
 /** 东八区当天日期 YYYY-MM-DD */
 function getTodayEast8() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
@@ -40,7 +68,13 @@ function App() {
   const [dataSource, setDataSource] = useState(null); // 'supabase' | null
   const [rawGoodsDetailRows, setRawGoodsDetailRows] = useState([]);
   const [goodsList, setGoodsList] = useState([]); // { item_id, item_name }[]
-  const [selectedItemId, setSelectedItemId] = useState("");
+  const [selectedItemId, setSelectedItemId] = useState(() => {
+    try {
+      return localStorage.getItem(DASHBOARD_SELECTED_ITEM_STORAGE_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [rawMarketRankRows, setRawMarketRankRows] = useState([]);
   const [viewMode, setViewMode] = useState("single");
   const [selectedDate, setSelectedDate] = useState(() => getTodayEast8());
@@ -49,6 +83,7 @@ function App() {
   const [enlargedIndex, setEnlargedIndex] = useState(null);
   const [pickOpen, setPickOpen] = useState(false);
   const pickRef = useRef(null);
+  const dateInputRef = useRef(null);
   const chartGridRef = useRef(null);
   const enlargedRef = useRef(null);
   const [exporting, setExporting] = useState(false);
@@ -58,11 +93,24 @@ function App() {
   const [chartNotes, setChartNotes] = useState({});
   const [campaignRegisterRows, setCampaignRegisterRows] = useState([]);
   const [campaignRegisterLoading, setCampaignRegisterLoading] = useState(false);
+  /** 删除推广数据二次确认：{ report_date, campaign_name } | null */
+  const [deleteConfirmRow, setDeleteConfirmRow] = useState(null);
+  const [campaignRegisterDeleting, setCampaignRegisterDeleting] = useState(false);
+  /** 推广数据：是否展示汇总行（池_小贝壳下、池_大云团下各一行加和） */
+  const [showCampaignSummary, setShowCampaignSummary] = useState(false);
 
   useEffect(() => {
     const today = getTodayEast8();
     console.log("今天日期（东八区）:", today);
   }, []);
+
+  /** 记住 header 下拉框选项，下次进入页面自动恢复 */
+  useEffect(() => {
+    if (!selectedItemId) return;
+    try {
+      localStorage.setItem(DASHBOARD_SELECTED_ITEM_STORAGE_KEY, selectedItemId);
+    } catch {}
+  }, [selectedItemId]);
 
   const selectedItemName = useMemo(
     () =>
@@ -317,6 +365,160 @@ function App() {
     };
   }, [selectedItemId]);
 
+  const handleCampaignRegisterDeleteConfirm = useCallback(async () => {
+    const row = deleteConfirmRow;
+    if (!supabase || !row) return;
+    setCampaignRegisterDeleting(true);
+    setError(null);
+    const reportDate = row.report_date != null ? String(row.report_date).slice(0, 10) : "";
+    const campaignName = String(row.campaign_name ?? "").trim();
+    const { data: deletedRows, error: deleteError } = await supabase
+      .from("campaign_register")
+      .delete()
+      .eq("report_date", reportDate)
+      .eq("campaign_name", campaignName)
+      .select("report_date");
+    setCampaignRegisterDeleting(false);
+    setDeleteConfirmRow(null);
+    if (deleteError) {
+      setError("删除失败：" + (deleteError.message || String(deleteError)) + "。请确认 Supabase 已为 campaign_register 表添加 delete 策略（运行 supabase_campaign_register_delete_policy.sql）");
+      return;
+    }
+    if (!deletedRows || deletedRows.length === 0) {
+      setError("未从 Supabase 删除任何数据（可能无 delete 权限或条件未匹配）。请运行 extension 目录下的 supabase_campaign_register_delete_policy.sql 后重试。");
+      return;
+    }
+    setCampaignRegisterRows((prev) =>
+      prev.filter(
+        (r) =>
+          !(
+            String(r.report_date ?? "").slice(0, 10) === reportDate &&
+            String(r.campaign_name ?? "").trim() === campaignName
+          ),
+      ),
+    );
+  }, [deleteConfirmRow]);
+
+  /** 推广数据：有数据的日期列表（从已加载数据中取，降序） */
+  const campaignRegisterDates = useMemo(() => {
+    const set = new Set();
+    campaignRegisterRows.forEach((r) => {
+      const d = r.report_date != null ? String(r.report_date).slice(0, 10) : "";
+      if (d) set.add(d);
+    });
+    return Array.from(set).sort().reverse();
+  }, [campaignRegisterRows]);
+
+  /** 推广数据：多日/单日下要展示的日期列表（与 header 里 selectedDates 逻辑一致） */
+  const campaignSelectedDates = useMemo(() => {
+    if (viewMode === "single") {
+      return selectedDate ? [selectedDate] : [];
+    }
+    if (viewMode === "multiRange") {
+      const base =
+        selectedDate ?? campaignRegisterDates[campaignRegisterDates.length - 1];
+      if (!base) return [];
+      const i = campaignRegisterDates.indexOf(base);
+      if (i < 0) return campaignRegisterDates.slice(-rangeDays);
+      const start = Math.max(0, i - rangeDays + 1);
+      return campaignRegisterDates.slice(start, i + 1);
+    }
+    if (viewMode === "multiPick") {
+      return selectedDatesPick.length > 0 ? [...selectedDatesPick].sort() : [];
+    }
+    return [];
+  }, [
+    viewMode,
+    selectedDate,
+    selectedDatesPick,
+    rangeDays,
+    campaignRegisterDates,
+  ]);
+
+  /** 推广数据：当前选中日期（单日或多日）下的行（用于展示），按商品名称指定顺序排序 */
+  const displayedCampaignRows = useMemo(() => {
+    if (campaignSelectedDates.length === 0) return campaignRegisterRows;
+    const set = new Set(campaignSelectedDates);
+    const filtered = campaignRegisterRows.filter((r) => {
+      const d = r.report_date != null ? String(r.report_date).slice(0, 10) : "";
+      return set.has(d);
+    });
+    const orderMap = new Map(CAMPAIGN_NAME_ORDER.map((name, i) => [name, i]));
+    return [...filtered].sort((a, b) => {
+      const nameA = String(a.campaign_name ?? "").trim();
+      const nameB = String(b.campaign_name ?? "").trim();
+      const iA = orderMap.has(nameA) ? orderMap.get(nameA) : CAMPAIGN_NAME_ORDER.length;
+      const iB = orderMap.has(nameB) ? orderMap.get(nameB) : CAMPAIGN_NAME_ORDER.length;
+      if (iA !== iB) return iA - iB;
+      return nameA.localeCompare(nameB);
+    });
+  }, [campaignRegisterRows, campaignSelectedDates]);
+
+  const NUMERIC_KEYS = [
+    "charge_onebpsearch",
+    "alipay_inshop_amt_onebpsearch",
+    "charge_onebpdisplay",
+    "alipay_inshop_amt_onebpdisplay",
+    "charge_onebpsite",
+    "alipay_inshop_amt_onebpsite",
+    "charge_onebpshortvideo",
+    "alipay_inshop_amt_onebpshortvideo",
+  ];
+
+  /** 推广数据：在 池_小贝壳 下、池_大云团 下插入汇总行（开关打开时） */
+  const displayedCampaignRowsWithSummary = useMemo(() => {
+    if (!showCampaignSummary || displayedCampaignRows.length === 0) return displayedCampaignRows;
+    const set1 = new Set(CAMPAIGN_SUMMARY_GROUP1);
+    const set2 = new Set(CAMPAIGN_SUMMARY_GROUP2);
+    const byDate = new Map();
+    for (const r of displayedCampaignRows) {
+      const d = r.report_date != null ? String(r.report_date).slice(0, 10) : "";
+      if (!byDate.has(d)) byDate.set(d, []);
+      byDate.get(d).push(r);
+    }
+    const out = [];
+    const sumRows = (rows) => {
+      const row = { report_date: rows[0]?.report_date ?? null, campaign_name: "", isSummaryRow: true };
+      for (const k of CAMPAIGN_NUMERIC_KEYS) row[k] = 0;
+      for (const r of rows) {
+        for (const k of CAMPAIGN_NUMERIC_KEYS) row[k] = (Number(r[k]) || 0) + (row[k] ?? 0);
+      }
+      return row;
+    };
+    const dates = Array.from(byDate.keys()).sort().reverse();
+    for (const d of dates) {
+      const rows = byDate.get(d);
+      for (const r of rows) {
+        out.push(r);
+        const name = String(r.campaign_name ?? "").trim();
+        if (name === "池_小贝壳") {
+          const group1Rows = rows.filter((row) => set1.has(String(row.campaign_name ?? "").trim()));
+          if (group1Rows.length > 0) {
+            const sum = sumRows(group1Rows);
+            sum.campaign_name = "汇总";
+            out.push(sum);
+          }
+        } else if (name === "池_大云团") {
+          const group2Rows = rows.filter((row) => set2.has(String(row.campaign_name ?? "").trim()));
+          if (group2Rows.length > 0) {
+            const sum = sumRows(group2Rows);
+            sum.campaign_name = "汇总";
+            out.push(sum);
+          }
+        }
+      }
+    }
+    return out;
+  }, [showCampaignSummary, displayedCampaignRows]);
+
+  /** 切换到推广数据且当前选中日期不在数据范围内时，切到最新有数据的日期 */
+  useEffect(() => {
+    if (selectedItemId !== CAMPAIGN_REGISTER_ITEM_ID) return;
+    if (campaignRegisterDates.length === 0) return;
+    if (selectedDate && campaignRegisterDates.includes(selectedDate)) return;
+    setSelectedDate(campaignRegisterDates[0]);
+  }, [selectedItemId, campaignRegisterDates, selectedDate]);
+
   const noteFetchScope = useMemo(() => {
     if (dataSource !== "supabase") return { chartKeys: [], pointDates: [] };
     const { dates = [], byDate = {} } = parsedData || {};
@@ -394,6 +596,18 @@ function App() {
   }, [enlargedIndex, noteModal]);
 
   useEffect(() => {
+    if (deleteConfirmRow == null) return;
+    const onEsc = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setDeleteConfirmRow(null);
+      }
+    };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [deleteConfirmRow]);
+
+  useEffect(() => {
     if (!pickOpen) return;
     const onDoc = (e) => {
       if (pickRef.current && !pickRef.current.contains(e.target))
@@ -408,7 +622,11 @@ function App() {
     const isCampaignRegisterView = selectedItemId === CAMPAIGN_REGISTER_ITEM_ID;
     const { dates, byDate } = parsedData || { dates: [], byDate: {} };
     const rankDates = Object.keys(marketRankChart.byDateSlot || {}).sort();
-    const datesForSelection = isMarketRankView ? rankDates : dates;
+    const datesForSelection = isCampaignRegisterView
+      ? campaignRegisterDates
+      : isMarketRankView
+        ? rankDates
+        : dates;
     const firstDate = datesForSelection[0];
 
     let selectedDates = [];
@@ -598,7 +816,7 @@ function App() {
       : seriesForGrid.map((s) => ({ type: "series", ...s }));
     const totalGridCells = seriesGridItems.length;
     const hasNoDataForSelection = isCampaignRegisterView
-      ? !campaignRegisterLoading && campaignRegisterRows.length === 0
+      ? !campaignRegisterLoading && displayedCampaignRows.length === 0
       : totalGridCells === 0;
 
     const formatReportDate = (d) => {
@@ -606,140 +824,151 @@ function App() {
       const s = typeof d === "string" ? d : (d.slice && d.slice(0, 10)) || "";
       return s.replace(/-/g, "/");
     };
-    const formatMoney = (n) =>
-      n != null && !Number.isNaN(Number(n)) ? Number(n).toFixed(2) : "";
+    /** 金额保留两位小数，0 / 0.00 显示为空 */
+    const formatMoney = (n) => {
+      if (n == null || Number.isNaN(Number(n))) return "";
+      const val = Number(n);
+      return val === 0 ? "" : val.toFixed(2);
+    };
+    /** ROI = 成交/消耗，消耗为 0 或结果为 0 时显示为空 */
+    const formatRoi = (charge, amt) => {
+      const c = charge != null ? Number(charge) : 0;
+      if (c === 0 || Number.isNaN(c)) return "";
+      const a = amt != null ? Number(amt) : 0;
+      if (Number.isNaN(a)) return "";
+      const roi = a / c;
+      return roi === 0 ? "" : roi.toFixed(2);
+    };
     return (
       <div className="dashboard">
         <header className="dashboard-header">
           <div className="dashboard-header-left">
-            {!isCampaignRegisterView && (
-              <>
-                <div className="dashboard-tabs" role="tablist">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={viewMode === "single"}
-                    className={`dashboard-tab ${viewMode === "single" ? "dashboard-tab--active" : ""}`}
-                    onClick={() => setViewMode("single")}
-                  >
-                    单日
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={
-                      viewMode === "multiRange" || viewMode === "multiPick"
-                    }
-                    className={`dashboard-tab ${viewMode === "multiRange" || viewMode === "multiPick" ? "dashboard-tab--active" : ""}`}
-                    onClick={() => setViewMode("multiRange")}
-                  >
-                    多日
-                  </button>
-                </div>
+            <>
+              <div className="dashboard-tabs" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={viewMode === "single"}
+                  className={`dashboard-tab ${viewMode === "single" ? "dashboard-tab--active" : ""}`}
+                  onClick={() => setViewMode("single")}
+                >
+                  单日
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={
+                    viewMode === "multiRange" || viewMode === "multiPick"
+                  }
+                  className={`dashboard-tab ${viewMode === "multiRange" || viewMode === "multiPick" ? "dashboard-tab--active" : ""}`}
+                  onClick={() => setViewMode("multiRange")}
+                >
+                  多日
+                </button>
+              </div>
 
-                {viewMode === "single" && (
-                  <label className="dashboard-date-label">
-                    日期
-                    <input
-                      type="date"
-                      className="dashboard-date-select"
-                      value={selectedDate ?? ""}
-                      onChange={(e) => {
-                        const next = e.target.value;
-                        setSelectedDate(next);
-                        if (dataSource === "supabase" && view === "dashboard") {
-                          loadFromSupabase(next);
-                        }
-                      }}
-                    />
-                  </label>
-                )}
+              {viewMode === "single" && (
+                <label className="dashboard-date-label">
+                  日期
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    className="dashboard-date-select"
+                    value={selectedDate ?? ""}
+                    onClick={() => dateInputRef.current?.showPicker?.()}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setSelectedDate(next);
+                      if (dataSource === "supabase" && view === "dashboard") {
+                        loadFromSupabase(next);
+                      }
+                    }}
+                  />
+                </label>
+              )}
 
-                {(viewMode === "multiRange" || viewMode === "multiPick") && (
-                  <>
-                    <div className="dashboard-subtabs">
-                      <button
-                        type="button"
-                        className={`dashboard-subtab ${viewMode === "multiRange" ? "dashboard-subtab--active" : ""}`}
-                        onClick={() => setViewMode("multiRange")}
-                      >
-                        连续
-                      </button>
-                      <button
-                        type="button"
-                        className={`dashboard-subtab ${viewMode === "multiPick" ? "dashboard-subtab--active" : ""}`}
-                        onClick={() => setViewMode("multiPick")}
-                      >
-                        自选
-                      </button>
-                    </div>
-                    {viewMode === "multiRange" && (
-                      <>
-                        <label className="dashboard-date-label">
-                          日期
-                          <select
-                            className="dashboard-date-select"
-                            value={selectedDate ?? ""}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                          >
-                            {datesForSelection.map((d) => (
-                              <option key={d} value={d}>
-                                {d}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="dashboard-date-label">
-                          共
-                          <select
-                            className="dashboard-date-select dashboard-date-select--narrow"
-                            value={rangeDays}
-                            onChange={(e) =>
-                              setRangeDays(Number(e.target.value))
-                            }
-                          >
-                            {RANGE_DAY_OPTIONS.map((n) => (
-                              <option key={n} value={n}>
-                                {n} 天
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </>
-                    )}
-                    {viewMode === "multiPick" && (
-                      <div className="dashboard-pick-wrap" ref={pickRef}>
-                        <button
-                          type="button"
-                          className="dashboard-pick-trigger"
-                          onClick={() => setPickOpen((o) => !o)}
-                          aria-expanded={pickOpen}
+              {(viewMode === "multiRange" || viewMode === "multiPick") && (
+                <>
+                  <div className="dashboard-subtabs">
+                    <button
+                      type="button"
+                      className={`dashboard-subtab ${viewMode === "multiRange" ? "dashboard-subtab--active" : ""}`}
+                      onClick={() => setViewMode("multiRange")}
+                    >
+                      连续
+                    </button>
+                    <button
+                      type="button"
+                      className={`dashboard-subtab ${viewMode === "multiPick" ? "dashboard-subtab--active" : ""}`}
+                      onClick={() => setViewMode("multiPick")}
+                    >
+                      自选
+                    </button>
+                  </div>
+                  {viewMode === "multiRange" && (
+                    <>
+                      <label className="dashboard-date-label">
+                        日期
+                        <select
+                          className="dashboard-date-select"
+                          value={selectedDate ?? ""}
+                          onChange={(e) => setSelectedDate(e.target.value)}
                         >
-                          选日期
-                          {selectedDatesPick.length > 0
-                            ? `（${selectedDatesPick.length} 天）`
-                            : ""}
-                        </button>
-                        {pickOpen && (
-                          <div className="dashboard-pick-dropdown">
-                            {datesForSelection.map((d) => (
-                              <label key={d} className="dashboard-pick-option">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedDatesPick.includes(d)}
-                                  onChange={() => togglePickDate(d)}
-                                />
-                                <span>{d}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+                          {datesForSelection.map((d) => (
+                            <option key={d} value={d}>
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="dashboard-date-label">
+                        共
+                        <select
+                          className="dashboard-date-select dashboard-date-select--narrow"
+                          value={rangeDays}
+                          onChange={(e) => setRangeDays(Number(e.target.value))}
+                        >
+                          {RANGE_DAY_OPTIONS.map((n) => (
+                            <option key={n} value={n}>
+                              {n} 天
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </>
+                  )}
+                  {viewMode === "multiPick" && (
+                    <div className="dashboard-pick-wrap" ref={pickRef}>
+                      <button
+                        type="button"
+                        className="dashboard-pick-trigger"
+                        onClick={() => setPickOpen((o) => !o)}
+                        aria-expanded={pickOpen}
+                      >
+                        选日期
+                        {selectedDatesPick.length > 0
+                          ? `（${selectedDatesPick.length} 天）`
+                          : ""}
+                      </button>
+                      {pickOpen && (
+                        <div className="dashboard-pick-dropdown">
+                          {datesForSelection.map((d) => (
+                            <label key={d} className="dashboard-pick-option">
+                              <input
+                                type="checkbox"
+                                checked={selectedDatesPick.includes(d)}
+                                onChange={() => togglePickDate(d)}
+                              />
+                              <span>{d}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
           </div>
 
           {dataSource === "supabase" && (
@@ -761,6 +990,19 @@ function App() {
           )}
 
           <div className="dashboard-header-actions">
+            {isCampaignRegisterView && (
+              <label className="dashboard-summary-switch">
+                <span className="dashboard-summary-switch-label">展示汇总</span>
+                <input
+                  type="checkbox"
+                  checked={showCampaignSummary}
+                  onChange={(e) => setShowCampaignSummary(e.target.checked)}
+                  className="dashboard-summary-switch-input"
+                  aria-label="展示汇总"
+                />
+                <span className="dashboard-summary-switch-slider" />
+              </label>
+            )}
             {supabaseLoading ? (
               <span className="dashboard-loading-hint">加载中…</span>
             ) : dataSource === "supabase" &&
@@ -789,6 +1031,43 @@ function App() {
             {error && <span className="dashboard-header-error">{error}</span>}
           </div>
         </header>
+
+        {deleteConfirmRow != null && (
+          <div
+            className="note-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-confirm-title"
+            onClick={(e) => e.target === e.currentTarget && setDeleteConfirmRow(null)}
+          >
+            <div className="note-modal-panel" onClick={(e) => e.stopPropagation()}>
+              <h2 id="delete-confirm-title" className="delete-confirm-title">
+                确定删除该条推广数据？
+              </h2>
+              <p className="delete-confirm-desc">
+                {formatReportDate(deleteConfirmRow.report_date)} · {deleteConfirmRow.campaign_name ?? ""}
+              </p>
+              <div className="delete-confirm-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setDeleteConfirmRow(null)}
+                  disabled={campaignRegisterDeleting}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleCampaignRegisterDeleteConfirm}
+                  disabled={campaignRegisterDeleting}
+                >
+                  {campaignRegisterDeleting ? "删除中…" : "确定"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <NoteModal
           open={noteModal != null}
@@ -834,36 +1113,30 @@ function App() {
                     <tr>
                       <th>时间</th>
                       <th>商品名称</th>
-                      <th>人群-推广消耗</th>
-                      <th>人群-销售额</th>
-                      <th>货品全站-推广消耗</th>
-                      <th>货品全站-销售额</th>
-                      <th>关键词-推广消耗</th>
-                      <th>关键词-销售额</th>
-                      <th>内容营销-推广消耗</th>
-                      <th>内容营销-销售额</th>
+                      <th>关键词消耗</th>
+                      <th>关键词成交</th>
+                      <th className="campaign-register-roi">关键词ROI</th>
+                      <th>人群消耗</th>
+                      <th>人群成交</th>
+                      <th className="campaign-register-roi">人群ROI</th>
+                      <th>全站消耗</th>
+                      <th>全站成交</th>
+                      <th className="campaign-register-roi">全站ROI</th>
+                      <th>内容消耗</th>
+                      <th>内容成交</th>
+                      <th className="campaign-register-roi">内容ROI</th>
+                      <th className="campaign-register-action">操作</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {campaignRegisterRows.map((row, i) => (
+                    {displayedCampaignRowsWithSummary.map((row, i) => (
                       <tr
-                        key={`${row.report_date}-${row.campaign_name ?? ""}-${i}`}
+                        key={row.isSummaryRow ? `summary-${row.report_date}-${row.campaign_name}-${i}` : `${row.report_date}-${row.campaign_name ?? ""}-${i}`}
+                        className={row.isSummaryRow ? "campaign-register-row--summary" : undefined}
                       >
                         <td>{formatReportDate(row.report_date)}</td>
                         <td title={row.campaign_name ?? ""}>
                           {row.campaign_name ?? ""}
-                        </td>
-                        <td className="campaign-register-num">
-                          {formatMoney(row.charge_onebpdisplay)}
-                        </td>
-                        <td className="campaign-register-num">
-                          {formatMoney(row.alipay_inshop_amt_onebpdisplay)}
-                        </td>
-                        <td className="campaign-register-num">
-                          {formatMoney(row.charge_onebpsite)}
-                        </td>
-                        <td className="campaign-register-num">
-                          {formatMoney(row.alipay_inshop_amt_onebpsite)}
                         </td>
                         <td className="campaign-register-num">
                           {formatMoney(row.charge_onebpsearch)}
@@ -871,11 +1144,49 @@ function App() {
                         <td className="campaign-register-num">
                           {formatMoney(row.alipay_inshop_amt_onebpsearch)}
                         </td>
+                        <td className="campaign-register-num campaign-register-roi">
+                          {formatRoi(row.charge_onebpsearch, row.alipay_inshop_amt_onebpsearch)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.charge_onebpdisplay)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.alipay_inshop_amt_onebpdisplay)}
+                        </td>
+                        <td className="campaign-register-num campaign-register-roi">
+                          {formatRoi(row.charge_onebpdisplay, row.alipay_inshop_amt_onebpdisplay)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.charge_onebpsite)}
+                        </td>
+                        <td className="campaign-register-num">
+                          {formatMoney(row.alipay_inshop_amt_onebpsite)}
+                        </td>
+                        <td className="campaign-register-num campaign-register-roi">
+                          {formatRoi(row.charge_onebpsite, row.alipay_inshop_amt_onebpsite)}
+                        </td>
                         <td className="campaign-register-num">
                           {formatMoney(row.charge_onebpshortvideo)}
                         </td>
                         <td className="campaign-register-num">
                           {formatMoney(row.alipay_inshop_amt_onebpshortvideo)}
+                        </td>
+                        <td className="campaign-register-num campaign-register-roi">
+                          {formatRoi(row.charge_onebpshortvideo, row.alipay_inshop_amt_onebpshortvideo)}
+                        </td>
+                        <td className="campaign-register-action">
+                          {row.isSummaryRow ? (
+                            ""
+                          ) : (
+                            <button
+                              type="button"
+                              className="campaign-register-delete-btn"
+                              onClick={() => setDeleteConfirmRow({ report_date: row.report_date, campaign_name: row.campaign_name })}
+                              aria-label={`删除 ${row.campaign_name ?? ""}`}
+                            >
+                              删除
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

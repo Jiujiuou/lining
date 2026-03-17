@@ -82,6 +82,70 @@
   flex-shrink: 0;
 }
 
+.dashboard-summary-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+.dashboard-summary-switch-label {
+  white-space: nowrap;
+}
+
+.dashboard-summary-switch-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.dashboard-summary-switch-slider {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  background: var(--border);
+  border-radius: 20px;
+  transition: background 0.2s;
+}
+
+.dashboard-summary-switch-slider::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s;
+}
+
+.dashboard-summary-switch-input:checked + .dashboard-summary-switch-slider {
+  background: var(--accent);
+}
+
+.dashboard-summary-switch-input:checked + .dashboard-summary-switch-slider::after {
+  transform: translateX(16px);
+}
+
+.dashboard-summary-switch:hover .dashboard-summary-switch-slider {
+  background: var(--text-muted);
+}
+
+.dashboard-summary-switch-input:checked:hover + .dashboard-summary-switch-slider {
+  background: #0f766e;
+}
+
 .dashboard-loading-hint {
   font-size: 0.9rem;
   color: var(--text-muted);
@@ -271,52 +335,139 @@
   text-align: center;
 }
 
-/* 推广数据列表：左右约 40px 由 dashboard-main 留出，表格占满剩余宽度 */
+/* ---------- 推广数据列表：与看板主题一致，表头固定 ---------- */
 .campaign-register-wrap {
   flex: 1;
   min-height: 0;
   overflow: auto;
   width: 100%;
   min-width: 0;
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 0;
+  /* 为固定表头留出视觉容器，与 chart-cell 同级的卡片感 */
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .campaign-register-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  line-height: 1.5;
   font-family: var(--font);
+  color: var(--text);
   background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  border: 1px solid var(--border);
 }
 
+/* 表头：固定不随内容滚动，背景加深、文字加粗 */
 .campaign-register-table thead {
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent-soft) 65%, var(--accent));
+}
+
+.campaign-register-table thead tr {
+  border-bottom: 1px solid var(--border);
 }
 
 .campaign-register-table th {
-  padding: 12px 14px;
+  padding: 14px 12px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.85rem;
   color: var(--text);
-  border: 1px solid var(--border);
+  letter-spacing: 0.01em;
+  background: color-mix(in srgb, var(--accent-soft) 65%, var(--accent));
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 2px 0 var(--border);
 }
 
-.campaign-register-table td {
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  color: var(--text);
+.campaign-register-table tbody td {
+  padding: 12px;
   text-align: center;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  transition: background-color 0.15s ease;
 }
 
-.campaign-register-table tbody tr:hover {
+.campaign-register-table tbody tr:hover td {
   background: var(--bg);
 }
 
+.campaign-register-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.campaign-register-table tbody tr.campaign-register-row--summary td {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent-soft) 50%, var(--surface));
+}
+
+/* 数字列：等宽、居中 */
 .campaign-register-table .campaign-register-num {
   font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* ROI 列：仅表体使用浅色背景，表头与其它 th 一致用加深背景 */
+.campaign-register-table tbody .campaign-register-roi {
+  background: color-mix(in srgb, var(--accent-soft) 35%, var(--surface));
+}
+
+.campaign-register-table tbody tr:hover .campaign-register-roi {
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--bg));
+}
+
+/* 操作列 */
+.campaign-register-table .campaign-register-action {
+  white-space: nowrap;
+  width: 1%;
+  text-align: center;
+}
+
+.campaign-register-delete-btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-family: var(--font);
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.campaign-register-delete-btn:hover {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+}
+
+.campaign-register-delete-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.delete-confirm-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.delete-confirm-desc {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.delete-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .chart-grid {
