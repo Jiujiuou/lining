@@ -105,10 +105,12 @@
     });
   }
 
-  function renderFindPageList(response, bizCode) {
+  /** selectedSet: 上次登记时勾选的 displayName 列表（按 bizCode 存），用于恢复勾选 */
+  function renderFindPageList(response, bizCode, selectedSet) {
     if (!findpageListEl) return;
     lastFindPageResponse = response;
     var list = (response && response.data && Array.isArray(response.data.list)) ? response.data.list : [];
+    var checkedSet = (selectedSet && Array.isArray(selectedSet)) ? selectedSet : [];
     if (list.length === 0) {
       findpageListEl.innerHTML = '<div class="popup-findpage-list--empty"><span>暂无捕获数据，请先在推广记录页打开列表</span></div>';
       findpageListEl.classList.add('popup-findpage-list--empty');
@@ -118,12 +120,15 @@
     findpageListEl.innerHTML = list.map(function (item, index) {
       var report = item && Array.isArray(item.reportInfoList) && item.reportInfoList[0];
       var name = getCampaignNameForRegister(item, report, bizCode || '');
+      var displayName = getSlicedCampaignName(name);
+      var isChecked = displayName && checkedSet.indexOf(displayName) !== -1;
       var safeName = name.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       var titleAttr = name ? ' title="' + name.replace(/"/g, '&quot;') + '"' : '';
       var isEffective = item && (item.displayStatus === 'start' || item.onlineStatus === 1);
       var statusClass = isEffective ? ' popup-findpage-item--effective' : ' popup-findpage-item--paused';
+      var checkedAttr = isChecked ? ' checked' : '';
       return '<div class="popup-findpage-item' + statusClass + '" role="listitem"' + titleAttr + '>' +
-        '<input type="checkbox" id="findpage-cb-' + index + '" data-index="' + index + '" aria-label="勾选' + safeName + '">' +
+        '<input type="checkbox" id="findpage-cb-' + index + '" data-index="' + index + '" aria-label="勾选' + safeName + '"' + checkedAttr + '>' +
         '<label class="popup-findpage-name" for="findpage-cb-' + index + '">' + safeName + '</label>' +
         '</div>';
     }).join('');
@@ -131,11 +136,26 @@
 
   function loadFindPageResponse() {
     try {
-      chrome.storage.local.get(['findPageResponse', 'findPageRequestUrl', 'findPagePageUrl', 'findPageBizCode'], function (stored) {
+      chrome.storage.local.get(['findPageResponse', 'findPageRequestUrl', 'findPagePageUrl', 'findPageBizCode', 'findPageSelectedCampaigns'], function (stored) {
+        var hasResponse = stored && stored.findPageResponse != null;
+        var listLen = hasResponse && stored.findPageResponse.data && Array.isArray(stored.findPageResponse.data.list)
+          ? stored.findPageResponse.data.list.length
+          : 0;
+        if (logger) {
+          logger.appendLog('log', '[刷新列表] storage: findPageResponse=' + (hasResponse ? '有' : '无') +
+            ', list条数=' + listLen +
+            ', requestUrl=' + (stored.findPageRequestUrl ? (stored.findPageRequestUrl.slice(0, 80) + '...') : '无') +
+            ', pageUrl=' + (stored.findPagePageUrl ? (stored.findPagePageUrl.slice(0, 80) + '...') : '无') +
+            ', bizCode=' + (stored.findPageBizCode || '无'));
+        }
         lastFindPageRequestUrl = stored.findPageRequestUrl || '';
         lastFindPagePageUrl = stored.findPagePageUrl || '';
         lastFindPageBizCode = stored.findPageBizCode || '';
-        renderFindPageList(stored.findPageResponse || null, stored.findPageBizCode || '');
+        var selectedSet = (stored.findPageSelectedCampaigns && stored.findPageBizCode && stored.findPageSelectedCampaigns[stored.findPageBizCode])
+          ? stored.findPageSelectedCampaigns[stored.findPageBizCode]
+          : [];
+        renderFindPageList(stored.findPageResponse || null, stored.findPageBizCode || '', selectedSet);
+        if (logger) loadLogs();
       });
     } catch (e) {
       lastFindPageRequestUrl = '';
@@ -334,6 +354,13 @@
         loadLogs();
         return;
       }
+      /* 按 bizCode 记住本次勾选的 displayName，下次同接口列表自动恢复勾选 */
+      var selectedDisplayNames = rows.map(function (r) { return r.campaign_name; });
+      chrome.storage.local.get(['findPageSelectedCampaigns'], function (s) {
+        var all = (s && s.findPageSelectedCampaigns) ? s.findPageSelectedCampaigns : {};
+        all[bizCode] = selectedDisplayNames;
+        chrome.storage.local.set({ findPageSelectedCampaigns: all }, function () {});
+      });
       var creds = typeof __SYCM_SUPABASE__ !== 'undefined' ? __SYCM_SUPABASE__ : null;
       upsertCampaignRegisterByBiz(rows, bizCode, creds, { logger: logger }).then(function () {
         loadLogs();
@@ -362,8 +389,8 @@
 
   loadThrottle();
   loadLogs();
-  /* 打开 popup 时推广列表不自动读 storage，仅显示空状态；列表在「捕获到新数据」或点击「刷新列表」时再加载 */
-  renderFindPageList(null);
+  /* 打开 popup 时从 storage 加载并渲染列表，捕获到新数据时由 onChanged 自动刷新 */
+  loadFindPageResponse();
 
   chrome.storage.onChanged.addListener(function (changes, areaName) {
     if (areaName !== 'local') return;

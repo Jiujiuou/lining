@@ -28,10 +28,6 @@
       "matches": ["https://sycm.taobao.com/*"]
     },
     {
-      "resources": ["capture-findpage-main.js"],
-      "matches": ["https://one.alimama.com/*"]
-    },
-    {
       "resources": ["sold-userdata-main.js"],
       "matches": [
         "https://qn.taobao.com/*",
@@ -60,6 +56,12 @@
       "js": ["capture-findpage.js"],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": ["https://one.alimama.com/*"],
+      "js": ["capture-findpage-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     },
     {
       "matches": [

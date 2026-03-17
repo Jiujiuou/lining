@@ -3,12 +3,12 @@
  * 必须与页面共享同一 window 才能拦到 merge.js / XHR
  */
 (function () {
+  /** 只拦截推广列表接口，避免 /material/item/findPage.json 等覆盖 storage 导致 list 条数异常 */
   var FIND_PAGE_PATTERN = '/campaign/horizontal/findPage.json';
-  var LOG_PREFIX = '[扩展] findPage.json';
 
   function isFindPageUrl(url) {
     if (typeof url !== 'string') return false;
-    return url.indexOf(FIND_PAGE_PATTERN) !== -1 || url.indexOf('findPage.json') !== -1;
+    return url.indexOf(FIND_PAGE_PATTERN) !== -1;
   }
 
   function logResponse(data, requestUrl) {

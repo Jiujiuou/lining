@@ -1,7 +1,8 @@
 /**
- * Content Script：在 document_start 把拦截逻辑注入到「页面主世界」
- * 页面脚本（merge.js / boot.js / XHR）跑在主世界，只有主世界里的 patch 才能拦到请求
- * 监听主世界 postMessage，将 findPage 响应写入 storage 供 popup 使用
+ * Content Script（ISOLATED）：在 document_start 监听主世界 postMessage
+ * 主世界 patch 由 manifest 中 world: "MAIN" 的 capture-findpage-main.js 在 document_start 同步执行，
+ * 早于页面脚本，避免首屏 findPage 请求早于 patch 导致的漏捕获
+ * 将 findPage 响应写入 storage 供 popup 使用
  */
 (function () {
   function parseBizCodeFromUrl(url) {
@@ -19,6 +20,9 @@
     if (event.source !== window || !event.data || event.data.type !== 'FIND_PAGE_CAPTURED') return;
     var payload = event.data.payload;
     if (!payload) return;
+    var list = payload.data && Array.isArray(payload.data.list) ? payload.data.list : [];
+    /* 不把空列表写入 storage，避免首屏空响应覆盖后续带数据的响应，或覆盖上次会话的有效列表 */
+    if (list.length === 0) return;
     var requestUrl = event.data.requestUrl || '';
     try {
       var biz = parseBizCodeFromUrl(requestUrl);
@@ -31,9 +35,4 @@
     } catch (e) {}
   }
   window.addEventListener('message', onMessage);
-
-  var script = document.createElement('script');
-  script.src = chrome.runtime.getURL('capture-findpage-main.js');
-  (document.documentElement || document.head).appendChild(script);
-  script.onload = function () { script.remove(); };
 })();

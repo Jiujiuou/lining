@@ -429,8 +429,7 @@ body {
   flex: 1;
   min-height: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
+  flex-direction: column;
   gap: 6px;
   overflow-y: auto;
   padding: var(--popup-space-sm);
@@ -451,20 +450,19 @@ body {
 
 .popup-findpage-item {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  width: calc(50% - 3px);
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  width: 100%;
   box-sizing: border-box;
   flex: 0 0 auto;
-  height: auto;
+  min-height: 0;
   background: var(--popup-surface);
   border-radius: var(--popup-radius-sm);
   border: 1px solid var(--popup-border);
   transition:
     background 0.15s ease,
     border-color 0.15s ease;
-  min-width: 0;
 }
 
 .popup-findpage-item:hover {
@@ -484,11 +482,10 @@ body {
   flex: 1;
   min-width: 0;
   font-size: var(--popup-font-size);
-  line-height: 1.25;
+  line-height: 1.4;
   color: var(--popup-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 /* 生效：绿色文案（与网站绿标一致） */
