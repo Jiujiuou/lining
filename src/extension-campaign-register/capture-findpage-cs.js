@@ -1,10 +1,15 @@
 /**
- * Content Script（ISOLATED）：在 document_start 监听主世界 postMessage
- * 主世界 patch 由 manifest 中 world: "MAIN" 的 capture-findpage-main.js 在 document_start 同步执行，
- * 早于页面脚本，避免首屏 findPage 请求早于 patch 导致的漏捕获
- * 将 findPage 响应写入 storage 供 popup 使用
+ * 隔离世界：接收主世界 FIND_PAGE_CAPTURED，写入本扩展独立 storage（amcr_*），不与「数据获取」共用 findPage*
  */
 (function () {
+  try {
+    var g = typeof globalThis !== 'undefined' ? globalThis : window;
+    if (g.__LINING_AMCR_CS__) return;
+    g.__LINING_AMCR_CS__ = true;
+  } catch (e) {
+    return;
+  }
+
   function parseBizCodeFromUrl(url) {
     if (!url || typeof url !== 'string') return '';
     try {
@@ -16,21 +21,21 @@
       return allowed[bizCode] ? bizCode : '';
     } catch (e) { return ''; }
   }
+
   function onMessage(event) {
     if (event.source !== window || !event.data || event.data.type !== 'FIND_PAGE_CAPTURED') return;
     var payload = event.data.payload;
     if (!payload) return;
     var list = payload.data && Array.isArray(payload.data.list) ? payload.data.list : [];
-    /* 不把空列表写入 storage，避免首屏空响应覆盖后续带数据的响应，或覆盖上次会话的有效列表 */
     if (list.length === 0) return;
     var requestUrl = event.data.requestUrl || '';
     try {
       var biz = parseBizCodeFromUrl(requestUrl);
       chrome.storage.local.set({
-        findPageResponse: payload,
-        findPageRequestUrl: requestUrl,
-        findPagePageUrl: event.data.pageUrl || '',
-        findPageBizCode: biz
+        amcr_findPageResponse: payload,
+        amcr_findPageRequestUrl: requestUrl,
+        amcr_findPagePageUrl: event.data.pageUrl || '',
+        amcr_findPageBizCode: biz
       }, function () {});
     } catch (e) {}
   }

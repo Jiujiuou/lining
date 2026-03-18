@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
   "name": "数据获取",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "description": "获取生意参谋数据",
-  "permissions": ["scripting", "storage", "tabs"],
+  "permissions": ["storage"],
   "host_permissions": [
     "https://sycm.taobao.com/*",
-    "https://*.supabase.co/*",
-    "https://one.alimama.com/*"
+    "https://*.supabase.co/*"
   ],
   "icons": {
     "32": "assets/favicon-32x32.png",
@@ -41,18 +40,6 @@
       ],
       "run_at": "document_start",
       "all_frames": true
-    },
-    {
-      "matches": ["https://one.alimama.com/*"],
-      "js": ["capture-findpage.js"],
-      "run_at": "document_start",
-      "all_frames": true
-    },
-    {
-      "matches": ["https://one.alimama.com/*"],
-      "js": ["capture-findpage-main.js"],
-      "run_at": "document_start",
-      "world": "MAIN"
     }
   ]
 }

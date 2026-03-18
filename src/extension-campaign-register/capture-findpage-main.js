@@ -1,9 +1,7 @@
 /**
- * 在「页面主世界」执行的 findPage 拦截逻辑（由 capture-findpage.js 注入）
- * 必须与页面共享同一 window 才能拦到 merge.js / XHR
+ * 主世界 findPage 拦截（与主扩展逻辑一致）
  */
 (function () {
-  /** 只拦截推广列表接口，避免 /material/item/findPage.json 等覆盖 storage 导致 list 条数异常 */
   var FIND_PAGE_PATTERN = '/campaign/horizontal/findPage.json';
 
   function isFindPageUrl(url) {

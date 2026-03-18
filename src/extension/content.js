@@ -35,7 +35,6 @@
   var mergeGoodsDetailSlotBatch = supabaseUtil.mergeGoodsDetailSlotBatch;
   var getThrottleMinutes = storageUtil.getThrottleMinutes;
   var setLastSlot = storageUtil.setLastSlot;
-  var setLastWrite = storageUtil.setLastWrite;
   var STORAGE_KEYS = storageUtil.STORAGE_KEYS;
 
   function handleEvent(sink, d, throttleMinutes) {
@@ -65,7 +64,6 @@
           mergeGoodsDetailSlotBatch(rows, credentials, logOpts).then(function (res) {
             if (res && res.ok) {
               setLastSlot(sink.eventName, slotKey, function () { });
-              setLastWrite({ at: new Date().toISOString(), slotKey: slotKey, eventName: sink.eventName }, function () { });
               if (logger) logger.log(PREFIX + ' 已捕获 [多商品加购]，已 merge ' + rows.length + ' 条');
             }
           });
@@ -85,7 +83,6 @@
           mergeGoodsDetailSlot(row, credentials, logOpts).then(function (res) {
             if (res && res.ok) {
               setLastSlot(sink.eventName + '_' + d.itemId, slotKey, function () { });
-              setLastWrite({ at: new Date().toISOString(), slotKey: slotKey, eventName: sink.eventName }, function () { });
               if (logger) logger.log(PREFIX + ' 已捕获 [详情]，已 merge item ' + d.itemId);
             }
           });
@@ -115,7 +112,6 @@
         batchSendToSupabase(sink.table, records, credentials, logOpts).then(function (res) {
           if (res && res.ok) {
             setLastSlot(sink.eventName, slotKey, function () { });
-            setLastWrite({ at: new Date().toISOString(), slotKey: slotKey, eventName: sink.eventName }, function () { });
             if (logger) logger.log(PREFIX + ' 已捕获 [' + sink.eventName + ']，已批量写入 Supabase');
           }
         });
@@ -134,7 +130,6 @@
         sendToSupabase(sink.table, record, credentials, logOpts).then(function (res) {
           if (res && res.ok) {
             setLastSlot(sink.eventName, slotKey, function () { });
-            setLastWrite({ at: new Date().toISOString(), slotKey: slotKey, eventName: sink.eventName }, function () { });
             if (logger) logger.log(PREFIX + ' 已捕获 [' + sink.eventName + ']，已写入 Supabase');
           }
         });

@@ -54,7 +54,7 @@
 ## 五、节流与时间
 
 - **节流粒度**：可配置（默认 20 分钟）。同一「时间槽」内同一 `eventName` 只写入一次；槽 key 由 `utils/time.js` 的 `getSlotKey(recordedAt, throttleMinutes)` 计算。
-- **节流配置**：存于 `chrome.storage.local` 的 `sycm_throttle_minutes`，popup 可读写；content 写库前读取，未设置则用默认值。
+- **节流配置**：存于 `chrome.storage.local` 的 `sycm_throttle_minutes`（可手动改）；content 写库前读取，未设置则用 defaults 默认 20。
 - **东八区时间**：inject 侧用 `getEast8TimeStr()` 生成 `recordedAt`；content 侧用 `toCreatedAtISO()` 转为 Supabase 的 `timestamptz` 格式。
 
 ## 六、多行写入（multiRows）与批量
@@ -72,14 +72,13 @@
 | constants/supabase.js | Content | Supabase URL / anonKey（后续可改为 storage 或后端） |
 | utils/time.js | Content | getSlotKey、toCreatedAtISO |
 | utils/supabase.js | Content | sendToSupabase、batchSendToSupabase |
-| utils/storage.js | Content / Popup | 节流分钟、lastSlot、lastWrite 的 get/set |
-| content.js | Content | 注入 config→inject、监听事件、节流去重、写 Supabase、更新 lastWrite |
+| utils/storage.js | Content | 读取节流分钟、写入各 eventName 时间槽（去重） |
+| content.js | Content | 注入 config→inject、监听事件、节流去重、写 Supabase |
 | inject.js | Main World | 劫持 fetch/XHR、伪造 visibility、派发 CustomEvent |
 | background.js | Service Worker | 当前无注入逻辑，预留扩展能力 |
-| popup.html / popup.js | 扩展弹窗 | 节流配置、最近写入状态展示 |
+| popup.html / popup.js | 扩展弹窗 | 展示与清空生意参谋侧扩展日志；万相台推广登记已拆至独立扩展 |
 
 ## 八、Storage 键
 
-- `sycm_throttle_minutes`：节流粒度（分钟），数字。
+- `sycm_throttle_minutes`：节流粒度（分钟），数字；未设置则用 defaults 默认 20。
 - `sycm_last_slot_<eventName>`：各数据源上一写入时间槽 key，用于去重。
-- `sycm_last_write`：`{ at, slotKey, eventName }`，供 popup 展示「最近一次写入」。
