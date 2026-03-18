@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>订单用户数据导出</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="ou-popup">
+      <section class="ou-section ou-section--left" aria-label="获取用户数据">
+        <h2 class="ou-title">获取用户数据</h2>
+        <div class="ou-filters">
+          <label class="ou-label">
+            <span class="ou-label-text">联盟/店铺 ID</span>
+            <input type="text" id="userdata-union-search" class="ou-input" placeholder="可选，如 1017849608938" />
+          </label>
+          <label class="ou-label">
+            <span class="ou-label-text">搜索词</span>
+            <input type="text" id="userdata-buyer-nick" class="ou-input" placeholder="可选，买家昵称/宝贝关键词" />
+          </label>
+          <label class="ou-label">
+            <span class="ou-label-text">订单状态</span>
+            <select id="userdata-order-status" class="ou-select" aria-label="订单状态">
+              <option value="SUCCESS" selected>已成功</option>
+              <option value="NOT_PAID">待付款</option>
+              <option value="PAID">待发货</option>
+              <option value="SEND">已发货</option>
+              <option value="DROP">交易关闭</option>
+              <option value="ALL">全部</option>
+            </select>
+          </label>
+        </div>
+        <button type="button" id="btn-get-userdata" class="ou-btn">
+          获取用户数据
+        </button>
+        <div id="ou-progress-wrap" class="ou-progress-wrap ou-progress-wrap--hidden" aria-hidden="true">
+          <div class="ou-progress-meta">
+            <span id="ou-progress-label" class="ou-progress-label">准备中…</span>
+            <span id="ou-progress-pages" class="ou-progress-pages"></span>
+          </div>
+          <div
+            id="ou-progress-track"
+            class="ou-progress-track"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
+            <div id="ou-progress-fill" class="ou-progress-fill"></div>
+          </div>
+        </div>
+      </section>
+      <section class="ou-section ou-section--logs" aria-label="日志">
+        <header class="ou-logs-header">
+          <h2 class="ou-logs-title">日志</h2>
+          <button type="button" id="logs-clear" class="ou-logs-clear">清空</button>
+        </header>
+        <div id="logs-list" class="ou-logs-list" role="log" aria-live="polite"></div>
+      </section>
+    </div>
+    <script src="constants/defaults.js"></script>
+    <script src="utils/logger.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "订单用户数据导出",
+  "version": "1.0.0",
+  "description": "从千牛/淘宝已卖出订单导出订单号与买家昵称（与「数据获取」扩展可并存）",
+  "permissions": ["scripting", "storage", "tabs"],
+  "host_permissions": [
+    "https://qn.taobao.com/*",
+    "https://trade.taobao.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "订单用户数据导出"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["order-userdata-main.js"],
+      "matches": ["https://qn.taobao.com/*", "https://trade.taobao.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://qn.taobao.com/*", "https://trade.taobao.com/*"],
+      "js": ["order-userdata-cs.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

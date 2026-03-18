@@ -1,15 +1,11 @@
 /**
- * 在千牛/交易页主世界运行：分页请求 asyncSold.htm，收集订单号与买家标识（nick、encodeId）
- * 每页间隔 0.5s，通过 postMessage 把结果回传给 content script
- * 会拦截页面自己的请求以复用 unionSearch 等参数，避免总页数变成“全联盟”的 2 万多页
- *
- * 防重复注入：每次「获取用户数据」都会再插 script，若不加守卫会挂多个 listener，
- * 同一任务结束会触发多次导出 → 下载一堆同名 (1)(2)… CSV。
+ * 主世界：与「数据获取」扩展并行安装时使用独立命名空间 OU_USER_DATA_*，
+ * 独立命名空间，避免与其它页面脚本的全局/postMessage 冲突。
  */
 (function () {
   try {
-    if (window.__LINING_SOLD_USERDATA_MAIN__) return;
-    window.__LINING_SOLD_USERDATA_MAIN__ = true;
+    if (window.__LINING_OU_USERDATA_MAIN__) return;
+    window.__LINING_OU_USERDATA_MAIN__ = true;
   } catch {
     return;
   }
@@ -168,7 +164,7 @@
   }
 
   function run() {
-    window.postMessage({ type: 'SOLD_USER_DATA_PROGRESS', totalPage: null, currentPage: 0, message: '正在请求第 1 页…' }, '*');
+    window.postMessage({ type: 'OU_USER_DATA_PROGRESS', totalPage: null, currentPage: 0, message: '正在请求第 1 页…' }, '*');
     fetchPage(1).then(function (data) {
       var page = (data && data.page) ? data.page : {};
       var pageSize = (page.pageSize != null && page.pageSize > 0) ? parseInt(page.pageSize, 10) : 15;
@@ -181,11 +177,11 @@
         totalPage = Math.ceil(totalNumber / pageSize);
       }
       var allRows = extractRows(data);
-      window.postMessage({ type: 'SOLD_USER_DATA_PROGRESS', totalPage: totalPage, currentPage: 1, message: '第 1 页完成，共 ' + totalPage + ' 页' }, '*');
-      window.postMessage({ type: 'SOLD_USER_DATA_PAGE', pageNum: 1, rows: allRows }, '*');
+      window.postMessage({ type: 'OU_USER_DATA_PROGRESS', totalPage: totalPage, currentPage: 1, message: '第 1 页完成，共 ' + totalPage + ' 页' }, '*');
+      window.postMessage({ type: 'OU_USER_DATA_PAGE', pageNum: 1, rows: allRows }, '*');
 
       if (totalPage <= 1) {
-        window.postMessage({ type: 'SOLD_USER_DATA_DONE', rows: allRows, error: null }, '*');
+        window.postMessage({ type: 'OU_USER_DATA_DONE', rows: allRows, error: null }, '*');
         return;
       }
 
@@ -193,28 +189,28 @@
       function next() {
         current++;
         if (current > totalPage) {
-          window.postMessage({ type: 'SOLD_USER_DATA_DONE', rows: allRows, error: null }, '*');
+          window.postMessage({ type: 'OU_USER_DATA_DONE', rows: allRows, error: null }, '*');
           return;
         }
-        window.postMessage({ type: 'SOLD_USER_DATA_PROGRESS', totalPage: totalPage, currentPage: current, message: '正在请求第 ' + current + ' 页…' }, '*');
+        window.postMessage({ type: 'OU_USER_DATA_PROGRESS', totalPage: totalPage, currentPage: current, message: '正在请求第 ' + current + ' 页…' }, '*');
         fetchPage(current).then(function (data) {
           var pageRows = extractRows(data);
           allRows = allRows.concat(pageRows);
-          window.postMessage({ type: 'SOLD_USER_DATA_PROGRESS', totalPage: totalPage, currentPage: current, message: '第 ' + current + ' 页完成，共 ' + totalPage + ' 页' }, '*');
-          window.postMessage({ type: 'SOLD_USER_DATA_PAGE', pageNum: current, rows: pageRows }, '*');
+          window.postMessage({ type: 'OU_USER_DATA_PROGRESS', totalPage: totalPage, currentPage: current, message: '第 ' + current + ' 页完成，共 ' + totalPage + ' 页' }, '*');
+          window.postMessage({ type: 'OU_USER_DATA_PAGE', pageNum: current, rows: pageRows }, '*');
           setTimeout(next, DELAY_MS);
         }).catch(function (err) {
-          window.postMessage({ type: 'SOLD_USER_DATA_DONE', rows: allRows, error: String(err && err.message || err) }, '*');
+          window.postMessage({ type: 'OU_USER_DATA_DONE', rows: allRows, error: String(err && err.message || err) }, '*');
         });
       }
       setTimeout(next, DELAY_MS);
     }).catch(function (err) {
-      window.postMessage({ type: 'SOLD_USER_DATA_DONE', rows: [], error: String(err && err.message || err) }, '*');
+      window.postMessage({ type: 'OU_USER_DATA_DONE', rows: [], error: String(err && err.message || err) }, '*');
     });
   }
 
   window.addEventListener('message', function (e) {
-    if (e.source !== window || !e.data || e.data.type !== 'START_GET_USER_DATA') return;
+    if (e.source !== window || !e.data || e.data.type !== 'START_OU_USER_DATA') return;
     filterUnionSearch = (e.data.unionSearch != null) ? String(e.data.unionSearch) : '';
     filterBuyerNick = (e.data.buyerNick != null) ? String(e.data.buyerNick) : '';
     filterOrderStatus = (e.data.orderStatus != null) ? String(e.data.orderStatus) : 'SUCCESS';

@@ -18,7 +18,6 @@
   var findpageListEl = document.getElementById('findpage-list');
   var findpageActionBtn = document.getElementById('findpage-action');
   var findpageRefreshBtn = document.getElementById('findpage-refresh');
-  var findpageUserdataBtn = document.getElementById('findpage-userdata');
 
   var lastFindPageResponse = null;
   var lastFindPageRequestUrl = '';
@@ -421,115 +420,6 @@
   if (findpageRefreshBtn) {
     findpageRefreshBtn.addEventListener('click', loadFindPageResponse);
   }
-
-  var SOLD_PAGE_URL = 'https://qn.taobao.com/home.htm/trade-platform/tp/sold';
-  var QN_OR_TRADE_REG = /^https:\/\/(qn\.taobao\.com|trade\.taobao\.com)\//;
-
-  function onGetUserDataClick() {
-    var unionSearchEl = document.getElementById('userdata-union-search');
-    var buyerNickEl = document.getElementById('userdata-buyer-nick');
-    var orderStatusEl = document.getElementById('userdata-order-status');
-    var unionSearch = (unionSearchEl && unionSearchEl.value) ? String(unionSearchEl.value).trim() : '';
-    var buyerNick = (buyerNickEl && buyerNickEl.value) ? String(buyerNickEl.value).trim() : '';
-    var orderStatus = (orderStatusEl && orderStatusEl.value) ? String(orderStatusEl.value) : 'SUCCESS';
-
-    function trySend(tabId, retryAfterInject) {
-      chrome.tabs.sendMessage(tabId, { type: 'GET_USER_DATA', unionSearch: unionSearch, buyerNick: buyerNick, orderStatus: orderStatus }, function (reply) {
-        if (chrome.runtime.lastError) {
-          if (!retryAfterInject) {
-            chrome.scripting.executeScript(
-              { target: { tabId: tabId }, files: ['sold-userdata.js'] },
-              function () {
-                if (chrome.runtime.lastError) {
-                  if (logger) logger.appendLog('warn', '获取用户数据：无法与当前页面通信，请刷新已卖出订单页面后重试');
-                  loadLogs();
-                  return;
-                }
-                setTimeout(function () { trySend(tabId, true); }, 800);
-              }
-            );
-            return;
-          }
-          if (logger) logger.appendLog('warn', '获取用户数据：无法与当前页面通信，请刷新已卖出订单页面后重试');
-          loadLogs();
-          return;
-        }
-        if (logger) logger.appendLog('log', '获取用户数据：已开始，请保持该页面打开直至导出完成');
-        loadLogs();
-      });
-    }
-
-    /* 优先使用当前窗口正在看的标签页（用户点扩展时所在页面），避免发到别的千牛子页 */
-    chrome.tabs.query({ active: true, currentWindow: true }, function (activeTabs) {
-      var activeTab = (activeTabs && activeTabs.length > 0) ? activeTabs[0] : null;
-      if (activeTab && activeTab.id && activeTab.url && QN_OR_TRADE_REG.test(activeTab.url)) {
-        trySend(activeTab.id);
-        return;
-      }
-      /* 当前页不是千牛/交易页时，再按 URL 找已有标签或新建 */
-      chrome.tabs.query({ url: ['https://qn.taobao.com/*', 'https://trade.taobao.com/*'] }, function (tabs) {
-        var tab = (tabs && tabs.length > 0) ? tabs[0] : null;
-        if (tab && tab.id) {
-          chrome.tabs.update(tab.id, { active: true });
-          trySend(tab.id);
-        } else {
-          chrome.tabs.create({ url: SOLD_PAGE_URL }, function (newTab) {
-            if (newTab && newTab.id && logger) logger.appendLog('log', '已打开已卖出订单页，开始获取用户数据…');
-            loadLogs();
-            var listener = function (id, change) {
-              if (id === newTab.id && change.status === 'complete') {
-                chrome.tabs.onUpdated.removeListener(listener);
-                setTimeout(function () { trySend(newTab.id); }, 500);
-              }
-            };
-            chrome.tabs.onUpdated.addListener(listener);
-          });
-        }
-      });
-    });
-  }
-
-  if (findpageUserdataBtn) {
-    findpageUserdataBtn.addEventListener('click', onGetUserDataClick);
-  }
-
-  chrome.runtime.onMessage.addListener(function (msg) {
-    if (!msg) return;
-    if (msg.type === 'SOLD_USER_DATA_PROGRESS') {
-      if (msg.message && logger) {
-        logger.appendLog('log', msg.message);
-        loadLogs();
-      }
-      return;
-    }
-    if (msg.type === 'SOLD_USER_DATA_PAGE') {
-      if (logger) {
-        var pageNum = msg.pageNum;
-        var rows = Array.isArray(msg.rows) ? msg.rows : [];
-        var lines = ['第 ' + pageNum + ' 页 共 ' + rows.length + ' 条：'];
-        for (var i = 0; i < rows.length; i++) {
-          var r = rows[i];
-          var orderId = (r.orderId != null) ? String(r.orderId) : '';
-          var nick = (r.nick != null) ? String(r.nick) : '';
-          lines.push('  订单ID: ' + orderId + ', 昵称: ' + nick);
-        }
-        logger.appendLog('log', lines.join('\n'));
-        loadLogs();
-      }
-      return;
-    }
-    if (msg.type === 'SOLD_USER_DATA_DONE') {
-      if (logger) {
-        if (msg.error) {
-          logger.appendLog('warn', '获取用户数据 结束（含错误）: ' + msg.error);
-        } else {
-          var rows = msg.rows || [];
-          logger.appendLog('log', '获取用户数据 全部完成，共 ' + rows.length + ' 条，已导出 CSV');
-        }
-      }
-      loadLogs();
-    }
-  });
 
   /* 打开 popup 时只刷新日志；推广列表仅在首次加载，避免重绘导致 checkbox 勾选态丢失 */
   window.addEventListener('focus', function () {

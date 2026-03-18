@@ -1,0 +1,271 @@
+/**
+ * Chrome 扩展 popup 文档约定最大约 800×600px，此处以此为上限。
+ * @see https://developer.chrome.com/docs/extensions/develop/ui/add-popup
+ */
+:root {
+  --ou-popup-max-w: 800px;
+  --ou-popup-max-h: 600px;
+  --ou-bg: #f2f5f4;
+  --ou-surface: #ffffff;
+  --ou-text: #1a242e;
+  --ou-muted: #5c6b7a;
+  --ou-accent: #0d9488;
+  --ou-accent-hover: #0b8278;
+  --ou-border: #e2e8e6;
+  --ou-radius: 12px;
+  --ou-font: "Outfit", "Noto Sans SC", system-ui, sans-serif;
+}
+
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+html {
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  max-width: var(--ou-popup-max-w);
+  max-height: var(--ou-popup-max-h);
+}
+
+body {
+  width: 100%;
+  height: 100%;
+  max-width: var(--ou-popup-max-w);
+  max-height: var(--ou-popup-max-h);
+  margin: 0;
+  overflow: hidden;
+  font-family: var(--ou-font);
+  font-size: 0.8125rem;
+  color: var(--ou-text);
+  background: var(--ou-bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 使用上限尺寸作为 popup 视口（不超出 800×600） */
+body {
+  width: var(--ou-popup-max-w);
+  height: var(--ou-popup-max-h);
+}
+
+.ou-popup {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: var(--ou-surface);
+}
+
+.ou-section {
+  padding: 14px 16px;
+  background: var(--ou-surface);
+}
+
+.ou-section--left {
+  flex: 1 1 50%;
+  width: 50%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--ou-border);
+}
+
+.ou-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.ou-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.ou-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ou-label-text {
+  color: var(--ou-muted);
+  font-size: 0.75rem;
+}
+
+.ou-input,
+.ou-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--ou-border);
+  border-radius: 8px;
+  font: inherit;
+  background: #fff;
+}
+
+.ou-btn {
+  width: 100%;
+  padding: 11px 14px;
+  border: none;
+  border-radius: var(--ou-radius);
+  background: var(--ou-accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ou-btn:hover {
+  background: var(--ou-accent-hover);
+}
+
+.ou-progress-wrap {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ou-border);
+  flex-shrink: 0;
+}
+
+.ou-progress-wrap--hidden {
+  display: none;
+}
+
+.ou-progress-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 0.7rem;
+}
+
+.ou-progress-label {
+  color: var(--ou-text);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ou-progress-pages {
+  color: var(--ou-accent);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ou-progress-track {
+  height: 8px;
+  background: #e2e8e6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.ou-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--ou-accent), #14b8a6);
+  border-radius: 999px;
+  transition: width 0.25s ease-out;
+}
+
+.ou-progress-wrap--indeterminate .ou-progress-fill {
+  width: 35% !important;
+  animation: ou-progress-indet 1.2s ease-in-out infinite;
+}
+
+@keyframes ou-progress-indet {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+.ou-section--logs {
+  flex: 1 1 50%;
+  width: 50%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 14px;
+  overflow: hidden;
+}
+
+.ou-logs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.ou-logs-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ou-logs-clear {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border: 1px solid var(--ou-border);
+  border-radius: 6px;
+  background: var(--ou-surface);
+  cursor: pointer;
+}
+
+/* 仅日志列表区域可滚动，隐藏滚动条 */
+.ou-logs-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px;
+  background: #f8faf9;
+  border-radius: 8px;
+  border: 1px solid var(--ou-border);
+  font-size: 0.75rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ou-logs-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.ou-log-entry {
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  word-break: break-all;
+}
+
+.ou-log-entry--warn {
+  color: #b45309;
+}
+
+.ou-log-time {
+  color: var(--ou-muted);
+  margin-right: 6px;
+}
+
+.ou-logs-empty {
+  color: var(--ou-muted);
+  padding: 12px;
+  text-align: center;
+}
