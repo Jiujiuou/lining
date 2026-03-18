@@ -2,8 +2,17 @@
  * 在千牛/交易页主世界运行：分页请求 asyncSold.htm，收集订单号与买家标识（nick、encodeId）
  * 每页间隔 0.5s，通过 postMessage 把结果回传给 content script
  * 会拦截页面自己的请求以复用 unionSearch 等参数，避免总页数变成“全联盟”的 2 万多页
+ *
+ * 防重复注入：每次「获取用户数据」都会再插 script，若不加守卫会挂多个 listener，
+ * 同一任务结束会触发多次导出 → 下载一堆同名 (1)(2)… CSV。
  */
 (function () {
+  try {
+    if (window.__LINING_SOLD_USERDATA_MAIN__) return;
+    window.__LINING_SOLD_USERDATA_MAIN__ = true;
+  } catch {
+    return;
+  }
   var API_URL = 'https://trade.taobao.com/trade/itemlist/asyncSold.htm?event_submit_do_query=1&_input_charset=utf8';
   var DELAY_MS = 500;
   var capturedBody = null;

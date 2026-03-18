@@ -1,7 +1,17 @@
 /**
  * Content Script：在千牛/交易页注入 sold-userdata-main.js，转发主世界的 postMessage 与扩展消息
+ *
+ * 防重复执行：popup 重试会 executeScript 再注入本文件，否则会重复监听 message → 一次 DONE 导出多份 CSV。
  */
 (function () {
+  try {
+    var g = typeof globalThis !== 'undefined' ? globalThis : window;
+    if (g.__LINING_SOLD_USERDATA_CS__) return;
+    g.__LINING_SOLD_USERDATA_CS__ = true;
+  } catch {
+    return;
+  }
+
   function injectMainScript() {
     var script = document.createElement('script');
     script.src = chrome.runtime.getURL('sold-userdata-main.js');
@@ -16,14 +26,24 @@
     return t;
   }
 
-  /* 导出 CSV：仅订单ID、昵称两列；UTF-8 BOM 避免 Excel 打开中文乱码，确认无误后再启用调用 */
+  /**
+   * 订单号在 Excel 中打开时会被当数值 → 科学计数法。
+   * 使用 Excel 公式 ="订单号" 强制按文本显示（WPS/部分表格软件同样兼容）。
+   */
+  function orderIdCellForExcelCsv(orderId) {
+    var t = orderId == null ? '' : String(orderId);
+    var inner = t.replace(/"/g, '""');
+    return '="' + inner + '"';
+  }
+
+  /* 导出 CSV：仅订单ID、昵称两列；UTF-8 BOM 避免 Excel 打开中文乱码 */
   function downloadCsv(rows) {
     var headers = ['订单ID', '昵称'];
     var lines = [headers.join(',')];
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       lines.push([
-        escapeCsvCell(r.orderId),
+        orderIdCellForExcelCsv(r.orderId),
         escapeCsvCell(r.nick)
       ].join(','));
     }
@@ -32,7 +52,10 @@
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'sold_userdata_' + (new Date().toISOString().slice(0, 10)) + '.csv';
+    var pad = function (n) { return n < 10 ? '0' + n : String(n); };
+    var d = new Date();
+    var stamp = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + '_' + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    a.download = 'sold_userdata_' + stamp + '.csv';
     a.click();
     URL.revokeObjectURL(url);
   }
