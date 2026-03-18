@@ -427,7 +427,7 @@ function App() {
       return;
     }
     if (!deletedRows || deletedRows.length === 0) {
-      setError("未从 Supabase 删除任何数据（可能无 delete 权限或条件未匹配）。请运行 extension 目录下的 supabase_campaign_register_delete_policy.sql 后重试。");
+      setError("未从 Supabase 删除任何数据（可能无 delete 权限或条件未匹配）。请运行 extensions/extension-campaign-register/sql/supabase_campaign_register_delete_policy.sql 后重试。");
       return;
     }
     setCampaignRegisterRows((prev) =>

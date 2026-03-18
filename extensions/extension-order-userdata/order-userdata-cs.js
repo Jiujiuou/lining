@@ -1,6 +1,6 @@
 /**
  * Content Script：注入 order-userdata-main.js，仅处理 OU_USER_DATA_* / START_OU_USER_DATA，
- * 与主扩展其它逻辑隔离命名空间，可与「数据获取」扩展同时安装。
+ * 与其它扩展隔离命名空间，可并行安装。
  */
 (function () {
   try {

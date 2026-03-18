@@ -1,5 +1,5 @@
 /**
- * 隔离世界：接收主世界 FIND_PAGE_CAPTURED，写入本扩展独立 storage（amcr_*），不与「数据获取」共用 findPage*
+ * 隔离世界：接收主世界 FIND_PAGE_CAPTURED，写入本扩展独立 storage（amcr_*），不与 extension-sycm-detail 共用 findPage*
  */
 (function () {
   try {

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "万相台推广登记",
   "version": "1.0.0",
-  "description": "万相台推广列表捕获与手动登记至 Supabase（与「数据获取」扩展可并行安装验证）",
+  "description": "万相台推广列表捕获与手动登记至 Supabase（可与「生意参谋详情数据」扩展并行安装）",
   "permissions": ["storage", "tabs"],
   "host_permissions": [
     "https://one.alimama.com/*",
