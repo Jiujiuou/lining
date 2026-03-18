@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useLocation, Navigate } from "react-router-dom";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
 import html2canvas from "html2canvas";
 import {
@@ -64,12 +65,27 @@ function getTodayEast8() {
 }
 
 function App() {
+  const loc = useLocation();
+  const pathname =
+    loc.pathname === "/" || loc.pathname === ""
+      ? "/"
+      : loc.pathname.replace(/\/+$/, "");
+  const isDataHub = pathname === "/data";
+
   const [view, setView] = useState("dashboard");
   const [dataSource, setDataSource] = useState(null); // 'supabase' | null
   const [rawGoodsDetailRows, setRawGoodsDetailRows] = useState([]);
   const [goodsList, setGoodsList] = useState([]); // { item_id, item_name }[]
   const [selectedItemId, setSelectedItemId] = useState(() => {
     try {
+      let p = window.location.pathname || "/";
+      if (p !== "/") p = p.replace(/\/+$/, "") || "/";
+      if (p === "/") return CAMPAIGN_REGISTER_ITEM_ID;
+      if (p === "/data") {
+        const saved = localStorage.getItem(DASHBOARD_SELECTED_ITEM_STORAGE_KEY);
+        if (saved && saved !== CAMPAIGN_REGISTER_ITEM_ID) return saved;
+        return MARKET_RANK_ITEM_ID;
+      }
       return localStorage.getItem(DASHBOARD_SELECTED_ITEM_STORAGE_KEY) ?? "";
     } catch {
       return "";
@@ -104,13 +120,39 @@ function App() {
     console.log("今天日期（东八区）:", today);
   }, []);
 
-  /** 记住 header 下拉框选项，下次进入页面自动恢复 */
+  /** 仅在数据区 /data 记住下拉选项（首页推广数据不写入，避免覆盖） */
   useEffect(() => {
-    if (!selectedItemId) return;
+    if (!isDataHub || !selectedItemId) return;
+    if (selectedItemId === CAMPAIGN_REGISTER_ITEM_ID) return;
     try {
       localStorage.setItem(DASHBOARD_SELECTED_ITEM_STORAGE_KEY, selectedItemId);
     } catch {}
-  }, [selectedItemId]);
+  }, [isDataHub, selectedItemId]);
+
+  /** 首页 / 固定为推广数据 */
+  useEffect(() => {
+    if (pathname !== "/") return;
+    setSelectedItemId(CAMPAIGN_REGISTER_ITEM_ID);
+  }, [pathname]);
+
+  /** 进入 /data 时恢复上次数据区选中项，或默认店铺排名 */
+  useEffect(() => {
+    if (pathname !== "/data") return;
+    try {
+      const saved = localStorage.getItem(DASHBOARD_SELECTED_ITEM_STORAGE_KEY);
+      if (saved && saved !== CAMPAIGN_REGISTER_ITEM_ID) {
+        setSelectedItemId(saved);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    setSelectedItemId((prev) =>
+      !prev || prev === CAMPAIGN_REGISTER_ITEM_ID
+        ? MARKET_RANK_ITEM_ID
+        : prev,
+    );
+  }, [pathname]);
 
   const selectedItemName = useMemo(
     () =>
@@ -617,6 +659,10 @@ function App() {
     return () => document.removeEventListener("mousedown", onDoc);
   }, [pickOpen]);
 
+  if (pathname !== "/" && pathname !== "/data") {
+    return <Navigate to="/" replace />;
+  }
+
   if (view === "dashboard") {
     const isMarketRankView = selectedItemId === MARKET_RANK_ITEM_ID;
     const isCampaignRegisterView = selectedItemId === CAMPAIGN_REGISTER_ITEM_ID;
@@ -973,19 +1019,22 @@ function App() {
 
           {dataSource === "supabase" && (
             <div className="dashboard-header-center">
-              <GoodsSelect
-                id="dashboard-goods-select"
-                label=""
-                options={[
-                  { item_id: CAMPAIGN_REGISTER_ITEM_ID, item_name: "推广数据" },
-                  { item_id: MARKET_RANK_ITEM_ID, item_name: "店铺排名" },
-                  ...goodsList,
-                ]}
-                value={selectedItemId}
-                onChange={setSelectedItemId}
-                placeholder="请选择商品"
-                className="goods-select--header"
-              />
+              {isDataHub ? (
+                <GoodsSelect
+                  id="dashboard-goods-select"
+                  label=""
+                  options={[
+                    { item_id: MARKET_RANK_ITEM_ID, item_name: "店铺排名" },
+                    ...goodsList,
+                  ]}
+                  value={selectedItemId}
+                  onChange={setSelectedItemId}
+                  placeholder="请选择商品"
+                  className="goods-select--header"
+                />
+              ) : (
+                <span className="dashboard-promo-only-title">推广数据</span>
+              )}
             </div>
           )}
 

@@ -38,6 +38,13 @@
   padding: 0 16px;
 }
 
+.dashboard-promo-only-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
 .dashboard-goods-label {
   display: flex;
   align-items: center;
