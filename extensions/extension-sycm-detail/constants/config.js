@@ -17,8 +17,30 @@
     return null;
   }
 
+  /** foucs/live.json 与 live/view/top.json 共用：data.data.data.data 为商品数组 */
+  function extractSycmItemListWithCart(data) {
+    var inner = data && data.data && data.data.data;
+    var list = inner && inner.data;
+    if (!Array.isArray(list) || list.length === 0) return undefined;
+    var items = [];
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      var itemId = (row.item && row.item.itemId) || (row.itemId && (row.itemId.value != null ? row.itemId.value : row.itemId));
+      var title = row.item && row.item.title;
+      var cnt = row.itemCartCnt;
+      var itemCartCnt = cnt != null && typeof cnt.value !== 'undefined' ? Number(cnt.value) : (typeof cnt === 'number' ? cnt : null);
+      if (!itemId) continue;
+      items.push({
+        item_id: String(itemId),
+        item_name: title ? String(title) : '',
+        item_cart_cnt: itemCartCnt != null && !isNaN(itemCartCnt) ? itemCartCnt : null
+      });
+    }
+    return items.length ? { items: items } : undefined;
+  }
+
   var PIPELINES = [
-    // 多商品加购：live.json 一次返回多商品，写入 goods_detail_slot_log（merge）
+    // 多商品加购：关注列表 live.json → goods_detail_slot_log（merge），popup 同步列表
     {
       eventName: 'sycm-goods-live',
       urlContains: '/cc/item/view/foucs/live.json',
@@ -26,26 +48,17 @@
       multiValue: true,
       multiRows: true,
       mergeGoodsDetail: true,
-      extractValue: function (data) {
-        var inner = data && data.data && data.data.data;
-        var list = inner && inner.data;
-        if (!Array.isArray(list) || list.length === 0) return undefined;
-        var items = [];
-        for (var i = 0; i < list.length; i++) {
-          var row = list[i];
-          var itemId = (row.item && row.item.itemId) || (row.itemId && (row.itemId.value != null ? row.itemId.value : row.itemId));
-          var title = row.item && row.item.title;
-          var cnt = row.itemCartCnt;
-          var itemCartCnt = cnt != null && typeof cnt.value !== 'undefined' ? Number(cnt.value) : (typeof cnt === 'number' ? cnt : null);
-          if (!itemId) continue;
-          items.push({
-            item_id: String(itemId),
-            item_name: title ? String(title) : '',
-            item_cart_cnt: itemCartCnt != null && !isNaN(itemCartCnt) ? itemCartCnt : null
-          });
-        }
-        return items.length ? { items: items } : undefined;
-      }
+      extractValue: extractSycmItemListWithCart
+    },
+    // 多商品加购：实时 top 榜 top.json（结构同 live），同一 eventName / 白名单 / 时间槽 / popup 列表
+    {
+      eventName: 'sycm-goods-live',
+      urlContains: '/cc/item/live/view/top.json',
+      urlFilter: null,
+      multiValue: true,
+      multiRows: true,
+      mergeGoodsDetail: true,
+      extractValue: extractSycmItemListWithCart
     },
     // 详情（流量来源）：每商品一页，写入 goods_detail_slot_log（merge），需从 URL 带 itemId
     {

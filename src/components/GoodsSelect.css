@@ -77,8 +77,11 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  max-height: 320px;
+  /* 尽量用满视口剩余高度（留出头栏与安全边距），选项再多则内部滚动 */
+  max-height: min(90vh, calc(100vh - 5.5rem));
+  max-height: min(90dvh, calc(100dvh - 5.5rem));
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   margin: 0;
   padding: 4px 0;
   list-style: none;

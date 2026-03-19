@@ -24,6 +24,40 @@ import "./App.css";
 /** Supabase 单次查询默认最多返回行数，超过需分页 */
 const SUPABASE_PAGE_SIZE = 1000;
 
+/**
+ * 从 goods_detail_slot_log 拉取「数据库里出现过的全部商品」用于顶部下拉。
+ * 按 slot_ts 降序分页，每个 item_id 第一次出现即截至 dayEnd 前的最新一条，item_name 取该行的展示名。
+ */
+async function fetchDistinctGoodsFromSlotLog(supabaseClient, dayEndIso) {
+  const byId = new Map();
+  let from = 0;
+  while (true) {
+    const to = from + SUPABASE_PAGE_SIZE - 1;
+    const { data, error } = await supabaseClient
+      .from("goods_detail_slot_log")
+      .select("item_id, item_name, slot_ts")
+      .lte("slot_ts", dayEndIso)
+      .order("slot_ts", { ascending: false })
+      .range(from, to);
+    if (error) throw error;
+    const chunk = data ?? [];
+    for (const r of chunk) {
+      if (!r.item_id) continue;
+      if (byId.has(r.item_id)) continue;
+      const raw = r.item_name != null ? String(r.item_name).trim() : "";
+      byId.set(r.item_id, {
+        item_id: r.item_id,
+        item_name: raw || r.item_id,
+      });
+    }
+    if (chunk.length < SUPABASE_PAGE_SIZE) break;
+    from = to + 1;
+  }
+  return Array.from(byId.values()).sort((a, b) =>
+    a.item_name.localeCompare(b.item_name, "zh-CN"),
+  );
+}
+
 const SERIES_ORDER_LIMIT = 9;
 const RANGE_DAY_OPTIONS = [2, 3, 5, 7];
 /** 店铺排名在 GoodsSelect 中的占位 value，选中时仅展示市场排名图表 */
@@ -221,8 +255,9 @@ function App() {
       };
 
       try {
-        const [goodsRows, rankRes] = await Promise.all([
+        const [goodsRows, list, rankRes] = await Promise.all([
           fetchAllGoodsRows(),
+          fetchDistinctGoodsFromSlotLog(supabase, dayEnd),
           supabase
             .from("sycm_market_rank_log")
             .select("created_at, shop_title, rank")
@@ -234,16 +269,6 @@ function App() {
         setRawGoodsDetailRows(goodsRows);
         setRawMarketRankRows(rankRes.data ?? []);
 
-        const itemMap = new Map();
-        goodsRows.forEach((r) => {
-          if (r.item_id && !itemMap.has(r.item_id)) {
-            itemMap.set(r.item_id, {
-              item_id: r.item_id,
-              item_name: r.item_name || r.item_id,
-            });
-          }
-        });
-        const list = Array.from(itemMap.values());
         setGoodsList(list);
         setDataSource("supabase");
         if (
@@ -266,14 +291,17 @@ function App() {
           rankChart.shopNames?.length > 0 &&
           Object.keys(rankChart.byDateSlot || {}).length > 0;
         if (hasGoods || hasRank) {
-          const firstItemId = list[0]?.item_id;
+          const firstItemId =
+            list.find((g) => goodsRows.some((r) => r.item_id === g.item_id))
+              ?.item_id ?? list[0]?.item_id;
+          const firstMeta = list.find((g) => g.item_id === firstItemId);
           const firstItemRows = firstItemId
             ? goodsRows.filter((r) => r.item_id === firstItemId)
             : [];
           const merged = firstItemId
             ? goodsDetailSlotRowsToChartData(
                 firstItemRows,
-                list[0]?.item_name || firstItemId,
+                firstMeta?.item_name || firstItemId,
               )
             : { dates: [] };
           if (merged.dates?.length > 0) {
@@ -325,6 +353,18 @@ function App() {
                 cart_pay_rate: row.cart_pay_rate,
               },
             ]);
+            const name =
+              row.item_name != null ? String(row.item_name).trim() : "";
+            setGoodsList((prev) => {
+              if (prev.some((g) => g.item_id === row.item_id)) return prev;
+              const next = [
+                ...prev,
+                { item_id: row.item_id, item_name: name || row.item_id },
+              ];
+              return next.sort((a, b) =>
+                a.item_name.localeCompare(b.item_name, "zh-CN"),
+              );
+            });
           }
         },
       )

@@ -16,6 +16,8 @@
 │  2) config 加载完成后插入 <script src="inject.js">                │
 │  3) 监听 document 上的 CustomEvent（sycm-cart-log 等）            │
 │  4) 按节流槽去重后 POST 到 Supabase（单条或批量）                 │
+│  5) sycm-goods-live：foucs/live.json 与 top.json 写入 catalog，    │
+│     仅 merge 弹窗保存的勾选 item_id（白名单）                        │
 └─────────────────────────────────────────────────────────────────┘
         │
         │  <script> 注入
@@ -81,4 +83,5 @@
 ## 八、Storage 键
 
 - `sycm_throttle_minutes`：节流粒度（分钟），数字；未设置则用 defaults 默认 20。
-- `sycm_last_slot_<eventName>`：各数据源上一写入时间槽 key，用于去重。
+- `sycm_last_slot_<eventName>`：单条数据源上一写入时间槽。
+- `sycm_last_slot_<eventName>_<itemId>`：**多商品加购**（`sycm-goods-live`）按商品 + 槽去重，与 DB `(item_id, slot_ts)` 对齐。

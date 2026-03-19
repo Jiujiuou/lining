@@ -10,7 +10,11 @@
   var STORAGE_KEYS = {
     throttleMinutes: 'sycm_throttle_minutes',
     lastSlotPrefix: 'sycm_last_slot_',
-    logs: 'sycm_logs'
+    logs: 'sycm_logs',
+    /** 最近一次 foucs/live.json 或 live/view/top.json 解析出的商品列表（供 popup 展示） */
+    liveJsonCatalog: 'sycm_live_json_catalog',
+    /** { itemIds: string[] } — 仅上报已勾选并保存的 item_id（20 分钟时间槽不变） */
+    liveJsonFilter: 'sycm_live_json_filter'
   };
 
   var LOG_MAX_ENTRIES = 100;

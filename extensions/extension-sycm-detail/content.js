@@ -35,7 +35,92 @@
   var mergeGoodsDetailSlotBatch = supabaseUtil.mergeGoodsDetailSlotBatch;
   var getThrottleMinutes = storageUtil.getThrottleMinutes;
   var setLastSlot = storageUtil.setLastSlot;
+  var setLastSlotsForEventItems = storageUtil.setLastSlotsForEventItems;
   var STORAGE_KEYS = storageUtil.STORAGE_KEYS;
+  var LIVE_JSON_EVENT = 'sycm-goods-live';
+
+  /** 日志只展示 item_id，避免标题过长撑爆弹窗 */
+  function formatGoodsIds(items, maxShow, maxChars) {
+    maxShow = maxShow || 16;
+    maxChars = maxChars || 500;
+    if (!items || items.length === 0) return '—';
+    var parts = [];
+    var len = 0;
+    for (var i = 0; i < items.length && parts.length < maxShow; i++) {
+      var id = items[i] && items[i].item_id != null ? String(items[i].item_id) : '';
+      if (!id) continue;
+      if (len + id.length + 2 > maxChars) break;
+      parts.push(id);
+      len += id.length + 2;
+    }
+    var more = items.length > parts.length ? ' …共' + items.length + '件' : '';
+    return parts.join('，') + more;
+  }
+
+  /**
+   * 一条日志说清：接口有哪些商品、勾选白名单命中哪些、结果（时间槽跳过 / 未写 / 已写）
+   */
+  function buildLiveJsonLogLine(opts) {
+    var batch = opts.batchItems || [];
+    var allowed = opts.allowedRows || [];
+    var wl = typeof opts.whitelistLen === 'number' ? opts.whitelistLen : 0;
+    var tm = opts.throttleMinutes != null ? opts.throttleMinutes : 20;
+    var head = PREFIX + '[多商品加购] 接口 ' + batch.length + ' 件：' + formatGoodsIds(batch, 16, 500);
+    var allowBrief =
+      allowed.length > 0
+        ? formatGoodsIds(
+            allowed.map(function (r) {
+              return { item_id: r.item_id };
+            }),
+            16,
+            400
+          )
+        : wl === 0
+          ? '（弹窗白名单为空）'
+          : '（与本批无交集）';
+    var mid = ' │ 勾选可报 ' + allowed.length + ' 件：' + allowBrief;
+    var tail;
+    if (opts.outcome === 'throttle') tail = ' │ 本' + tm + '分钟槽内所选商品均已上报过 → 跳过';
+    else if (opts.outcome === 'none') tail = ' │ 未写入';
+    else if (opts.outcome === 'written') {
+      tail = ' │ 已写入 Supabase';
+      if (opts.skippedInSlot > 0) {
+        tail +=
+          '（新写入 ' +
+          (opts.writtenCount != null ? opts.writtenCount : '') +
+          ' 件，本槽已跳过 ' +
+          opts.skippedInSlot +
+          ' 件）';
+      }
+    }
+    else tail = ' │ 写入失败：' + (opts.errMsg ? String(opts.errMsg) : '未知');
+    return head + mid + tail;
+  }
+
+  /**
+   * 将最近一次 live.json 商品列表写入 storage，供 popup 展示（与是否上报无关）
+   */
+  function saveLiveJsonCatalog(rawItems) {
+    if (!Array.isArray(rawItems) || rawItems.length === 0) return;
+    var list = [];
+    for (var i = 0; i < rawItems.length; i++) {
+      var it = rawItems[i];
+      if (!it || it.item_id == null) continue;
+      list.push({ item_id: String(it.item_id), item_name: it.item_name ? String(it.item_name) : '' });
+    }
+    if (list.length === 0) return;
+    try {
+      chrome.storage.local.set(
+        {
+          [STORAGE_KEYS.liveJsonCatalog]: {
+            updatedAt: new Date().toISOString(),
+            items: list
+          }
+        },
+        function () {}
+      );
+    } catch (e) { }
+  }
 
   function handleEvent(sink, d, throttleMinutes) {
     var recordedAt = String(d.recordedAt);
@@ -45,15 +130,40 @@
     if (sink.mergeGoodsDetail) {
       var slotTs = getSlotTsISO(recordedAt, throttleMinutes);
       if (!slotTs) return;
-      var storageKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName + (d.itemId ? '_' + d.itemId : '');
-      chrome.storage.local.get([storageKey], function (result) {
-        var lastSlot = result[storageKey];
-        if (lastSlot === slotKey) {
-          if (logger) logger.log(PREFIX + ' 已捕获 [' + sink.eventName + ']，未写入（本时段已写入过）');
-          return;
+      if (sink.eventName === LIVE_JSON_EVENT && sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
+        saveLiveJsonCatalog(d.payload.items);
+      }
+      /** 详情单商品 merge 用；多商品分支不用此键（按 item_id 分键） */
+      var detailLastSlotKey = null;
+      var keysToRead;
+      if (sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
+        keysToRead = [STORAGE_KEYS.liveJsonFilter];
+        var rawForKeys = d.payload.items;
+        for (var ki = 0; ki < rawForKeys.length; ki++) {
+          var rawK = rawForKeys[ki];
+          if (!rawK || rawK.item_id == null) continue;
+          keysToRead.push(STORAGE_KEYS.lastSlotPrefix + sink.eventName + '_' + String(rawK.item_id));
         }
+      } else {
+        detailLastSlotKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName + (d.itemId ? '_' + d.itemId : '');
+        keysToRead = [detailLastSlotKey, STORAGE_KEYS.liveJsonFilter];
+      }
+      chrome.storage.local.get(keysToRead, function (result) {
         if (sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
-          var rows = d.payload.items.map(function (item) {
+          var rawList = d.payload.items;
+          var batchItems = [];
+          for (var bi = 0; bi < rawList.length; bi++) {
+            var raw = rawList[bi];
+            if (!raw || raw.item_id == null) continue;
+            batchItems.push({ item_id: String(raw.item_id), item_name: raw.item_name ? String(raw.item_name) : '' });
+          }
+          var filt = result[STORAGE_KEYS.liveJsonFilter];
+          var idList = filt && Array.isArray(filt.itemIds) ? filt.itemIds : [];
+          var allow = {};
+          for (var a = 0; a < idList.length; a++) {
+            allow[String(idList[a])] = true;
+          }
+          var rows = rawList.map(function (item) {
             return {
               item_id: item.item_id,
               slot_ts: slotTs,
@@ -61,13 +171,62 @@
               item_cart_cnt: item.item_cart_cnt != null ? item.item_cart_cnt : null
             };
           });
-          mergeGoodsDetailSlotBatch(rows, credentials, logOpts).then(function (res) {
+          rows = rows.filter(function (r) {
+            return r.item_id != null && allow[String(r.item_id)];
+          });
+          var rowsToWrite = rows.filter(function (r) {
+            var k = STORAGE_KEYS.lastSlotPrefix + sink.eventName + '_' + String(r.item_id);
+            return result[k] !== slotKey;
+          });
+          var skippedInSlot = rows.length - rowsToWrite.length;
+          var logBase = {
+            batchItems: batchItems,
+            allowedRows: rows,
+            whitelistLen: idList.length,
+            throttleMinutes: throttleMinutes
+          };
+          if (rowsToWrite.length === 0) {
+            if (rows.length > 0) {
+              if (logger) logger.log(buildLiveJsonLogLine(Object.assign({ outcome: 'throttle' }, logBase)));
+            } else if (logger) {
+              logger.log(buildLiveJsonLogLine(Object.assign({ outcome: 'none' }, logBase)));
+            }
+            return;
+          }
+          mergeGoodsDetailSlotBatch(rowsToWrite, credentials, logOpts).then(function (res) {
             if (res && res.ok) {
-              setLastSlot(sink.eventName, slotKey, function () { });
-              if (logger) logger.log(PREFIX + ' 已捕获 [多商品加购]，已 merge ' + rows.length + ' 条');
+              var ids = rowsToWrite.map(function (r) {
+                return String(r.item_id);
+              });
+              setLastSlotsForEventItems(sink.eventName, ids, slotKey, function () { });
+              if (logger) {
+                logger.log(
+                  buildLiveJsonLogLine(
+                    Object.assign(
+                      {
+                        outcome: 'written',
+                        skippedInSlot: skippedInSlot,
+                        writtenCount: rowsToWrite.length
+                      },
+                      logBase
+                    )
+                  )
+                );
+              }
+            } else if (logger) {
+              logger.warn(
+                buildLiveJsonLogLine(
+                  Object.assign({ outcome: 'fail', errMsg: (res && res.error) || JSON.stringify(res) }, logBase)
+                )
+              );
             }
           });
         } else {
+          var lastSlotDetail = result[detailLastSlotKey];
+          if (lastSlotDetail === slotKey) {
+            if (logger) logger.log(PREFIX + ' [详情] item ' + d.itemId + ' │ 本' + throttleMinutes + '分钟槽已上报过 → 跳过');
+            return;
+          }
           if (!d.itemId) {
             if (logger) logger.warn(PREFIX + ' 详情数据缺少 itemId，跳过');
             return;

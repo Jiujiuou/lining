@@ -84,26 +84,23 @@
       var src = SOURCES[i];
       if (!urlMatches(url, src.urlContains)) continue;
       if (src.urlFilter && !src.urlFilter(url)) continue;
-      emitLog('log', PREFIX + '[调试] 命中 pipeline: ' + src.eventName);
       try {
         var value = src.extractValue(data);
         if (value === undefined) {
           var inner = data && data.data && data.data.data;
           var list = inner && inner.data;
           var listLen = Array.isArray(list) ? list.length : (list ? '非数组' : '无');
-          emitLog('warn', PREFIX + '[调试] extractValue 返回 undefined，eventName=' + src.eventName + ', code=' + (data && data.code) + ', data.data.data.data 长度=' + listLen);
+          emitLog('warn', PREFIX + '[' + src.eventName + '] 解析无数据 code=' + (data && data.code) + ' 条数=' + listLen);
           return;
         }
         var itemId = src.mergeGoodsDetail ? getItemIdFromLocation() : null;
         if (src.multiValue && value && typeof value === 'object') {
-          emitLog('log', PREFIX + ' 捕获到数据');
           document.dispatchEvent(new CustomEvent(src.eventName, {
             detail: { payload: value, recordedAt: timeStr, itemId: itemId || undefined }
           }));
         } else {
           var num = Number(value);
           if (num !== num) num = value;
-          emitLog('log', PREFIX + ' 捕获到数据');
           document.dispatchEvent(new CustomEvent(src.eventName, {
             detail: { value: num, recordedAt: timeStr, itemId: itemId || undefined }
           }));
@@ -120,23 +117,14 @@
     window.fetch = function () {
       var url = getUrl(arguments[0]);
       var args = arguments;
-      if (url && url.indexOf('live') !== -1) {
-        emitLog('log', '[Sycm] [调试] fetch 被调用，URL 含 live: ' + (url.length > 80 ? url.slice(0, 80) + '...' : url));
-      }
       return origFetch.apply(this, args).then(function (res) {
         try {
           var hit = SOURCES.some(function (s) {
             return urlMatches(url, s.urlContains) && (!s.urlFilter || s.urlFilter(url));
           });
           if (hit) {
-            emitLog('log', PREFIX + '[调试] 截获到 fetch 请求: ' + (url.indexOf('live.json') !== -1 ? 'live.json' : url.slice(0, 60)) + '...');
             res.clone().json().then(
               function (data) {
-                var code = data && data.code;
-                var inner = data && data.data && data.data.data;
-                var list = inner && inner.data;
-                var listLen = Array.isArray(list) ? list.length : (list ? '非数组' : '无');
-                emitLog('log', PREFIX + '[调试] 响应解析完成 code=' + code + ', data.data.data.data 长度=' + listLen);
                 handleResponse(url, data);
               },
               function (err) { emitLog('warn', PREFIX + ' 解析失败 ' + url + ' ' + String(err)); }
@@ -151,9 +139,6 @@
     var XhrSend = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.open = function (method, url) {
       this._sycmUrl = typeof url === 'string' ? url : '';
-      if (this._sycmUrl && this._sycmUrl.indexOf('live') !== -1) {
-        emitLog('log', '[Sycm] [调试] XHR open，URL 含 live: ' + (this._sycmUrl.length > 80 ? this._sycmUrl.slice(0, 80) + '...' : this._sycmUrl));
-      }
       return XhrOpen.apply(this, arguments);
     };
     XMLHttpRequest.prototype.send = function () {
@@ -162,15 +147,9 @@
         return urlMatches(xhr._sycmUrl || '', s.urlContains) && (!s.urlFilter || s.urlFilter(xhr._sycmUrl));
       });
       if (hit) {
-        emitLog('log', PREFIX + '[调试] 截获到 XHR 请求: ' + (xhr._sycmUrl.indexOf('live.json') !== -1 ? 'live.json' : xhr._sycmUrl.slice(0, 60)) + '...');
         xhr.addEventListener('load', function () {
           try {
             var data = xhr.responseText ? JSON.parse(xhr.responseText) : null;
-            var code = data && data.code;
-            var inner = data && data.data && data.data.data;
-            var list = inner && inner.data;
-            var listLen = Array.isArray(list) ? list.length : (list ? '非数组' : '无');
-            emitLog('log', PREFIX + '[调试] XHR 响应解析完成 code=' + code + ', data.data.data.data 长度=' + listLen);
             handleResponse(xhr._sycmUrl, data);
           } catch (e) { emitLog('warn', PREFIX + ' XHR 解析失败 ' + String(e)); }
         });

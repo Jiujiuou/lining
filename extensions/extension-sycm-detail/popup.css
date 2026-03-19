@@ -1,16 +1,19 @@
-/* 生意参谋详情数据扩展弹窗：仅生意参谋日志 */
+/* 生意参谋详情弹窗：与 extension-campaign-register 一致的左右分栏 */
 :root {
   --popup-bg: #f2f5f4;
   --popup-surface: #ffffff;
+  --popup-surface-hover: #fafbfb;
   --popup-text: #1a242e;
   --popup-text-muted: #5c6b7a;
   --popup-accent: #0d9488;
   --popup-accent-hover: #0b8278;
   --popup-accent-soft: #ccfbf1;
   --popup-border: #e2e8e6;
+  --popup-radius: 12px;
   --popup-radius-sm: 8px;
   --popup-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
   --popup-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --popup-shadow-hover: 0 4px 20px rgba(13, 148, 136, 0.15);
   --popup-font: "Outfit", "Noto Sans SC", system-ui, sans-serif;
   --popup-space: 16px;
   --popup-space-sm: 10px;
@@ -23,11 +26,12 @@
   box-sizing: border-box;
 }
 
+/* 与万相台推广登记扩展同宽，避免 Chrome popup 横向滚动 */
 body {
-  width: 420px;
-  max-width: 420px;
-  height: 520px;
-  min-height: 520px;
+  width: 800px;
+  max-width: 800px;
+  height: 560px;
+  min-height: 560px;
   padding: 0;
   margin: 0;
   overflow: hidden;
@@ -39,30 +43,255 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.popup--logs-only {
+.popup {
   display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
+  flex-direction: row;
+  width: 800px;
+  max-width: 800px;
+  height: 560px;
+  min-height: 560px;
   overflow: hidden;
 }
 
-.popup-section--logs {
+.popup-left {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---------- 区块通用（对齐 campaign-register） ---------- */
+.popup-section {
+  display: flex;
+  flex-direction: column;
+  padding: var(--popup-space);
+  background: var(--popup-surface);
+  border-bottom: 1px solid var(--popup-border);
+}
+
+.popup-left .popup-section:last-of-type {
+  flex: 1;
+  border-bottom: none;
+  min-height: 0;
+}
+
+/* ---------- 左侧：多商品加购（同 findpage 区块布局） ---------- */
+.popup-section--goods {
+  gap: var(--popup-space-sm);
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: var(--popup-space);
-  background: var(--popup-surface);
+}
+
+/* 四个按钮单行排列（左侧列宽约 540px，缩小按钮最小宽度） */
+.popup-goods-actions.popup-findpage-header {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.popup-goods-actions .popup-findpage-refresh {
+  min-width: 0;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+}
+
+.popup-goods-actions .popup-open-sites {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+}
+
+.popup-goods-meta {
+  font-size: 0.72rem;
+  color: var(--popup-text-muted);
+  min-height: 1.2em;
+}
+
+/* 主操作按钮（与 campaign 顶部一致） */
+.popup-open-sites {
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-width: 0;
+  padding: 8px 14px;
+  font-family: var(--popup-font);
+  font-size: var(--popup-font-size);
+  font-weight: 500;
+  color: var(--popup-surface);
+  background: var(--popup-accent);
+  border: 1px solid var(--popup-accent);
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.popup-open-sites:hover {
+  background: var(--popup-accent-hover);
+  border-color: var(--popup-accent-hover);
+}
+
+.popup-open-sites:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+/* findpage 列表与表头（复用 campaign-register 类名） */
+.popup-findpage-header {
+  display: flex;
+  align-items: center;
   gap: var(--popup-space-sm);
+}
+
+.popup-findpage-refresh {
+  flex-shrink: 0;
+  min-width: 88px;
+  padding: 8px 14px;
+  font-family: var(--popup-font);
+  font-size: var(--popup-font-size);
+  font-weight: 500;
+  color: var(--popup-text-muted);
+  background: var(--popup-surface);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.popup-findpage-refresh:hover {
+  color: var(--popup-accent);
+  border-color: var(--popup-accent);
+  background: var(--popup-accent-soft);
+}
+
+.popup-findpage-refresh:focus {
+  outline: none;
+  border-color: var(--popup-accent);
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+.popup-findpage-title {
+  font-size: var(--popup-font-size-title);
+  font-weight: 600;
+  color: var(--popup-text);
+  margin: 0;
+  margin-right: auto;
+  letter-spacing: 0.01em;
+}
+
+.popup-findpage-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding: var(--popup-space-sm);
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  scrollbar-width: thin;
+}
+
+.popup-findpage-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popup-findpage-list::-webkit-scrollbar-thumb {
+  background: var(--popup-border);
+  border-radius: 3px;
+}
+
+.popup-findpage-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  width: 100%;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  min-height: 0;
+  background: var(--popup-surface);
+  border-radius: var(--popup-radius-sm);
+  border: 1px solid var(--popup-border);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.popup-findpage-item:hover {
+  background: var(--popup-surface-hover);
+  border-color: var(--popup-accent-soft);
+}
+
+.popup-findpage-item input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--popup-accent);
+  cursor: pointer;
+}
+
+.popup-findpage-item .popup-findpage-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--popup-font-size);
+  line-height: 1.4;
+  color: var(--popup-text);
+  word-break: break-all;
+  overflow-wrap: break-word;
+  cursor: pointer;
+}
+
+.popup-goods-id {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--popup-text-muted);
+  font-variant-numeric: tabular-nums;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-top: 1px;
+}
+
+.popup-findpage-list--empty {
+  width: 100%;
+  flex: 1 1 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--popup-text-muted);
+  font-size: var(--popup-font-size);
+  padding: 20px 12px;
+}
+
+/* ---------- 右侧：扩展日志 ---------- */
+.popup-section--logs {
+  width: 260px;
+  flex-shrink: 0;
+  border-bottom: none;
+  border-left: 1px solid var(--popup-border);
+  gap: var(--popup-space-sm);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .popup-logs-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: var(--popup-space-sm);
 }
 
@@ -72,13 +301,6 @@ body {
   color: var(--popup-text);
   margin: 0;
   letter-spacing: 0.01em;
-}
-
-.popup-logs-hint {
-  margin: 0 0 4px 0;
-  font-size: 0.75rem;
-  color: var(--popup-text-muted);
-  line-height: 1.4;
 }
 
 .popup-logs-clear {
@@ -126,7 +348,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  align-content: flex-start;
   scrollbar-width: thin;
+  -ms-overflow-style: none;
 }
 
 .popup-logs-list::-webkit-scrollbar {
@@ -144,6 +368,11 @@ body {
   border-radius: var(--popup-radius-sm);
   box-shadow: var(--popup-shadow-sm);
   border: 1px solid var(--popup-border);
+  transition: box-shadow 0.15s ease;
+}
+
+.popup-log-card:hover {
+  box-shadow: var(--popup-shadow);
 }
 
 .popup-log-entry {
@@ -178,5 +407,5 @@ body {
   justify-content: center;
   color: var(--popup-text-muted);
   font-size: var(--popup-font-size);
-  min-height: 200px;
+  min-height: 180px;
 }
