@@ -4,7 +4,7 @@ import { HiChevronDown } from "react-icons/hi2";
 import "./GoodsSelect.css";
 
 /**
- * 商品选择：触发器 + 全屏遮罩（多列瀑布流 + 搜索）
+ * 商品选择：触发器 + 全屏面板（行优先网格 + 搜索）
  * 键盘：Escape 关闭；方向键按列表顺序移动；Enter 选中
  */
 export default function GoodsSelect({
@@ -102,7 +102,7 @@ export default function GoodsSelect({
     const len = filteredOptions.length;
     if (e.target === searchRef.current) return;
 
-    /* 瀑布流下列数与「视觉行」不一致，方向键按选项顺序移动 */
+    /* 网格行优先，方向键按数据源顺序移动 */
     if (e.key === "ArrowDown" || e.key === "ArrowRight") {
       e.preventDefault();
       setFocusedIndex((i) => {
@@ -147,24 +147,24 @@ export default function GoodsSelect({
       aria-labelledby={id + "-sheet-title"}
       onKeyDown={handleOverlayKeyDown}
     >
-      <button
-        type="button"
-        className="goods-select-overlay__backdrop"
-        aria-label="关闭"
-        onClick={() => {
-          close();
-          triggerRef.current?.focus();
-        }}
-      />
-      <div
-        ref={sheetRef}
-        className="goods-select-sheet"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div ref={sheetRef} className="goods-select-sheet">
         <div className="goods-select-sheet__head">
           <h2 id={id + "-sheet-title"} className="goods-select-sheet__title">
             {label ? `选择${label}` : "选择商品"}
           </h2>
+          <input
+            ref={searchRef}
+            type="search"
+            className="goods-select-sheet__search"
+            placeholder="搜索名称或 ID…"
+            value={filterQuery}
+            onChange={(e) => setFilterQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            aria-label="筛选商品"
+          />
+          <span className="goods-select-sheet__count">
+            {filteredOptions.length}/{options.length}
+          </span>
           <button
             type="button"
             className="goods-select-sheet__close"
@@ -176,21 +176,6 @@ export default function GoodsSelect({
           >
             ×
           </button>
-        </div>
-        <div className="goods-select-sheet__search-wrap">
-          <input
-            ref={searchRef}
-            type="search"
-            className="goods-select-sheet__search"
-            placeholder="搜索商品名称或 ID…"
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            aria-label="筛选商品"
-          />
-          <span className="goods-select-sheet__count">
-            {filteredOptions.length} / {options.length}
-          </span>
         </div>
         <ul
           ref={listRef}
