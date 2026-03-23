@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "扩展模板（勿直接发布）",
-  "version": "0.0.0",
-  "description": "复制本文件夹后改名并修改 manifest；默认仅示例域名，请替换为业务站点。",
-  "permissions": ["storage"],
+  "version": "0.1.0",
+  "description": "复制本文件夹后改名并修改 manifest；默认仅示例域名，请替换为业务站点。含多标签隔离日志示例（background + logsByTab）。",
+  "permissions": ["storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "host_permissions": ["https://example.com/*"],
   "action": {
     "default_popup": "popup.html",

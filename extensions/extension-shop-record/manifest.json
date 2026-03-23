@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "店铺记录数据",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "店铺侧数据记录（骨架版：日志 + 内容脚本占位，默认匹配千牛/已卖出订单页）",
   "permissions": ["storage", "tabs"],
   "background": {
@@ -30,12 +30,12 @@
     },
     {
       "matches": ["https://ad.alimama.com/*"],
-      "js": ["content-alimama.js"],
+      "js": ["constants/defaults.js", "content-alimama.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://one.alimama.com/*"],
-      "js": ["content-onebp-bridge.js"],
+      "js": ["constants/defaults.js", "content-onebp-bridge.js"],
       "run_at": "document_start"
     },
     {

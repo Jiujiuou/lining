@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "订单用户数据导出",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "从千牛/淘宝已卖出订单导出订单号与买家昵称（可与「生意参谋详情数据」等扩展并存）",
   "permissions": ["scripting", "storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "host_permissions": [
     "https://qn.taobao.com/*",
     "https://trade.taobao.com/*"

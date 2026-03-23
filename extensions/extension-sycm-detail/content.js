@@ -39,6 +39,56 @@
   var STORAGE_KEYS = storageUtil.STORAGE_KEYS;
   var LIVE_JSON_EVENT = 'sycm-goods-live';
 
+  /** 解析当前标签 id（content 无 tabs API，经 background 回复；结果缓存） */
+  var tabIdCache = '__pending__';
+  var tabIdWaiters = [];
+  function resolveTabId(callback) {
+    if (typeof tabIdCache === 'number') {
+      callback(tabIdCache);
+      return;
+    }
+    if (tabIdCache === false) {
+      callback(null);
+      return;
+    }
+    tabIdWaiters.push(callback);
+    if (tabIdWaiters.length > 1) return;
+    try {
+      chrome.runtime.sendMessage({ type: 'SYCM_GET_TAB_ID' }, function (res) {
+        if (chrome.runtime.lastError || !res || res.tabId == null) {
+          tabIdCache = false;
+        } else {
+          tabIdCache = res.tabId;
+        }
+        var tid = typeof tabIdCache === 'number' ? tabIdCache : null;
+        var w = tabIdWaiters.slice();
+        tabIdWaiters = [];
+        for (var wi = 0; wi < w.length; wi++) w[wi](tid);
+      });
+    } catch (e) {
+      tabIdCache = false;
+      var w2 = tabIdWaiters.slice();
+      tabIdWaiters = [];
+      for (var wj = 0; wj < w2.length; wj++) w2[wj](null);
+    }
+  }
+
+  function pickFilterForTab(result, tabId) {
+    var byTab = result[STORAGE_KEYS.liveJsonFilterByTab] || {};
+    if (tabId != null && Object.prototype.hasOwnProperty.call(byTab, String(tabId))) {
+      return byTab[String(tabId)];
+    }
+    return result[STORAGE_KEYS.liveJsonFilter];
+  }
+
+  function pickCatalogForTab(result, tabId) {
+    var byTab = result[STORAGE_KEYS.liveJsonCatalogByTab] || {};
+    if (tabId != null && Object.prototype.hasOwnProperty.call(byTab, String(tabId))) {
+      return byTab[String(tabId)];
+    }
+    return result[STORAGE_KEYS.liveJsonCatalog];
+  }
+
   /**
    * 上报用商品名：trim 后非空用名称，否则用 item_id，与 RPC 回落一致，满足 item_name NOT NULL
    */
@@ -122,7 +172,7 @@
   }
 
   /**
-   * 将最近一次 live.json 商品列表写入 storage，供 popup 展示（与是否上报无关）
+   * 将最近一次 live.json 商品列表写入 storage，供 popup 展示（按 tab 分桶，避免多开覆盖）
    */
   function saveLiveJsonCatalog(rawItems) {
     if (!Array.isArray(rawItems) || rawItems.length === 0) return;
@@ -133,16 +183,23 @@
       list.push({ item_id: String(it.item_id), item_name: it.item_name ? String(it.item_name) : '' });
     }
     if (list.length === 0) return;
+    var payload = { updatedAt: new Date().toISOString(), items: list };
     try {
-      chrome.storage.local.set(
-        {
-          [STORAGE_KEYS.liveJsonCatalog]: {
-            updatedAt: new Date().toISOString(),
-            items: list
-          }
-        },
-        function () {}
-      );
+      resolveTabId(function (tabId) {
+        if (tabId == null) {
+          try {
+            chrome.storage.local.set({ [STORAGE_KEYS.liveJsonCatalog]: payload }, function () {});
+          } catch (e2) {}
+          return;
+        }
+        chrome.storage.local.get([STORAGE_KEYS.liveJsonCatalogByTab], function (r) {
+          var byTab = (r && r[STORAGE_KEYS.liveJsonCatalogByTab]) ? r[STORAGE_KEYS.liveJsonCatalogByTab] : {};
+          byTab[String(tabId)] = payload;
+          var obj = {};
+          obj[STORAGE_KEYS.liveJsonCatalogByTab] = byTab;
+          chrome.storage.local.set(obj, function () {});
+        });
+      });
     } catch (e) { }
   }
 
@@ -160,19 +217,8 @@
       /** 详情单商品 merge 用；多商品分支不用此键（按 item_id 分键） */
       var detailLastSlotKey = null;
       var keysToRead;
-      if (sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
-        keysToRead = [STORAGE_KEYS.liveJsonFilter];
-        var rawForKeys = d.payload.items;
-        for (var ki = 0; ki < rawForKeys.length; ki++) {
-          var rawK = rawForKeys[ki];
-          if (!rawK || rawK.item_id == null) continue;
-          keysToRead.push(STORAGE_KEYS.lastSlotPrefix + sink.eventName + '_' + String(rawK.item_id));
-        }
-      } else {
-        detailLastSlotKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName + (d.itemId ? '_' + d.itemId : '');
-        keysToRead = [detailLastSlotKey, STORAGE_KEYS.liveJsonFilter, STORAGE_KEYS.liveJsonCatalog];
-      }
-      chrome.storage.local.get(keysToRead, function (result) {
+
+      function mergeGoodsDetailStorageCallback(result, tabId) {
         if (sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
           var rawList = d.payload.items;
           var batchItems = [];
@@ -181,7 +227,7 @@
             if (!raw || raw.item_id == null) continue;
             batchItems.push({ item_id: String(raw.item_id), item_name: raw.item_name ? String(raw.item_name) : '' });
           }
-          var filt = result[STORAGE_KEYS.liveJsonFilter];
+          var filt = pickFilterForTab(result, tabId);
           var idList = filt && Array.isArray(filt.itemIds) ? filt.itemIds : [];
           var allow = {};
           for (var a = 0; a < idList.length; a++) {
@@ -255,7 +301,7 @@
             if (logger) logger.warn(PREFIX + ' 详情数据缺少 itemId，跳过');
             return;
           }
-          var cat = result[STORAGE_KEYS.liveJsonCatalog];
+          var cat = pickCatalogForTab(result, tabId);
           var row = {
             item_id: d.itemId,
             slot_ts: slotTs,
@@ -272,6 +318,24 @@
             }
           });
         }
+      }
+
+      resolveTabId(function (tabId) {
+        if (sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
+          keysToRead = [STORAGE_KEYS.liveJsonFilter, STORAGE_KEYS.liveJsonFilterByTab];
+          var rawForKeys = d.payload.items;
+          for (var ki = 0; ki < rawForKeys.length; ki++) {
+            var rawK = rawForKeys[ki];
+            if (!rawK || rawK.item_id == null) continue;
+            keysToRead.push(STORAGE_KEYS.lastSlotPrefix + sink.eventName + '_' + String(rawK.item_id));
+          }
+        } else {
+          detailLastSlotKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName + (d.itemId ? '_' + d.itemId : '');
+          keysToRead = [detailLastSlotKey, STORAGE_KEYS.liveJsonCatalog, STORAGE_KEYS.liveJsonCatalogByTab];
+        }
+        chrome.storage.local.get(keysToRead, function (result) {
+          mergeGoodsDetailStorageCallback(result, tabId);
+        });
       });
       return;
     }

@@ -13,12 +13,18 @@
   window.__shopRecordAlimamaFetchOnce__ = true;
 
   var PREFIX = "[店铺记录数据]";
+  var APPEND_LOG_TYPE =
+    typeof __SHOP_RECORD_DEFAULTS__ !== "undefined" &&
+    __SHOP_RECORD_DEFAULTS__.RUNTIME &&
+    __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
+      ? __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
+      : "shopRecordAppendLog";
   var OVERVIEW =
     "https://ad.alimama.com/openapi/param2/1/gateway.unionadv/data.home.overview.json";
 
   function extLog(msg) {
     try {
-      chrome.runtime.sendMessage({ type: "shopRecordAppendLog", msg: PREFIX + " " + msg });
+      chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, msg: PREFIX + " " + msg });
     } catch {
       /* ignore */
     }

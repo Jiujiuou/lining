@@ -1,37 +1,88 @@
 /**
- * 扩展日志：写入 chrome.storage，供 popup 展示（业务脚本请优先用此模块而非 console）
+ * 扩展日志：按标签页分桶；popup 只读当前标签（旧键仅作无 tabId 回落）。
+ * 依赖 background 响应 GET_TAB_ID_MESSAGE（见 constants/defaults.js）。
  */
 (function (global) {
-  var KEYS =
-    typeof __EXT_TEMPLATE_DEFAULTS__ !== "undefined" && __EXT_TEMPLATE_DEFAULTS__.STORAGE_KEYS
-      ? __EXT_TEMPLATE_DEFAULTS__.STORAGE_KEYS
-      : { logs: "ext_template_logs" };
-  var MAX =
-    typeof __EXT_TEMPLATE_DEFAULTS__ !== "undefined" && __EXT_TEMPLATE_DEFAULTS__.LOG_MAX_ENTRIES
-      ? __EXT_TEMPLATE_DEFAULTS__.LOG_MAX_ENTRIES
-      : 100;
+  var DEFS =
+    typeof __EXT_TEMPLATE_DEFAULTS__ !== "undefined" ? __EXT_TEMPLATE_DEFAULTS__ : null;
+  var KEYS = DEFS && DEFS.STORAGE_KEYS ? DEFS.STORAGE_KEYS : { logs: "ext_template_logs", logsByTab: "ext_template_logs_by_tab" };
+  var MAX = DEFS && DEFS.LOG_MAX_ENTRIES ? DEFS.LOG_MAX_ENTRIES : 100;
+  var GET_TAB_MSG =
+    DEFS && DEFS.RUNTIME && DEFS.RUNTIME.GET_TAB_ID_MESSAGE
+      ? DEFS.RUNTIME.GET_TAB_ID_MESSAGE
+      : "EXT_TEMPLATE_GET_TAB_ID";
   var LOG_KEY = KEYS.logs || "ext_template_logs";
+  var LOGS_BY_TAB_KEY = KEYS.logsByTab || "ext_template_logs_by_tab";
+
+  function resolveTabId(callback) {
+    try {
+      chrome.runtime.sendMessage({ type: GET_TAB_MSG }, function (res) {
+        if (chrome.runtime.lastError || !res || res.tabId == null) {
+          callback(null);
+        } else {
+          callback(res.tabId);
+        }
+      });
+    } catch (e) {
+      callback(null);
+    }
+  }
 
   function appendLog(level, msg) {
     var entry = { t: new Date().toISOString(), level: level || "log", msg: String(msg) };
-    chrome.storage.local.get([LOG_KEY], function (result) {
-      var data = result[LOG_KEY];
-      if (!data || !Array.isArray(data.entries)) data = { entries: [] };
-      data.entries.push(entry);
-      if (data.entries.length > MAX) data.entries = data.entries.slice(-MAX);
-      chrome.storage.local.set({ [LOG_KEY]: data }, function () {});
+    resolveTabId(function (tabId) {
+      if (tabId == null) {
+        chrome.storage.local.get([LOG_KEY], function (result) {
+          var data = result[LOG_KEY];
+          if (!data || !Array.isArray(data.entries)) data = { entries: [] };
+          data.entries.push(entry);
+          if (data.entries.length > MAX) data.entries = data.entries.slice(-MAX);
+          chrome.storage.local.set({ [LOG_KEY]: data }, function () {});
+        });
+        return;
+      }
+      chrome.storage.local.get([LOGS_BY_TAB_KEY], function (result) {
+        var byTab = result[LOGS_BY_TAB_KEY] || {};
+        var bucket = byTab[String(tabId)] || { entries: [] };
+        if (!Array.isArray(bucket.entries)) bucket.entries = [];
+        bucket.entries.push(entry);
+        if (bucket.entries.length > MAX) bucket.entries = bucket.entries.slice(-MAX);
+        byTab[String(tabId)] = bucket;
+        var o = {};
+        o[LOGS_BY_TAB_KEY] = byTab;
+        chrome.storage.local.set(o, function () {});
+      });
     });
   }
 
-  function getLogs(callback) {
-    chrome.storage.local.get([LOG_KEY], function (result) {
-      var data = result[LOG_KEY];
-      callback(data && Array.isArray(data.entries) ? data.entries : []);
+  function getLogs(callback, tabId) {
+    if (tabId == null) {
+      chrome.storage.local.get([LOG_KEY], function (result) {
+        var data = result[LOG_KEY];
+        callback(data && Array.isArray(data.entries) ? data.entries : []);
+      });
+      return;
+    }
+    chrome.storage.local.get([LOGS_BY_TAB_KEY], function (result) {
+      var byTab = result[LOGS_BY_TAB_KEY] || {};
+      var bucket = byTab[String(tabId)];
+      var entries = bucket && Array.isArray(bucket.entries) ? bucket.entries : [];
+      callback(entries);
     });
   }
 
-  function clearLogs(callback) {
-    chrome.storage.local.set({ [LOG_KEY]: { entries: [] } }, callback || function () {});
+  function clearLogs(callback, tabId) {
+    if (tabId == null) {
+      chrome.storage.local.set({ [LOG_KEY]: { entries: [] } }, callback || function () {});
+      return;
+    }
+    chrome.storage.local.get([LOGS_BY_TAB_KEY], function (result) {
+      var byTab = result[LOGS_BY_TAB_KEY] || {};
+      delete byTab[String(tabId)];
+      var o = {};
+      o[LOGS_BY_TAB_KEY] = byTab;
+      chrome.storage.local.set(o, callback || function () {});
+    });
   }
 
   var obj = {

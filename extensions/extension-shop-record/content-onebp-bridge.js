@@ -4,6 +4,12 @@
  */
 (function () {
   var PREFIX = "[店铺记录数据]";
+  var APPEND_LOG_TYPE =
+    typeof __SHOP_RECORD_DEFAULTS__ !== "undefined" &&
+    __SHOP_RECORD_DEFAULTS__.RUNTIME &&
+    __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
+      ? __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
+      : "shopRecordAppendLog";
   var MSG = "shop-record-onebp-query";
 
   window.addEventListener("message", function (ev) {
@@ -21,7 +27,7 @@
       line = line.slice(0, 12000) + "\n…（已截断，完整见控制台）";
     }
     try {
-      chrome.runtime.sendMessage({ type: "shopRecordAppendLog", msg: line });
+      chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, msg: line });
     } catch (e) {
       /* ignore */
     }

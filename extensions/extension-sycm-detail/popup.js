@@ -1,15 +1,20 @@
 /**
  * popup：多商品加购勾选筛选 + 扩展日志
  *
- * 勾选状态：每次变更立即写入 storage（供 content 上报）；并用 sessionSelection 在 catalog 频繁刷新时避免
- * storage.set 未完成前重绘把勾选冲掉。
+ * 勾选状态：按当前标签页写入分桶 storage（多开互不覆盖）；sessionSelection 在 catalog 频繁刷新时避免重绘冲掉勾选。
  */
 (function () {
   var logger = typeof __SYCM_LOGGER__ !== 'undefined' ? __SYCM_LOGGER__ : null;
   var KEYS =
     typeof __SYCM_DEFAULTS__ !== 'undefined' && __SYCM_DEFAULTS__.STORAGE_KEYS
       ? __SYCM_DEFAULTS__.STORAGE_KEYS
-      : { logs: 'sycm_logs', liveJsonCatalog: 'sycm_live_json_catalog', liveJsonFilter: 'sycm_live_json_filter' };
+      : {
+          logs: 'sycm_logs',
+          liveJsonCatalog: 'sycm_live_json_catalog',
+          liveJsonFilter: 'sycm_live_json_filter',
+          liveJsonFilterByTab: 'sycm_live_json_filter_by_tab',
+          liveJsonCatalogByTab: 'sycm_live_json_catalog_by_tab'
+        };
 
   var logsListEl = document.getElementById('logs-list');
   var logsClearBtn = document.getElementById('logs-clear');
@@ -70,13 +75,17 @@
 
   function loadLogs() {
     if (!logger) return;
-    logger.getLogs(renderLogs);
+    getActiveTabId(function (tabId) {
+      logger.getLogs(renderLogs, tabId);
+    });
   }
 
   function clearLogs() {
     if (!logger || !logsClearBtn) return;
-    logger.clearLogs(function () {
-      loadLogs();
+    getActiveTabId(function (tabId) {
+      logger.clearLogs(function () {
+        loadLogs();
+      }, tabId);
     });
   }
 
@@ -116,10 +125,34 @@
     });
   }
 
+  function getActiveTabId(callback) {
+    try {
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var id = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+        callback(id);
+      });
+    } catch (e) {
+      callback(null);
+    }
+  }
+
   function persistItemIds(itemIds) {
-    var payload = {};
-    payload[KEYS.liveJsonFilter] = { itemIds: itemIds.slice() };
-    chrome.storage.local.set(payload, function () {});
+    getActiveTabId(function (tabId) {
+      var slice = itemIds.slice();
+      if (tabId == null) {
+        var payload = {};
+        payload[KEYS.liveJsonFilter] = { itemIds: slice };
+        chrome.storage.local.set(payload, function () {});
+        return;
+      }
+      chrome.storage.local.get([KEYS.liveJsonFilterByTab], function (r) {
+        var byTab = (r && r[KEYS.liveJsonFilterByTab]) ? r[KEYS.liveJsonFilterByTab] : {};
+        byTab[String(tabId)] = { itemIds: slice };
+        var o = {};
+        o[KEYS.liveJsonFilterByTab] = byTab;
+        chrome.storage.local.set(o, function () {});
+      });
+    });
   }
 
   /** 从当前 DOM 同步会话并写入 storage（勾选、全选、全不选） */
@@ -177,12 +210,23 @@
   }
 
   function loadGoodsUi() {
-    var catKey = KEYS.liveJsonCatalog;
-    var filKey = KEYS.liveJsonFilter;
-    chrome.storage.local.get([catKey, filKey], function (result) {
-      var cat = result[catKey];
+    chrome.storage.local.get(
+      [KEYS.liveJsonCatalogByTab, KEYS.liveJsonFilterByTab, KEYS.liveJsonCatalog, KEYS.liveJsonFilter],
+      function (result) {
+        getActiveTabId(function (tabId) {
+      var byCat = result[KEYS.liveJsonCatalogByTab] || {};
+      var byFil = result[KEYS.liveJsonFilterByTab] || {};
+      var cat =
+        tabId != null && Object.prototype.hasOwnProperty.call(byCat, String(tabId))
+          ? byCat[String(tabId)]
+          : result[KEYS.liveJsonCatalog];
+      var filter;
+      if (tabId != null && Object.prototype.hasOwnProperty.call(byFil, String(tabId))) {
+        filter = byFil[String(tabId)];
+      } else {
+        filter = result[KEYS.liveJsonFilter];
+      }
       var items = cat && Array.isArray(cat.items) ? cat.items : [];
-      var filter = result[filKey];
       var idsFromStorage = getItemIdsFromFilter(filter);
       var baseIds = sessionSelection !== null ? sessionSelection : idsFromStorage;
       var ids = filterIdsToCatalog(baseIds, items);
@@ -196,7 +240,8 @@
       } else if (goodsMetaEl && items.length) {
         goodsMetaEl.textContent = items.length + ' 个商品';
       }
-    });
+        });
+      });
   }
 
   function getCheckedItemIdsFromDom() {
@@ -220,11 +265,17 @@
     var itemIds = sessionSelection || [];
     var msg = '已保存：将上报 ' + itemIds.length + ' 个勾选商品（20 分钟时间槽）';
     if (goodsMetaEl) {
-      chrome.storage.local.get([KEYS.liveJsonCatalog], function (r) {
-        var cat = r[KEYS.liveJsonCatalog];
-        var extra = '';
-        if (cat && cat.updatedAt) extra = ' · 列表捕获于 ' + formatCatalogTime(cat.updatedAt);
-        goodsMetaEl.textContent = msg + extra;
+      getActiveTabId(function (tabId) {
+        chrome.storage.local.get([KEYS.liveJsonCatalogByTab, KEYS.liveJsonCatalog], function (r) {
+          var byCat = r[KEYS.liveJsonCatalogByTab] || {};
+          var cat =
+            tabId != null && Object.prototype.hasOwnProperty.call(byCat, String(tabId))
+              ? byCat[String(tabId)]
+              : r[KEYS.liveJsonCatalog];
+          var extra = '';
+          if (cat && cat.updatedAt) extra = ' · 列表捕获于 ' + formatCatalogTime(cat.updatedAt);
+          goodsMetaEl.textContent = msg + extra;
+        });
       });
     }
   }
@@ -272,7 +323,9 @@
 
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (area !== 'local') return;
-    if (changes[KEYS.liveJsonCatalog]) scheduleLoadGoodsFromCatalog();
+    if (changes[KEYS.liveJsonCatalog] || changes[KEYS.liveJsonCatalogByTab] || changes[KEYS.liveJsonFilterByTab]) {
+      scheduleLoadGoodsFromCatalog();
+    }
   });
 
   var refreshInterval = null;

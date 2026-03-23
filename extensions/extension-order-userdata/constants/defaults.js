@@ -3,7 +3,10 @@
  */
 (function (global) {
   var STORAGE_KEYS = {
-    logs: 'ou_userdata_logs'
+    logs: 'ou_userdata_logs',
+    logsByTab: 'ou_userdata_logs_by_tab',
+    /** Record<tabIdStr, { unionSearch, buyerNick, orderStatus }> — 筛选条件按标签隔离 */
+    formByTab: 'ou_userdata_form_by_tab'
   };
   var LOG_MAX_ENTRIES = 100;
   var obj = {

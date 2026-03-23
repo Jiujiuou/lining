@@ -1,5 +1,11 @@
 (function () {
   var logger = typeof __OU_USERDATA_LOGGER__ !== 'undefined' ? __OU_USERDATA_LOGGER__ : null;
+  var FORM_KEY =
+    typeof __OU_USERDATA_DEFAULTS__ !== 'undefined' &&
+    __OU_USERDATA_DEFAULTS__.STORAGE_KEYS &&
+    __OU_USERDATA_DEFAULTS__.STORAGE_KEYS.formByTab
+      ? __OU_USERDATA_DEFAULTS__.STORAGE_KEYS.formByTab
+      : 'ou_userdata_form_by_tab';
 
   var btn = document.getElementById('btn-get-userdata');
   var unionEl = document.getElementById('userdata-union-search');
@@ -45,14 +51,73 @@
     if (wasAtBottom) el.scrollTop = el.scrollHeight;
   }
 
+  function getActiveTabId(callback) {
+    try {
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var id = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+        callback(id);
+      });
+    } catch (e) {
+      callback(null);
+    }
+  }
+
   function loadLogs() {
     if (!logger) return;
-    logger.getLogs(renderLogs);
+    getActiveTabId(function (tabId) {
+      logger.getLogs(renderLogs, tabId);
+    });
   }
 
   function clearLogs() {
     if (!logger || !logsClearBtn) return;
-    logger.clearLogs(function () { loadLogs(); });
+    getActiveTabId(function (tabId) {
+      logger.clearLogs(function () {
+        loadLogs();
+      }, tabId);
+    });
+  }
+
+  function loadFormForCurrentTab() {
+    if (!unionEl && !nickEl && !statusEl) return;
+    getActiveTabId(function (tabId) {
+      if (tabId == null) return;
+      chrome.storage.local.get([FORM_KEY], function (r) {
+        var byTab = r[FORM_KEY] || {};
+        var f = byTab[String(tabId)];
+        if (!f || typeof f !== 'object') return;
+        if (unionEl && f.unionSearch != null) unionEl.value = String(f.unionSearch);
+        if (nickEl && f.buyerNick != null) nickEl.value = String(f.buyerNick);
+        if (statusEl && f.orderStatus != null) statusEl.value = String(f.orderStatus);
+      });
+    });
+  }
+
+  function saveFormForCurrentTab() {
+    getActiveTabId(function (tabId) {
+      if (tabId == null) return;
+      var payload = {
+        unionSearch: unionEl ? String(unionEl.value || '').trim() : '',
+        buyerNick: nickEl ? String(nickEl.value || '').trim() : '',
+        orderStatus: statusEl ? String(statusEl.value || 'SUCCESS') : 'SUCCESS'
+      };
+      chrome.storage.local.get([FORM_KEY], function (r) {
+        var byTab = r[FORM_KEY] || {};
+        byTab[String(tabId)] = payload;
+        var o = {};
+        o[FORM_KEY] = byTab;
+        chrome.storage.local.set(o, function () {});
+      });
+    });
+  }
+
+  function bindFormPersistence() {
+    function onFormChange() {
+      saveFormForCurrentTab();
+    }
+    if (unionEl) unionEl.addEventListener('input', onFormChange);
+    if (nickEl) nickEl.addEventListener('input', onFormChange);
+    if (statusEl) statusEl.addEventListener('change', onFormChange);
   }
 
   function setProgressIndeterminate(on) {
@@ -225,6 +290,11 @@
 
   if (btn) btn.addEventListener('click', onGetUserDataClick);
   if (logsClearBtn) logsClearBtn.addEventListener('click', clearLogs);
+  bindFormPersistence();
+  loadFormForCurrentTab();
   loadLogs();
-  window.addEventListener('focus', loadLogs);
+  window.addEventListener('focus', function () {
+    loadFormForCurrentTab();
+    loadLogs();
+  });
 })();

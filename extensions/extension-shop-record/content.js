@@ -6,10 +6,16 @@
     typeof __SHOP_RECORD_DEFAULTS__ !== "undefined" && __SHOP_RECORD_DEFAULTS__.PREFIX
       ? __SHOP_RECORD_DEFAULTS__.PREFIX
       : "";
+  var APPEND_LOG_TYPE =
+    typeof __SHOP_RECORD_DEFAULTS__ !== "undefined" &&
+    __SHOP_RECORD_DEFAULTS__.RUNTIME &&
+    __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
+      ? __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
+      : "shopRecordAppendLog";
 
   function sendLog(msg) {
     try {
-      chrome.runtime.sendMessage({ type: "shopRecordAppendLog", msg: String(msg) });
+      chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, msg: String(msg) });
     } catch (e) {
       /* ignore */
     }

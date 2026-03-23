@@ -17,6 +17,48 @@
   var lastFindPageResponse = null;
   var lastFindPageBizCode = '';
 
+  function getStateByTabKey() {
+    return typeof __AMCR_DEFAULTS__ !== 'undefined' &&
+      __AMCR_DEFAULTS__.STORAGE_KEYS &&
+      __AMCR_DEFAULTS__.STORAGE_KEYS.findPageStateByTab
+      ? __AMCR_DEFAULTS__.STORAGE_KEYS.findPageStateByTab
+      : 'amcr_findPageStateByTab';
+  }
+
+  /** 当前标签分桶优先，否则回落旧版全局 amcr_* */
+  function pickTabFindPageState(stored, tabId) {
+    var sk = getStateByTabKey();
+    var byTab = stored[sk] || {};
+    var bucket = tabId != null ? byTab[String(tabId)] : null;
+    if (bucket && bucket.findPageResponse) {
+      return {
+        findPageResponse: bucket.findPageResponse,
+        findPageRequestUrl: bucket.findPageRequestUrl,
+        findPagePageUrl: bucket.findPagePageUrl,
+        findPageBizCode: bucket.findPageBizCode,
+        findPageSelectedCampaigns: bucket.findPageSelectedCampaigns || {}
+      };
+    }
+    return {
+      findPageResponse: stored.amcr_findPageResponse,
+      findPageRequestUrl: stored.amcr_findPageRequestUrl,
+      findPagePageUrl: stored.amcr_findPagePageUrl,
+      findPageBizCode: stored.amcr_findPageBizCode,
+      findPageSelectedCampaigns: stored.amcr_findPageSelectedCampaigns || {}
+    };
+  }
+
+  function getActiveTabId(callback) {
+    try {
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var id = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+        callback(id);
+      });
+    } catch (e) {
+      callback(null);
+    }
+  }
+
   function getYesterdayEast8() {
     var today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
     var d = new Date(today + 'T12:00:00+08:00');
@@ -84,12 +126,18 @@
 
   function loadLogs() {
     if (!logger) return;
-    logger.getLogs(renderLogs);
+    getActiveTabId(function (tabId) {
+      logger.getLogs(renderLogs, tabId);
+    });
   }
 
   function clearLogs() {
     if (!logger || !logsClearBtn) return;
-    logger.clearLogs(function () { loadLogs(); });
+    getActiveTabId(function (tabId) {
+      logger.clearLogs(function () {
+        loadLogs();
+      }, tabId);
+    });
   }
 
   function renderFindPageList(response, bizCode, selectedSet) {
@@ -122,19 +170,29 @@
 
   function loadFindPageResponse() {
     try {
-      chrome.storage.local.get([
-        'amcr_findPageResponse',
-        'amcr_findPageRequestUrl',
-        'amcr_findPagePageUrl',
-        'amcr_findPageBizCode',
-        'amcr_findPageSelectedCampaigns'
-      ], function (stored) {
-        lastFindPageBizCode = stored.amcr_findPageBizCode || '';
-        var selectedSet = (stored.amcr_findPageSelectedCampaigns && stored.amcr_findPageBizCode && stored.amcr_findPageSelectedCampaigns[stored.amcr_findPageBizCode])
-          ? stored.amcr_findPageSelectedCampaigns[stored.amcr_findPageBizCode]
-          : [];
-        renderFindPageList(stored.amcr_findPageResponse || null, stored.amcr_findPageBizCode || '', selectedSet);
-      });
+      var sk = getStateByTabKey();
+      chrome.storage.local.get(
+        [
+          sk,
+          'amcr_findPageResponse',
+          'amcr_findPageRequestUrl',
+          'amcr_findPagePageUrl',
+          'amcr_findPageBizCode',
+          'amcr_findPageSelectedCampaigns'
+        ],
+        function (stored) {
+          chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+            var state = pickTabFindPageState(stored, tabId);
+            lastFindPageBizCode = state.findPageBizCode || '';
+            var selectedSet =
+              state.findPageSelectedCampaigns && state.findPageBizCode && state.findPageSelectedCampaigns[state.findPageBizCode]
+                ? state.findPageSelectedCampaigns[state.findPageBizCode]
+                : [];
+            renderFindPageList(state.findPageResponse || null, state.findPageBizCode || '', selectedSet);
+          });
+        }
+      );
     } catch (e) {
       lastFindPageBizCode = '';
       renderFindPageList(null, '');
@@ -310,10 +368,28 @@
         return;
       }
       var selectedDisplayNames = rows.map(function (r) { return r.campaign_name; });
-      chrome.storage.local.get(['amcr_findPageSelectedCampaigns'], function (s) {
-        var all = (s && s.amcr_findPageSelectedCampaigns) ? s.amcr_findPageSelectedCampaigns : {};
-        all[bizCode] = selectedDisplayNames;
-        chrome.storage.local.set({ amcr_findPageSelectedCampaigns: all }, function () {});
+      var sk = getStateByTabKey();
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+        if (tabId == null) {
+          chrome.storage.local.get(['amcr_findPageSelectedCampaigns'], function (s) {
+            var all = (s && s.amcr_findPageSelectedCampaigns) ? s.amcr_findPageSelectedCampaigns : {};
+            all[bizCode] = selectedDisplayNames;
+            chrome.storage.local.set({ amcr_findPageSelectedCampaigns: all }, function () {});
+          });
+          return;
+        }
+        chrome.storage.local.get([sk], function (s) {
+          var byTab = (s && s[sk]) ? s[sk] : {};
+          var st = byTab[String(tabId)] || {};
+          var all = st.findPageSelectedCampaigns || {};
+          all[bizCode] = selectedDisplayNames;
+          st.findPageSelectedCampaigns = all;
+          byTab[String(tabId)] = st;
+          var o = {};
+          o[sk] = byTab;
+          chrome.storage.local.set(o, function () {});
+        });
       });
       var creds = typeof __AMCR_SUPABASE__ !== 'undefined' ? __AMCR_SUPABASE__ : null;
       upsertCampaignRegisterByBiz(rows, bizCode, creds, { logger: logger }).then(function () {
@@ -327,7 +403,13 @@
 
   chrome.storage.onChanged.addListener(function (changes, areaName) {
     if (areaName !== 'local') return;
-    if (changes.amcr_findPageResponse || changes.amcr_findPagePageUrl || changes.amcr_findPageBizCode) {
+    var sk = getStateByTabKey();
+    if (
+      changes.amcr_findPageResponse ||
+      changes.amcr_findPagePageUrl ||
+      changes.amcr_findPageBizCode ||
+      changes[sk]
+    ) {
       loadFindPageResponse();
     }
   });
@@ -342,17 +424,27 @@
     findpageRefreshBtn.addEventListener('click', function () {
       loadFindPageResponse();
       if (logger) {
-        chrome.storage.local.get(['amcr_findPageResponse', 'amcr_findPageBizCode'], function (s) {
-          var n = s && s.amcr_findPageResponse && s.amcr_findPageResponse.data && Array.isArray(s.amcr_findPageResponse.data.list)
-            ? s.amcr_findPageResponse.data.list.length : 0;
-          logger.appendLog('log', '[刷新列表] 共 ' + n + ' 条, bizCode=' + (s.amcr_findPageBizCode || '无'));
-          loadLogs();
+        var sk = getStateByTabKey();
+        chrome.storage.local.get([sk, 'amcr_findPageResponse', 'amcr_findPageBizCode'], function (s) {
+          chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+            var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+            var state = pickTabFindPageState(s, tabId);
+            var n =
+              state.findPageResponse && state.findPageResponse.data && Array.isArray(state.findPageResponse.data.list)
+                ? state.findPageResponse.data.list.length
+                : 0;
+            logger.appendLog('log', '[刷新列表] 共 ' + n + ' 条, bizCode=' + (state.findPageBizCode || '无'));
+            loadLogs();
+          });
         });
       }
     });
   }
 
-  window.addEventListener('focus', loadLogs);
+  window.addEventListener('focus', function () {
+    loadLogs();
+    loadFindPageResponse();
+  });
   var refreshInterval = setInterval(loadLogs, 2000);
   window.addEventListener('blur', function () { clearInterval(refreshInterval); });
 })();

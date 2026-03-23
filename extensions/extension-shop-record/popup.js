@@ -116,15 +116,30 @@
     if (wasAtBottom) el.scrollTop = el.scrollHeight;
   }
 
+  function getActiveTabId(callback) {
+    try {
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var id = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+        callback(id);
+      });
+    } catch (e) {
+      callback(null);
+    }
+  }
+
   function loadLogs() {
     if (!logger) return;
-    logger.getLogs(renderLogs);
+    getActiveTabId(function (tabId) {
+      logger.getLogs(renderLogs, tabId);
+    });
   }
 
   function clearLogs() {
     if (!logger || !logsClearBtn) return;
-    logger.clearLogs(function () {
-      loadLogs();
+    getActiveTabId(function (tabId) {
+      logger.clearLogs(function () {
+        loadLogs();
+      }, tabId);
     });
   }
 

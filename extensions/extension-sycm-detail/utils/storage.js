@@ -11,7 +11,9 @@
           lastSlotPrefix: 'sycm_last_slot_',
           logs: 'sycm_logs',
           liveJsonCatalog: 'sycm_live_json_catalog',
-          liveJsonFilter: 'sycm_live_json_filter'
+          liveJsonFilter: 'sycm_live_json_filter',
+          liveJsonFilterByTab: 'sycm_live_json_filter_by_tab',
+          liveJsonCatalogByTab: 'sycm_live_json_catalog_by_tab'
         };
 
   function getThrottleMinutes(callback) {

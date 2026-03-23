@@ -3,7 +3,8 @@
  */
 (function (global) {
   var STORAGE_KEYS = {
-    logs: "shop_record_logs"
+    logs: "shop_record_logs",
+    logsByTab: "shop_record_logs_by_tab"
   };
   var LOG_MAX_ENTRIES = 100;
   var PREFIX = "[店铺记录数据]";
@@ -18,10 +19,17 @@
    */
   var ONE_ALIMAMA_HOST = "https://one.alimama.com";
 
+  /** background / logger / sendMessage 共用 type，避免与 storage 键硬编码漂移（对齐 extension-template） */
+  var RUNTIME = {
+    GET_TAB_ID_MESSAGE: "SR_GET_TAB_ID",
+    CONTENT_APPEND_LOG_MESSAGE: "shopRecordAppendLog"
+  };
+
   var obj = {
     STORAGE_KEYS: STORAGE_KEYS,
     LOG_MAX_ENTRIES: LOG_MAX_ENTRIES,
     PREFIX: PREFIX,
+    RUNTIME: RUNTIME,
     SHOP_RATE_PAGE_URL: SHOP_RATE_PAGE_URL,
     ALIMAMA_DASHBOARD_URL: ALIMAMA_DASHBOARD_URL,
     ONE_ALIMAMA_HOST: ONE_ALIMAMA_HOST
