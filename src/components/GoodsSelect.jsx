@@ -4,8 +4,8 @@ import { HiChevronDown } from "react-icons/hi2";
 import "./GoodsSelect.css";
 
 /**
- * 商品选择：触发器 + 全屏遮罩大面板（宫格 + 搜索、长标题换行）
- * 键盘：Escape 关闭；方向键在宫格内移动；Enter 选中
+ * 商品选择：触发器 + 全屏遮罩（多列瀑布流 + 搜索）
+ * 键盘：Escape 关闭；方向键按列表顺序移动；Enter 选中
  */
 export default function GoodsSelect({
   options = [],
@@ -23,7 +23,6 @@ export default function GoodsSelect({
   const listRef = useRef(null);
   const searchRef = useRef(null);
   const sheetRef = useRef(null);
-  const [gridColumnCount, setGridColumnCount] = useState(1);
 
   const selected = options.find((o) => o.item_id === value);
   const displayText = selected
@@ -83,22 +82,6 @@ export default function GoodsSelect({
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [open, focusedIndex]);
 
-  useEffect(() => {
-    if (!open) return;
-    const el = listRef.current;
-    if (!el || filteredOptions.length === 0) return;
-    const updateCols = () => {
-      const raw = getComputedStyle(el).gridTemplateColumns || "";
-      const parts = raw.trim().split(/\s+/).filter(Boolean);
-      const n = parts.length > 0 ? parts.length : 1;
-      setGridColumnCount(Math.max(1, n));
-    };
-    updateCols();
-    const ro = new ResizeObserver(() => updateCols());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [open, filteredOptions.length]);
-
   const handleTriggerKeyDown = (e) => {
     if (!open) {
       if (e.key === "Enter" || e.key === " ") {
@@ -117,37 +100,25 @@ export default function GoodsSelect({
       return;
     }
     const len = filteredOptions.length;
-    const cols = gridColumnCount;
     if (e.target === searchRef.current) return;
 
-    if (e.key === "ArrowDown") {
+    /* 瀑布流下列数与「视觉行」不一致，方向键按选项顺序移动 */
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") {
       e.preventDefault();
       setFocusedIndex((i) => {
-        if (i < 0 || len === 0) return 0;
-        const next = i + cols;
-        return next < len ? next : i;
+        if (len === 0) return -1;
+        if (i < 0) return 0;
+        return i < len - 1 ? i + 1 : i;
       });
       return;
     }
-    if (e.key === "ArrowUp") {
+    if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
       e.preventDefault();
       setFocusedIndex((i) => {
-        if (i < 0 || len === 0) return 0;
-        const next = i - cols;
-        return next >= 0 ? next : i;
+        if (len === 0) return -1;
+        if (i < 0) return 0;
+        return i > 0 ? i - 1 : i;
       });
-      return;
-    }
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      setFocusedIndex((i) =>
-        i >= 0 && i < len - 1 ? i + 1 : i,
-      );
-      return;
-    }
-    if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      setFocusedIndex((i) => (i > 0 ? i - 1 : i));
       return;
     }
     if (e.key === "Enter") {

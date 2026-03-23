@@ -924,6 +924,10 @@ function App() {
       trendDates: [],
     });
 
+    const hasRenderableSeries = (s) =>
+      s.seriesItem != null ||
+      (Array.isArray(s.seriesItems) && s.seriesItems.length > 0);
+
     const seriesGridItems = isMarketRankView
       ? marketRankForGrid
           .filter(
@@ -942,7 +946,9 @@ function App() {
             actions: null,
             actionsByDate: null,
           }))
-      : seriesForGrid.map((s) => ({ type: "series", ...s }));
+      : seriesForGrid
+          .filter(hasRenderableSeries)
+          .map((s) => ({ type: "series", ...s }));
     const totalGridCells = seriesGridItems.length;
     const hasNoDataForSelection = isCampaignRegisterView
       ? !campaignRegisterLoading && displayedCampaignRows.length === 0
