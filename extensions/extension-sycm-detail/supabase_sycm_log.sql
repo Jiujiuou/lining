@@ -137,6 +137,8 @@ create policy "Allow anon insert for sycm_chart_point_notes"
 create policy "Allow anon update for sycm_chart_point_notes"
   on public.sycm_chart_point_notes for update to anon using (true) with check (true);
 
+-- 商品维度、跨指标图共享的备注见 sql/goods_detail_item_point_notes.sql（需单独执行）
+
 -- ============================================================
 -- 已有表删除 recorded_at 列（在 SQL Editor 中按需执行一次）
 -- ============================================================

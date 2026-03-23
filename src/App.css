@@ -862,6 +862,13 @@
   line-height: 1.4;
 }
 
+.note-modal-sync-hint {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--muted, #6b7280);
+}
+
 .note-modal-label {
   display: block;
   font-size: 0.9rem;

@@ -2,9 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 
 /**
  * 数据点备注弹窗，风格与看板一致
- * @param {{ open: boolean, chartKey: string, pointDate: string, pointSlot: string, initialNote: string, onClose: () => void, onSave: (note: string) => Promise<void> }} props
+ * @param {{ open: boolean, chartKey: string, primaryLabel?: string, syncAllChartsHint?: boolean, pointDate: string, pointSlot: string, initialNote: string, onClose: () => void, onSave: (note: string) => Promise<void> }} props
+ * primaryLabel：有值时用于标题主文案（如商品名），表示备注挂在商品而非某一指标图
  */
-export default function NoteModal({ open, chartKey, pointDate, pointSlot, initialNote, onClose, onSave }) {
+export default function NoteModal({
+  open,
+  chartKey,
+  primaryLabel,
+  syncAllChartsHint,
+  pointDate,
+  pointSlot,
+  initialNote,
+  onClose,
+  onSave,
+}) {
   const [note, setNote] = useState(initialNote ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -47,7 +58,8 @@ export default function NoteModal({ open, chartKey, pointDate, pointSlot, initia
   if (!open) return null;
 
   const slotLabel = pointSlot ? ` ${pointSlot}` : '';
-  const title = `添加备注 · ${chartKey}${pointDate ? ` ${pointDate}${slotLabel}` : ''}`;
+  const head = primaryLabel ?? chartKey;
+  const title = `添加备注 · ${head}${pointDate ? ` ${pointDate}${slotLabel}` : ''}`;
 
   return (
     <div
@@ -61,6 +73,11 @@ export default function NoteModal({ open, chartKey, pointDate, pointSlot, initia
         <h2 id="note-modal-title" className="note-modal-title">
           {title}
         </h2>
+        {syncAllChartsHint ? (
+          <p className="note-modal-sync-hint">
+            此备注属于当前商品，会同步显示在该商品所有指标图的同一时间点。
+          </p>
+        ) : null}
         <form onSubmit={handleSubmit}>
           <label className="note-modal-label" htmlFor="note-modal-textarea">
             备注内容

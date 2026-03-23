@@ -12,7 +12,12 @@ import {
 } from "./utils/supabaseMarketRankToChart";
 import { supabase } from "./lib/supabase";
 import { fetchAllRowsByPage } from "./lib/supabaseFetchAll";
-import { fetchChartNotes, upsertChartNote } from "./lib/chartNotes";
+import {
+  fetchChartNotes,
+  upsertChartNote,
+  fetchGoodsItemPointNotes,
+  upsertGoodsItemPointNote,
+} from "./lib/chartNotes";
 import {
   goodsDetailRowsToTableRows,
   downloadTableXlsx,
@@ -167,7 +172,10 @@ function App() {
   const [error, setError] = useState(null);
   const [supabaseLoading, setSupabaseLoading] = useState(false);
   const [noteModal, setNoteModal] = useState(null);
+  /** 店铺排名等：chart_key -> date|slot -> note */
   const [chartNotes, setChartNotes] = useState({});
+  /** 商品维度：date|slot -> note（与具体指标图无关） */
+  const [goodsItemNotes, setGoodsItemNotes] = useState({});
   const [campaignRegisterRows, setCampaignRegisterRows] = useState([]);
   const [campaignRegisterLoading, setCampaignRegisterLoading] = useState(false);
   /** 删除推广数据二次确认：{ report_date, campaign_name } | null */
@@ -702,8 +710,10 @@ function App() {
   }, [selectedItemId, campaignRegisterDates, selectedDate]);
 
   const noteFetchScope = useMemo(() => {
-    if (dataSource !== "supabase") return { chartKeys: [], pointDates: [] };
-    const { dates = [], byDate = {} } = parsedData || {};
+    if (dataSource !== "supabase") {
+      return { pointDates: [], marketChartKeys: [], goodsItemId: null };
+    }
+    const { dates = [] } = parsedData || {};
     const marketChart = marketRankChart || {};
     const shopNames = marketChart.shopNames || [];
     let pointDates = [];
@@ -730,16 +740,14 @@ function App() {
             ? [dates[0]]
             : [];
     }
-    const seenKeys = new Set();
-    for (const d of dates) {
-      for (const s of byDate[d]?.series ?? []) {
-        const key = `${s.category}-${s.subCategory}`;
-        if (!seenKeys.has(key)) seenKeys.add(key);
-      }
-    }
-    const templateKeys = Array.from(seenKeys).slice(0, SERIES_ORDER_LIMIT);
-    const marketKeys = shopNames.map((name) => "market-rank-" + name);
-    return { chartKeys: [...templateKeys, ...marketKeys], pointDates };
+    const marketChartKeys = shopNames.map((name) => "market-rank-" + name);
+    const goodsItemId =
+      selectedItemId &&
+      selectedItemId !== MARKET_RANK_ITEM_ID &&
+      selectedItemId !== CAMPAIGN_REGISTER_ITEM_ID
+        ? selectedItemId
+        : null;
+    return { pointDates, marketChartKeys, goodsItemId };
   }, [
     dataSource,
     parsedData,
@@ -748,23 +756,45 @@ function App() {
     selectedDate,
     rangeDays,
     selectedDatesPick,
+    selectedItemId,
   ]);
 
-  const noteFetchChartKeys = noteFetchScope.chartKeys.join(",");
+  const noteFetchMarketKeys = noteFetchScope.marketChartKeys.join(",");
   const noteFetchPointDates = noteFetchScope.pointDates.join(",");
+  const noteFetchGoodsItemId = noteFetchScope.goodsItemId ?? "";
+
   useEffect(() => {
-    if (!supabase || !noteFetchChartKeys || !noteFetchPointDates) return;
-    const chartKeys = noteFetchScope.chartKeys;
+    if (!supabase || !noteFetchPointDates) return;
+    const keys = noteFetchScope.marketChartKeys;
     const pointDates = noteFetchScope.pointDates;
+    if (!keys.length) return;
     let cancelled = false;
     (async () => {
-      const next = await fetchChartNotes(supabase, chartKeys, pointDates);
+      const next = await fetchChartNotes(supabase, keys, pointDates);
       if (!cancelled) setChartNotes(next);
     })();
     return () => {
       cancelled = true;
     };
-  }, [noteFetchChartKeys, noteFetchPointDates]);
+  }, [supabase, noteFetchMarketKeys, noteFetchPointDates]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const gid = noteFetchScope.goodsItemId;
+    const pointDates = noteFetchScope.pointDates;
+    if (!gid || !pointDates.length) {
+      setGoodsItemNotes({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const next = await fetchGoodsItemPointNotes(supabase, gid, pointDates);
+      if (!cancelled) setGoodsItemNotes(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, noteFetchGoodsItemId, noteFetchPointDates]);
 
   useEffect(() => {
     if (enlargedIndex == null) return;
@@ -796,6 +826,9 @@ function App() {
   if (view === "dashboard") {
     const isMarketRankView = selectedItemId === MARKET_RANK_ITEM_ID;
     const isCampaignRegisterView = selectedItemId === CAMPAIGN_REGISTER_ITEM_ID;
+    /** 当前为某一商品（非店铺排名/推广表）：备注走商品表 goods_detail_item_point_notes */
+    const useGoodsScopedNotes =
+      !isMarketRankView && !isCampaignRegisterView;
     const { dates, byDate } = parsedData || { dates: [], byDate: {} };
     const firstDate = datesForSelection[0];
 
@@ -1168,27 +1201,56 @@ function App() {
         <NoteModal
           open={noteModal != null}
           chartKey={noteModal?.chartKey ?? ""}
+          primaryLabel={
+            selectedItemId &&
+            selectedItemId !== MARKET_RANK_ITEM_ID &&
+            selectedItemId !== CAMPAIGN_REGISTER_ITEM_ID
+              ? selectedItemName
+              : undefined
+          }
+          syncAllChartsHint={
+            !!(
+              selectedItemId &&
+              selectedItemId !== MARKET_RANK_ITEM_ID &&
+              selectedItemId !== CAMPAIGN_REGISTER_ITEM_ID
+            )
+          }
           pointDate={noteModal?.pointDate ?? ""}
           pointSlot={noteModal?.pointSlot ?? ""}
           initialNote={noteModal?.initialNote ?? ""}
           onClose={() => setNoteModal(null)}
           onSave={async (note) => {
             if (!noteModal || !supabase) return;
-            await upsertChartNote(
-              supabase,
-              noteModal.chartKey,
-              noteModal.pointDate,
-              noteModal.pointSlot,
-              note,
-            );
             const key = `${noteModal.pointDate}|${noteModal.pointSlot ?? ""}`;
-            setChartNotes((prev) => ({
-              ...prev,
-              [noteModal.chartKey]: {
-                ...(prev[noteModal.chartKey] ?? {}),
-                [key]: note,
-              },
-            }));
+            const persistAsGoodsNote =
+              selectedItemId &&
+              selectedItemId !== MARKET_RANK_ITEM_ID &&
+              selectedItemId !== CAMPAIGN_REGISTER_ITEM_ID;
+            if (persistAsGoodsNote) {
+              await upsertGoodsItemPointNote(
+                supabase,
+                selectedItemId,
+                noteModal.pointDate,
+                noteModal.pointSlot,
+                note,
+              );
+              setGoodsItemNotes((prev) => ({ ...prev, [key]: note }));
+            } else {
+              await upsertChartNote(
+                supabase,
+                noteModal.chartKey,
+                noteModal.pointDate,
+                noteModal.pointSlot,
+                note,
+              );
+              setChartNotes((prev) => ({
+                ...prev,
+                [noteModal.chartKey]: {
+                  ...(prev[noteModal.chartKey] ?? {}),
+                  [key]: note,
+                },
+              }));
+            }
           }}
         />
 
@@ -1302,7 +1364,9 @@ function App() {
                   compact
                   chartKey={cell.key}
                   currentDate={selectedDates[0]}
-                  notesMap={chartNotes[cell.key] ?? {}}
+                  notesMap={
+                    useGoodsScopedNotes ? goodsItemNotes : chartNotes[cell.key] ?? {}
+                  }
                   detailPoints20m={
                     dataSource === "supabase" &&
                     cell.key === `${selectedItemName}-商品加购件数` &&
@@ -1359,7 +1423,9 @@ function App() {
                   currentDate={selectedDates[0]}
                   onDotClick={(ctx) => setNoteModal(ctx)}
                   notesMap={
-                    chartNotes[seriesGridItems[enlargedIndex].key] ?? {}
+                    useGoodsScopedNotes
+                      ? goodsItemNotes
+                      : chartNotes[seriesGridItems[enlargedIndex].key] ?? {}
                   }
                   detailPoints20m={
                     dataSource === "supabase" &&
