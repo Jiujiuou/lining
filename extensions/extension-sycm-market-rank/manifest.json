@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "生意参谋市场排名采集",
+  "version": "0.1.0",
+  "description": "单独采集生意参谋市场排名 rank.json → Supabase；popup 勾选关键词后仅上报选中项（按标签页隔离）",
+  "permissions": ["storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://sycm.taobao.com/*",
+    "https://*.supabase.co/*"
+  ],
+  "icons": {
+    "32": "assets/favicon-32x32.png",
+    "48": "assets/favicon-32x32.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "市场排名采集",
+    "default_icon": {
+      "32": "assets/favicon-32x32.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["constants/config.js", "inject.js"],
+      "matches": ["https://sycm.taobao.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://sycm.taobao.com/*"],
+      "js": [
+        "constants/defaults.js",
+        "constants/config.js",
+        "constants/supabase.js",
+        "utils/time.js",
+        "utils/supabase.js",
+        "utils/storage.js",
+        "utils/logger.js",
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}

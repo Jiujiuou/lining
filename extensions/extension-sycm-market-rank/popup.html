@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>市场排名采集</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="popup">
+      <div class="popup-left">
+        <section class="popup-section popup-section--goods">
+          <header class="popup-findpage-header popup-goods-actions">
+            <button type="button" id="goods-refresh" class="popup-findpage-refresh">刷新列表</button>
+            <button type="button" id="goods-select-all" class="popup-findpage-refresh">全选</button>
+            <button type="button" id="goods-select-none" class="popup-findpage-refresh">全不选</button>
+            <button type="button" id="goods-save" class="popup-open-sites">保存设置</button>
+          </header>
+          <p id="goods-meta" class="popup-goods-meta" aria-live="polite"></p>
+          <div id="goods-list" class="popup-findpage-list" role="list"></div>
+        </section>
+      </div>
+      <section class="popup-section popup-section--logs">
+        <header class="popup-logs-header">
+          <h2 class="popup-logs-title">扩展日志</h2>
+          <button type="button" id="logs-clear" class="popup-logs-clear" aria-label="清空扩展日志">清空</button>
+        </header>
+        <div id="logs-list" class="popup-logs-list" role="log" aria-live="polite"></div>
+      </section>
+    </div>
+    <script src="constants/defaults.js"></script>
+    <script src="utils/logger.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
