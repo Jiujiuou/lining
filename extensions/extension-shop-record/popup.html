@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>店铺记录数据</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="popup">
+      <div class="popup-left">
+        <section class="popup-section popup-section--controls" aria-label="控制区">
+          <button type="button" id="shop-rate-open" class="popup-open-sites">
+            店铺分
+          </button>
+          <button type="button" id="alimama-open" class="popup-open-sites">
+            淘宝联盟
+          </button>
+          <button type="button" id="onebp-open" class="popup-open-sites">
+            万象台1
+          </button>
+          <button type="button" id="onebp-display-open" class="popup-open-sites">
+            万象台2
+          </button>
+        </section>
+        <section class="popup-section popup-section--findpage" id="shop-record-findpage-section">
+          <header class="popup-findpage-header">
+            <h2 class="popup-findpage-title">主内容</h2>
+          </header>
+          <div
+            id="shop-record-body"
+            class="popup-findpage-list"
+            role="region"
+            aria-label="主内容区"
+          ></div>
+        </section>
+      </div>
+      <section class="popup-section popup-section--logs">
+        <header class="popup-logs-header">
+          <h2 class="popup-logs-title">日志</h2>
+          <button type="button" id="logs-clear" class="popup-logs-clear" aria-label="清空日志">清空</button>
+        </header>
+        <div id="logs-list" class="popup-logs-list" role="log" aria-live="polite"></div>
+      </section>
+    </div>
+    <script src="constants/defaults.js"></script>
+    <script src="utils/logger.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

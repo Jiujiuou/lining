@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "扩展模板（勿直接发布）",
+  "version": "0.0.0",
+  "description": "复制本文件夹后改名并修改 manifest；默认仅示例域名，请替换为业务站点。",
+  "permissions": ["storage"],
+  "host_permissions": ["https://example.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "扩展模板"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://example.com/*"],
+      "js": ["constants/defaults.js", "utils/logger.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

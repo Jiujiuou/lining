@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "店铺记录数据",
+  "version": "0.1.0",
+  "description": "店铺侧数据记录（骨架版：日志 + 内容脚本占位，默认匹配千牛/已卖出订单页）",
+  "permissions": ["storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://qn.taobao.com/*",
+    "https://trade.taobao.com/*",
+    "https://rate.taobao.com/*",
+    "https://ad.alimama.com/*",
+    "https://one.alimama.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "店铺记录数据"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://qn.taobao.com/*",
+        "https://trade.taobao.com/*",
+        "https://rate.taobao.com/*"
+      ],
+      "js": ["constants/defaults.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://ad.alimama.com/*"],
+      "js": ["content-alimama.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://one.alimama.com/*"],
+      "js": ["content-onebp-bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://one.alimama.com/*"],
+      "js": ["content-onebp-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ]
+}
