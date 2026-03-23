@@ -128,12 +128,26 @@ export function marketRankRowsToChartData(rows) {
  * @param {{ byDateSlot: Record<string, Record<number, Record<string, number>>>, shopNames: string[] }} chart
  * @param {{ viewMode: string, selectedDate: string | null, selectedDates: string[], trendDates: string[] }} context
  */
+function slotValuesForShopDay(byDateSlot, dateStr, shopName) {
+  const daySlots = dateStr && byDateSlot[dateStr] ? byDateSlot[dateStr] : {};
+  const slotValues = [];
+  for (let i = 0; i < SLOT_COUNT; i++) {
+    const slotRow = daySlots[i];
+    const v = slotRow && slotRow[shopName];
+    slotValues.push(v != null ? v : null);
+  }
+  return slotValues;
+}
+
 export function marketRankChartToGridItems(chart, context) {
   const { byDateSlot, shopNames } = chart || {};
   if (!shopNames || !shopNames.length) return [];
   const { viewMode, selectedDate, selectedDates = [], trendDates = [] } = context || {};
   const isTrend = viewMode === 'trend';
   const SLOT_19 = 30; // 19:00 对应槽位 30
+
+  const datesToShow =
+    selectedDates.length > 0 ? selectedDates : selectedDate ? [selectedDate] : [];
 
   return shopNames.map((name) => {
     if (isTrend && trendDates.length > 0) {
@@ -152,14 +166,25 @@ export function marketRankChartToGridItems(chart, context) {
         isRate: false,
       };
     }
-    const dateStr = selectedDate || selectedDates[0];
-    const daySlots = dateStr && byDateSlot[dateStr] ? byDateSlot[dateStr] : {};
-    const slotValues = [];
-    for (var i = 0; i < SLOT_COUNT; i++) {
-      var slotRow = daySlots[i];
-      var v = slotRow && slotRow[name];
-      slotValues.push(v != null ? v : null);
+    // 多日对比：每条线对应一天，颜色由 ChartCell 的 SERIES_COLORS 区分
+    if (datesToShow.length > 1) {
+      const seriesItems = datesToShow.map((dateStr) => ({
+        date: dateStr,
+        category: '市场排名',
+        subCategory: name,
+        isRate: false,
+        slotValues: slotValuesForShopDay(byDateSlot, dateStr, name),
+      }));
+      return {
+        key: 'market-rank-' + name,
+        title: '市场排名 - ' + name,
+        seriesItems,
+        seriesItem: null,
+        isRate: false,
+      };
     }
+    const dateStr = selectedDate || selectedDates[0];
+    const slotValues = slotValuesForShopDay(byDateSlot, dateStr, name);
     return {
       key: 'market-rank-' + name,
       title: '市场排名 - ' + name,

@@ -8,13 +8,14 @@ create table if not exists public.goods_detail_slot_log (
   id bigint generated always as identity primary key,
   item_id text not null,
   slot_ts timestamptz not null,
-  item_name text,
+  item_name text not null,
   item_cart_cnt integer,
   search_uv integer,
   search_pay_rate numeric,
   cart_uv integer,
   cart_pay_rate numeric,
-  unique (item_id, slot_ts)
+  unique (item_id, slot_ts),
+  constraint goods_detail_slot_log_item_name_nonempty check (length(trim(item_name)) > 0)
 );
 
 comment on table public.goods_detail_slot_log is '商品按 20 分钟时间槽的加购与详情指标，加购来自 live.json，详情来自 flow 接口，两源 upsert 合并';
@@ -35,13 +36,23 @@ alter publication supabase_realtime add table public.goods_detail_slot_log;
 -- ============================================================
 -- RPC：按 (item_id, slot_ts) 合并写入，只更新传入的非空列
 -- 扩展调用此 RPC 替代直接 INSERT，实现 A/B 两源补全同一行
+-- item_name 为空时回落为 item_id，满足 NOT NULL
 -- ============================================================
 create or replace function public.merge_goods_detail_slot_log(p_row jsonb)
 returns void
 language plpgsql
 security definer
 as $$
+declare
+  v_item_id text;
+  v_item_name text;
 begin
+  v_item_id := nullif(trim(p_row->>'item_id'), '');
+  if v_item_id is null then
+    raise exception 'merge_goods_detail_slot_log: item_id required';
+  end if;
+  v_item_name := coalesce(nullif(trim(p_row->>'item_name'), ''), v_item_id);
+
   insert into public.goods_detail_slot_log (
     item_id,
     slot_ts,
@@ -53,9 +64,9 @@ begin
     cart_pay_rate
   )
   values (
-    p_row->>'item_id',
+    v_item_id,
     (p_row->>'slot_ts')::timestamptz,
-    nullif(p_row->>'item_name', ''),
+    v_item_name,
     (p_row->'item_cart_cnt')::int,
     (p_row->'search_uv')::int,
     (p_row->'search_pay_rate')::numeric,
@@ -63,7 +74,10 @@ begin
     (p_row->'cart_pay_rate')::numeric
   )
   on conflict (item_id, slot_ts) do update set
-    item_name    = coalesce(nullif(excluded.item_name, ''), goods_detail_slot_log.item_name),
+    item_name = coalesce(
+      nullif(trim(excluded.item_name::text), ''),
+      goods_detail_slot_log.item_name
+    ),
     item_cart_cnt = coalesce(excluded.item_cart_cnt, goods_detail_slot_log.item_cart_cnt),
     search_uv    = coalesce(excluded.search_uv, goods_detail_slot_log.search_uv),
     search_pay_rate = coalesce(excluded.search_pay_rate, goods_detail_slot_log.search_pay_rate),

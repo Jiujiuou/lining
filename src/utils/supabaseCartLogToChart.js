@@ -314,6 +314,12 @@ function parseSlotTsToDateAndSlot(slotTs) {
   return parseISOToEast8DateAndSlot(s);
 }
 
+/** 从 slot_ts 得到东八区日历日 YYYY-MM-DD（用于日期点标记等） */
+export function slotTsToEast8DateString(slotTs) {
+  const p = parseSlotTsToDateAndSlot(slotTs);
+  return p ? p.dateStr : null;
+}
+
 /**
  * 将 goods_detail_slot_log 行（同一商品）转为与 mergeCartAndFlowChartData 一致的结构
  * @param {Array<{ item_id, slot_ts, item_name?, item_cart_cnt?, search_uv?, search_pay_rate?, cart_uv?, cart_pay_rate? }>} rows

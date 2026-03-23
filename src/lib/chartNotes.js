@@ -1,10 +1,12 @@
+import { fetchAllRowsByPage } from './supabaseFetchAll';
+
 /**
  * 图表数据点备注：读写 sycm_chart_point_notes 表
  * 表结构：chart_key, point_date, point_slot, note (unique: chart_key, point_date, point_slot)
  */
 
 /**
- * 拉取备注：按 chart_key 列表与 point_date 列表筛选
+ * 拉取备注：按 chart_key 列表与 point_date 列表筛选（分页拉满后再组装）
  * @param {import('@supabase/supabase-js').SupabaseClient} client
  * @param {string[]} chartKeys
  * @param {string[]} pointDates
@@ -14,19 +16,26 @@ export async function fetchChartNotes(client, chartKeys, pointDates) {
   if (!client || !chartKeys?.length || !pointDates?.length) {
     return {};
   }
-  const { data, error } = await client
-    .from('sycm_chart_point_notes')
-    .select('chart_key, point_date, point_slot, note')
-    .in('chart_key', chartKeys)
-    .in('point_date', pointDates);
-
-  if (error) {
+  let allRows;
+  try {
+    allRows = await fetchAllRowsByPage((from, to) =>
+      client
+        .from('sycm_chart_point_notes')
+        .select('chart_key, point_date, point_slot, note')
+        .in('chart_key', chartKeys)
+        .in('point_date', pointDates)
+        .order('chart_key')
+        .order('point_date')
+        .order('point_slot')
+        .range(from, to),
+    );
+  } catch (error) {
     console.error('fetchChartNotes', error);
     return {};
   }
 
   const byChart = {};
-  for (const row of data ?? []) {
+  for (const row of allRows) {
     const key = row.chart_key;
     const mapKey = `${row.point_date}|${row.point_slot ?? ''}`;
     if (!byChart[key]) byChart[key] = {};

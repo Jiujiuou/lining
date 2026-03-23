@@ -263,6 +263,151 @@
   min-width: 4.5em;
 }
 
+/* ---------- 单日日期：月历弹层（DashboardSingleDatePicker） ---------- */
+.dashboard-single-date-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dashboard-cal-inline {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-cal-anchor {
+  position: relative;
+}
+
+.dashboard-cal-trigger {
+  min-width: 10rem;
+  text-align: left;
+}
+
+.dashboard-cal-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  padding: 12px;
+  min-width: 280px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-hover);
+}
+
+.dashboard-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.dashboard-cal-nav {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.dashboard-cal-nav:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dashboard-cal-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dashboard-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.dashboard-cal-wd {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.dashboard-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.dashboard-cal-cell {
+  position: relative;
+  min-height: 36px;
+  padding: 4px;
+  font-size: 0.8rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background 0.1s,
+    border-color 0.1s;
+}
+
+.dashboard-cal-cell:hover {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.dashboard-cal-cell--empty {
+  cursor: default;
+  background: transparent;
+  border: none;
+  min-height: 8px;
+}
+
+.dashboard-cal-cell--selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.dashboard-cal-cell--has-data .dashboard-cal-cell-num {
+  color: var(--text);
+}
+
+.dashboard-cal-cell-num {
+  display: block;
+  text-align: center;
+}
+
+.dashboard-cal-cell-dot {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.dashboard-cal-hint {
+  margin: 10px 0 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
 .dashboard-pick-wrap {
   position: relative;
 }

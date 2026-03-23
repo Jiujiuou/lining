@@ -1,59 +1,88 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useLocation, Navigate } from "react-router-dom";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
-import html2canvas from "html2canvas";
 import {
   goodsDetailSlotRowsToChartData,
   getGoodsDetail20MinPointsForDate,
+  slotTsToEast8DateString,
 } from "./utils/supabaseCartLogToChart";
 import {
   marketRankRowsToChartData,
   marketRankChartToGridItems,
 } from "./utils/supabaseMarketRankToChart";
 import { supabase } from "./lib/supabase";
+import { fetchAllRowsByPage } from "./lib/supabaseFetchAll";
 import { fetchChartNotes, upsertChartNote } from "./lib/chartNotes";
 import {
   goodsDetailRowsToTableRows,
   downloadTableXlsx,
 } from "./utils/exportGoodsDetailTable";
 import ChartCell from "./components/ChartCell";
+import DashboardSingleDatePicker from "./components/DashboardSingleDatePicker";
 import NoteModal from "./components/NoteModal";
 import GoodsSelect from "./components/GoodsSelect";
 import "./App.css";
 
-/** Supabase 单次查询默认最多返回行数，超过需分页 */
-const SUPABASE_PAGE_SIZE = 1000;
+/**
+ * 在多条 item_name 候选中选下拉展示名：优先不等于 item_id 的标题（含中文等），否则更长更像标题的。
+ * 解决：最新一条 slot 若先被 flow 写成 item_id，旧行有中文时不再只展示纯数字。
+ */
+function resolveBestItemNameFromCandidates(candidates, itemId) {
+  const id = String(itemId);
+  const uniq = [
+    ...new Set(
+      candidates.map((c) => String(c ?? "").trim()).filter(Boolean),
+    ),
+  ];
+  if (uniq.length === 0) return id;
+  const notSameAsId = uniq.filter((n) => n !== id);
+  if (notSameAsId.length === 0) return uniq[0];
+  const withNonDigit = notSameAsId.filter((n) => /[^\d]/.test(n));
+  const pool = withNonDigit.length ? withNonDigit : notSameAsId;
+  return [...pool].sort((a, b) => b.length - a.length)[0];
+}
+
+function mergeItemNameForGoodsList(current, incoming, itemId) {
+  return resolveBestItemNameFromCandidates([current, incoming], itemId);
+}
 
 /**
  * 从 goods_detail_slot_log 拉取「数据库里出现过的全部商品」用于顶部下拉。
- * 按 slot_ts 降序分页，每个 item_id 第一次出现即截至 dayEnd 前的最新一条，item_name 取该行的展示名。
+ * 分页拉满后按 item_id 聚合**所有行**的 item_name，再优选展示名（不再只用 slot_ts 最新一条）。
  */
 async function fetchDistinctGoodsFromSlotLog(supabaseClient, dayEndIso) {
-  const byId = new Map();
-  let from = 0;
-  while (true) {
-    const to = from + SUPABASE_PAGE_SIZE - 1;
-    const { data, error } = await supabaseClient
+  const allRows = await fetchAllRowsByPage((from, to) =>
+    supabaseClient
       .from("goods_detail_slot_log")
       .select("item_id, item_name, slot_ts")
       .lte("slot_ts", dayEndIso)
       .order("slot_ts", { ascending: false })
-      .range(from, to);
-    if (error) throw error;
-    const chunk = data ?? [];
-    for (const r of chunk) {
-      if (!r.item_id) continue;
-      if (byId.has(r.item_id)) continue;
-      const raw = r.item_name != null ? String(r.item_name).trim() : "";
-      byId.set(r.item_id, {
-        item_id: r.item_id,
-        item_name: raw || r.item_id,
-      });
-    }
-    if (chunk.length < SUPABASE_PAGE_SIZE) break;
-    from = to + 1;
+      .range(from, to),
+  );
+  const byId = new Map();
+  for (const r of allRows) {
+    if (!r.item_id) continue;
+    const raw = r.item_name != null ? String(r.item_name).trim() : "";
+    const name = raw || String(r.item_id);
+    if (!byId.has(r.item_id)) byId.set(r.item_id, []);
+    byId.get(r.item_id).push(name);
   }
-  return Array.from(byId.values()).sort((a, b) =>
+  const out = [];
+  for (const [item_id, cands] of byId) {
+    const picked = resolveBestItemNameFromCandidates(cands, item_id);
+    if (import.meta.env.DEV && cands.length > 1) {
+      const first = cands[0];
+      if (picked !== first) {
+        console.log(
+          "[goodsList] 商品展示名优选（非仅取最新 slot）",
+          String(item_id),
+          { picked, firstOfDesc: first, candidates: cands.length },
+        );
+      }
+    }
+    out.push({ item_id, item_name: picked });
+  }
+  return out.sort((a, b) =>
     a.item_name.localeCompare(b.item_name, "zh-CN"),
   );
 }
@@ -133,7 +162,6 @@ function App() {
   const [enlargedIndex, setEnlargedIndex] = useState(null);
   const [pickOpen, setPickOpen] = useState(false);
   const pickRef = useRef(null);
-  const dateInputRef = useRef(null);
   const chartGridRef = useRef(null);
   const enlargedRef = useRef(null);
   const [exporting, setExporting] = useState(false);
@@ -148,6 +176,8 @@ function App() {
   const [campaignRegisterDeleting, setCampaignRegisterDeleting] = useState(false);
   /** 推广数据：是否展示汇总行（池_小贝壳下、池_大云团下各一行加和） */
   const [showCampaignSummary, setShowCampaignSummary] = useState(false);
+  /** 当前商品在「选中日期所在自然月」内有 slot 的日期（补全月历圆点，不依赖 load 窗口上界） */
+  const [itemMonthSlotDates, setItemMonthSlotDates] = useState([]);
 
   useEffect(() => {
     const today = getTodayEast8();
@@ -208,6 +238,11 @@ function App() {
     [rawMarketRankRows],
   );
 
+  const rankDatesSorted = useMemo(
+    () => Object.keys(marketRankChart.byDateSlot || {}).sort(),
+    [marketRankChart],
+  );
+
   const loadFromSupabase = useCallback(
     async (overrideDate) => {
       if (!supabase) {
@@ -224,19 +259,15 @@ function App() {
           : selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
             ? selectedDate
             : getTodayEast8();
-      const dayStart = `${day}T00:00:00+08:00`;
       const dayEnd = `${day}T23:59:59.999+08:00`;
       const rangeStart = new Date(day);
       rangeStart.setDate(rangeStart.getDate() - 14);
       const rangeStartStr =
         rangeStart.toISOString().slice(0, 10) + "T00:00:00+08:00";
 
-      const fetchAllGoodsRows = async () => {
-        const rows = [];
-        let from = 0;
-        while (true) {
-          const to = from + SUPABASE_PAGE_SIZE - 1;
-          const { data, error } = await supabase
+      const fetchAllGoodsRows = () =>
+        fetchAllRowsByPage((from, to) =>
+          supabase
             .from("goods_detail_slot_log")
             .select(
               "item_id, item_name, slot_ts, item_cart_cnt, search_uv, search_pay_rate, cart_uv, cart_pay_rate",
@@ -244,30 +275,26 @@ function App() {
             .gte("slot_ts", rangeStartStr)
             .lte("slot_ts", dayEnd)
             .order("slot_ts", { ascending: true })
-            .range(from, to);
-          if (error) throw error;
-          const chunk = data ?? [];
-          rows.push(...chunk);
-          if (chunk.length < SUPABASE_PAGE_SIZE) break;
-          from = to + 1;
-        }
-        return rows;
-      };
+            .range(from, to),
+        );
 
       try {
-        const [goodsRows, list, rankRes] = await Promise.all([
+        const [goodsRows, list, rankRows] = await Promise.all([
           fetchAllGoodsRows(),
           fetchDistinctGoodsFromSlotLog(supabase, dayEnd),
-          supabase
-            .from("sycm_market_rank_log")
-            .select("created_at, shop_title, rank")
-            .gte("created_at", dayStart)
-            .lte("created_at", dayEnd)
-            .order("created_at", { ascending: true }),
+          fetchAllRowsByPage((from, to) =>
+            supabase
+              .from("sycm_market_rank_log")
+              .select("created_at, shop_title, rank")
+              // 与 goods_detail_slot_log 同一窗口，便于「多日→自选」列出窗口内所有有排名数据的日期
+              .gte("created_at", rangeStartStr)
+              .lte("created_at", dayEnd)
+              .order("created_at", { ascending: true })
+              .range(from, to),
+          ),
         ]);
-        if (rankRes.error) throw rankRes.error;
         setRawGoodsDetailRows(goodsRows);
-        setRawMarketRankRows(rankRes.data ?? []);
+        setRawMarketRankRows(rankRows);
 
         setGoodsList(list);
         setDataSource("supabase");
@@ -285,35 +312,15 @@ function App() {
           setSelectedItemId(list[0]?.item_id ?? "");
         }
 
-        const rankChart = marketRankRowsToChartData(rankRes.data ?? []);
+        const rankChart = marketRankRowsToChartData(rankRows);
         const hasGoods = goodsRows.length > 0;
         const hasRank =
           rankChart.shopNames?.length > 0 &&
           Object.keys(rankChart.byDateSlot || {}).length > 0;
         if (hasGoods || hasRank) {
-          const firstItemId =
-            list.find((g) => goodsRows.some((r) => r.item_id === g.item_id))
-              ?.item_id ?? list[0]?.item_id;
-          const firstMeta = list.find((g) => g.item_id === firstItemId);
-          const firstItemRows = firstItemId
-            ? goodsRows.filter((r) => r.item_id === firstItemId)
-            : [];
-          const merged = firstItemId
-            ? goodsDetailSlotRowsToChartData(
-                firstItemRows,
-                firstMeta?.item_name || firstItemId,
-              )
-            : { dates: [] };
-          if (merged.dates?.length > 0) {
-            const dateToSelect = merged.dates.includes(day)
-              ? day
-              : merged.dates[merged.dates.length - 1];
-            setSelectedDate(dateToSelect);
-            setSelectedDatesPick([dateToSelect]);
-          } else {
-            setSelectedDate(day);
-            setSelectedDatesPick([day]);
-          }
+          // 保持用户选择的 day（含日期框选的、当日尚无 slot 数据的日期），不回退到「有数据的最后一天」
+          setSelectedDate(day);
+          setSelectedDatesPick([day]);
           setView("dashboard");
         } else {
           setError(null);
@@ -355,11 +362,15 @@ function App() {
             ]);
             const name =
               row.item_name != null ? String(row.item_name).trim() : "";
+            const displayName = resolveBestItemNameFromCandidates(
+              [name || String(row.item_id)],
+              row.item_id,
+            );
             setGoodsList((prev) => {
               if (prev.some((g) => g.item_id === row.item_id)) return prev;
               const next = [
                 ...prev,
-                { item_id: row.item_id, item_name: name || row.item_id },
+                { item_id: row.item_id, item_name: displayName },
               ];
               return next.sort((a, b) =>
                 a.item_name.localeCompare(b.item_name, "zh-CN"),
@@ -382,6 +393,26 @@ function App() {
               if (idx >= 0) next[idx] = { ...next[idx], ...row };
               else next.push(row);
               return next;
+            });
+            const incoming =
+              row.item_name != null ? String(row.item_name).trim() : "";
+            const fromRow = incoming || String(row.item_id);
+            setGoodsList((prev) => {
+              const gi = prev.findIndex(
+                (g) => String(g.item_id) === String(row.item_id),
+              );
+              if (gi < 0) return prev;
+              const merged = mergeItemNameForGoodsList(
+                prev[gi].item_name,
+                fromRow,
+                row.item_id,
+              );
+              if (merged === prev[gi].item_name) return prev;
+              const next = [...prev];
+              next[gi] = { ...next[gi], item_name: merged };
+              return next.sort((a, b) =>
+                a.item_name.localeCompare(b.item_name, "zh-CN"),
+              );
             });
           }
         },
@@ -425,23 +456,27 @@ function App() {
     }
     let cancelled = false;
     setCampaignRegisterLoading(true);
-    supabase
-      .from("campaign_register")
-      .select(
-        "report_date, campaign_name, charge_onebpdisplay, alipay_inshop_amt_onebpdisplay, charge_onebpsite, alipay_inshop_amt_onebpsite, charge_onebpsearch, alipay_inshop_amt_onebpsearch, charge_onebpshortvideo, alipay_inshop_amt_onebpshortvideo",
-      )
-      .order("report_date", { ascending: false })
-      .order("campaign_name")
-      .limit(1000)
-      .then(({ data, error }) => {
+    (async () => {
+      try {
+        const rows = await fetchAllRowsByPage((from, to) =>
+          supabase
+            .from("campaign_register")
+            .select(
+              "report_date, campaign_name, charge_onebpdisplay, alipay_inshop_amt_onebpdisplay, charge_onebpsite, alipay_inshop_amt_onebpsite, charge_onebpsearch, alipay_inshop_amt_onebpsearch, charge_onebpshortvideo, alipay_inshop_amt_onebpshortvideo",
+            )
+            .order("report_date", { ascending: false })
+            .order("campaign_name")
+            .range(from, to),
+        );
         if (cancelled) return;
         setCampaignRegisterLoading(false);
-        if (error) {
-          setError("推广数据加载失败：" + (error.message || String(error)));
-          return;
-        }
-        setCampaignRegisterRows(data ?? []);
-      });
+        setCampaignRegisterRows(rows);
+      } catch (err) {
+        if (cancelled) return;
+        setCampaignRegisterLoading(false);
+        setError("推广数据加载失败：" + (err.message || String(err)));
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -490,6 +525,72 @@ function App() {
     });
     return Array.from(set).sort().reverse();
   }, [campaignRegisterRows]);
+
+  /** 仅查 slot_ts：当前商品在选中「自然月」内有数据的日期，供月历圆点（与 load 窗口上界无关） */
+  useEffect(() => {
+    if (!supabase || dataSource !== "supabase") {
+      setItemMonthSlotDates([]);
+      return;
+    }
+    if (
+      !selectedItemId ||
+      selectedItemId === MARKET_RANK_ITEM_ID ||
+      selectedItemId === CAMPAIGN_REGISTER_ITEM_ID
+    ) {
+      setItemMonthSlotDates([]);
+      return;
+    }
+    if (!selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+      setItemMonthSlotDates([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [y, m] = selectedDate.split("-").map(Number);
+      const lastDay = new Date(y, m, 0).getDate();
+      const monthStart = `${y}-${String(m).padStart(2, "0")}-01T00:00:00+08:00`;
+      const monthEnd = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}T23:59:59.999+08:00`;
+      try {
+        const rows = await fetchAllRowsByPage((from, to) =>
+          supabase
+            .from("goods_detail_slot_log")
+            .select("slot_ts")
+            .eq("item_id", selectedItemId)
+            .gte("slot_ts", monthStart)
+            .lte("slot_ts", monthEnd)
+            .order("slot_ts", { ascending: true })
+            .range(from, to),
+        );
+        if (cancelled) return;
+        const ds = new Set();
+        for (const r of rows) {
+          const d = slotTsToEast8DateString(r.slot_ts);
+          if (d) ds.add(d);
+        }
+        setItemMonthSlotDates(Array.from(ds).sort());
+      } catch {
+        if (!cancelled) setItemMonthSlotDates([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, dataSource, selectedItemId, selectedDate]);
+
+  /** 下拉/月历「有数据」日期：图表解析结果 ∪ 当月按商品查询的 slot 日（避免仅 load 到选中日当天导致后续日无点） */
+  const datesForSelection = useMemo(() => {
+    if (selectedItemId === CAMPAIGN_REGISTER_ITEM_ID) return campaignRegisterDates;
+    if (selectedItemId === MARKET_RANK_ITEM_ID) return rankDatesSorted;
+    const fromChart = parsedData?.dates ?? [];
+    const merged = new Set([...fromChart, ...itemMonthSlotDates]);
+    return Array.from(merged).sort();
+  }, [
+    selectedItemId,
+    campaignRegisterDates,
+    rankDatesSorted,
+    parsedData?.dates,
+    itemMonthSlotDates,
+  ]);
 
   /** 推广数据：多日/单日下要展示的日期列表（与 header 里 selectedDates 逻辑一致） */
   const campaignSelectedDates = useMemo(() => {
@@ -707,12 +808,6 @@ function App() {
     const isMarketRankView = selectedItemId === MARKET_RANK_ITEM_ID;
     const isCampaignRegisterView = selectedItemId === CAMPAIGN_REGISTER_ITEM_ID;
     const { dates, byDate } = parsedData || { dates: [], byDate: {} };
-    const rankDates = Object.keys(marketRankChart.byDateSlot || {}).sort();
-    const datesForSelection = isCampaignRegisterView
-      ? campaignRegisterDates
-      : isMarketRankView
-        ? rankDates
-        : dates;
     const firstDate = datesForSelection[0];
 
     let selectedDates = [];
@@ -764,58 +859,6 @@ function App() {
       );
     };
 
-    const handleExportPng = async () => {
-      const el =
-        enlargedIndex != null ? enlargedRef.current : chartGridRef.current;
-      if (!el) return;
-      setExporting(true);
-      try {
-        const canvas = await html2canvas(el, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-        });
-        const datesForName = selectedDates;
-        const name =
-          enlargedIndex != null
-            ? `小贝壳作战-详情-${datesForName[0] ?? "export"}.png`
-            : `小贝壳作战-${datesForName[0] ?? "export"}${datesForName.length > 1 ? `-${datesForName.length}天` : ""}.png`;
-        const link = document.createElement("a");
-        link.download = name;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      } catch (err) {
-        console.error("导出失败", err);
-      } finally {
-        setExporting(false);
-      }
-    };
-
-    /** 分页拉取 goods_detail_slot_log 全量（避免 Supabase 单次 1000 行上限） */
-    const fetchAllGoodsDetailRows = async (rangeStartStr, dayEnd) => {
-      const rows = [];
-      let from = 0;
-      while (true) {
-        const to = from + SUPABASE_PAGE_SIZE - 1;
-        const { data, error } = await supabase
-          .from("goods_detail_slot_log")
-          .select(
-            "item_id, item_name, slot_ts, item_cart_cnt, search_uv, search_pay_rate, cart_uv, cart_pay_rate",
-          )
-          .gte("slot_ts", rangeStartStr)
-          .lte("slot_ts", dayEnd)
-          .order("slot_ts", { ascending: true })
-          .range(from, to);
-        if (error) throw error;
-        const chunk = data ?? [];
-        rows.push(...chunk);
-        if (chunk.length < SUPABASE_PAGE_SIZE) break;
-        from = to + 1;
-      }
-      return rows;
-    };
-
     const handleExportTable = async () => {
       if (!supabase) {
         setError("未配置 Supabase，无法导出表格");
@@ -834,7 +877,17 @@ function App() {
         const rangeStartStr =
           rangeStart.toISOString().slice(0, 10) + "T00:00:00+08:00";
 
-        const allRows = await fetchAllGoodsDetailRows(rangeStartStr, dayEnd);
+        const allRows = await fetchAllRowsByPage((from, to) =>
+          supabase
+            .from("goods_detail_slot_log")
+            .select(
+              "item_id, item_name, slot_ts, item_cart_cnt, search_uv, search_pay_rate, cart_uv, cart_pay_rate",
+            )
+            .gte("slot_ts", rangeStartStr)
+            .lte("slot_ts", dayEnd)
+            .order("slot_ts", { ascending: true })
+            .range(from, to),
+        );
         if (allRows.length === 0) {
           setError("该日期范围内无商品数据，无法导出");
           return;
@@ -890,12 +943,19 @@ function App() {
 
     const seriesGridItems = isMarketRankView
       ? marketRankForGrid
-          .filter((m) => m.seriesItem)
+          .filter(
+            (m) =>
+              m.seriesItem ||
+              (Array.isArray(m.seriesItems) && m.seriesItems.length > 0),
+          )
           .map((m) => ({
             type: "series",
             key: m.key,
-            seriesItem: m.seriesItem,
-            seriesItems: null,
+            seriesItem:
+              m.seriesItem ??
+              (m.seriesItems?.length === 1 ? m.seriesItems[0] : null),
+            seriesItems:
+              m.seriesItems && m.seriesItems.length > 1 ? m.seriesItems : null,
             actions: null,
             actionsByDate: null,
           }))
@@ -954,23 +1014,18 @@ function App() {
               </div>
 
               {viewMode === "single" && (
-                <label className="dashboard-date-label">
-                  日期
-                  <input
-                    ref={dateInputRef}
-                    type="date"
-                    className="dashboard-date-select"
-                    value={selectedDate ?? ""}
-                    onClick={() => dateInputRef.current?.showPicker?.()}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setSelectedDate(next);
-                      if (dataSource === "supabase" && view === "dashboard") {
-                        loadFromSupabase(next);
-                      }
-                    }}
-                  />
-                </label>
+                <DashboardSingleDatePicker
+                  key={selectedItemId}
+                  value={selectedDate ?? ""}
+                  datesWithData={datesForSelection}
+                  getTodayYmd={getTodayEast8}
+                  onSelectDate={(next) => {
+                    setSelectedDate(next);
+                    if (dataSource === "supabase" && view === "dashboard") {
+                      loadFromSupabase(next);
+                    }
+                  }}
+                />
               )}
 
               {(viewMode === "multiRange" || viewMode === "multiPick") && (
@@ -1098,24 +1153,14 @@ function App() {
               !isCampaignRegisterView &&
               (rawGoodsDetailRows.length > 0 ||
                 rawMarketRankRows.length > 0) ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={handleExportPng}
-                  disabled={exporting}
-                >
-                  {exporting ? "导出中…" : "导出 PNG"}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={handleExportTable}
-                  disabled={exporting}
-                >
-                  {exporting ? "导出中…" : "导出表格"}
-                </button>
-              </>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handleExportTable}
+                disabled={exporting}
+              >
+                {exporting ? "导出中…" : "导出表格"}
+              </button>
             ) : null}
             {error && <span className="dashboard-header-error">{error}</span>}
           </div>

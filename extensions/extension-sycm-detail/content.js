@@ -39,6 +39,30 @@
   var STORAGE_KEYS = storageUtil.STORAGE_KEYS;
   var LIVE_JSON_EVENT = 'sycm-goods-live';
 
+  /**
+   * 上报用商品名：trim 后非空用名称，否则用 item_id，与 RPC 回落一致，满足 item_name NOT NULL
+   */
+  function ensureItemName(itemId, rawName) {
+    var id = itemId != null ? String(itemId).trim() : '';
+    if (!id) return '';
+    var n = rawName != null ? String(rawName).trim() : '';
+    return n || id;
+  }
+
+  /** 从 popup 同步的 live 列表缓存中解析标题（详情页 merge 用） */
+  function itemNameFromCatalog(catalog, itemId) {
+    var items = catalog && catalog.items;
+    if (!Array.isArray(items) || itemId == null) return null;
+    var id = String(itemId);
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (!it || String(it.item_id) !== id) continue;
+      var n = it.item_name;
+      if (n != null && String(n).trim() !== '') return String(n).trim();
+    }
+    return null;
+  }
+
   /** 日志只展示 item_id，避免标题过长撑爆弹窗 */
   function formatGoodsIds(items, maxShow, maxChars) {
     maxShow = maxShow || 16;
@@ -146,7 +170,7 @@
         }
       } else {
         detailLastSlotKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName + (d.itemId ? '_' + d.itemId : '');
-        keysToRead = [detailLastSlotKey, STORAGE_KEYS.liveJsonFilter];
+        keysToRead = [detailLastSlotKey, STORAGE_KEYS.liveJsonFilter, STORAGE_KEYS.liveJsonCatalog];
       }
       chrome.storage.local.get(keysToRead, function (result) {
         if (sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
@@ -167,7 +191,7 @@
             return {
               item_id: item.item_id,
               slot_ts: slotTs,
-              item_name: item.item_name || null,
+              item_name: ensureItemName(item.item_id, item.item_name),
               item_cart_cnt: item.item_cart_cnt != null ? item.item_cart_cnt : null
             };
           });
@@ -231,9 +255,11 @@
             if (logger) logger.warn(PREFIX + ' 详情数据缺少 itemId，跳过');
             return;
           }
+          var cat = result[STORAGE_KEYS.liveJsonCatalog];
           var row = {
             item_id: d.itemId,
             slot_ts: slotTs,
+            item_name: ensureItemName(d.itemId, itemNameFromCatalog(cat, d.itemId)),
             search_uv: d.payload && d.payload.search_uv != null ? d.payload.search_uv : null,
             search_pay_rate: d.payload && d.payload.search_pay_rate != null ? d.payload.search_pay_rate : null,
             cart_uv: d.payload && d.payload.cart_uv != null ? d.payload.cart_uv : null,

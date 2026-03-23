@@ -11,8 +11,11 @@ export const SLOT_LABELS = Array.from({ length: SLOT_COUNT }, (_, i) => {
   return `${h}:${String(mm).padStart(2, '0')}`;
 });
 
-/** 多日对比时每条线的颜色（与 accent 协调、可区分） */
-export const SERIES_COLORS = ['#0d9488', '#475569', '#b45309', '#0e7490', '#4b5563'];
+/** 多日对比时每条线的颜色（与 accent 协调、可区分；不足时循环使用） */
+export const SERIES_COLORS = [
+  '#0d9488', '#475569', '#b45309', '#0e7490', '#7c3aed',
+  '#be123c', '#15803d', '#c2410c', '#0369a1', '#a21caf',
+];
 
 /**
  * 将 values 转为 Recharts 所需 data 数组，含 null 的点以便断线
