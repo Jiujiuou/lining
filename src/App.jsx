@@ -19,6 +19,7 @@ import {
 } from "./utils/exportGoodsDetailTable";
 import ChartCell from "./components/ChartCell";
 import DashboardSingleDatePicker from "./components/DashboardSingleDatePicker";
+import DashboardMultiDatePicker from "./components/DashboardMultiDatePicker";
 import NoteModal from "./components/NoteModal";
 import GoodsSelect from "./components/GoodsSelect";
 import "./App.css";
@@ -160,8 +161,6 @@ function App() {
   const [rangeDays, setRangeDays] = useState(3);
   const [selectedDatesPick, setSelectedDatesPick] = useState([]);
   const [enlargedIndex, setEnlargedIndex] = useState(null);
-  const [pickOpen, setPickOpen] = useState(false);
-  const pickRef = useRef(null);
   const chartGridRef = useRef(null);
   const enlargedRef = useRef(null);
   const [exporting, setExporting] = useState(false);
@@ -790,16 +789,6 @@ function App() {
     return () => window.removeEventListener("keydown", onEsc);
   }, [deleteConfirmRow]);
 
-  useEffect(() => {
-    if (!pickOpen) return;
-    const onDoc = (e) => {
-      if (pickRef.current && !pickRef.current.contains(e.target))
-        setPickOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [pickOpen]);
-
   if (pathname !== "/" && pathname !== "/data") {
     return <Navigate to="/" replace />;
   }
@@ -852,12 +841,6 @@ function App() {
     const templateLimited = isMarketRankView
       ? []
       : template.slice(0, SERIES_ORDER_LIMIT);
-
-    const togglePickDate = (d) => {
-      setSelectedDatesPick((prev) =>
-        prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort(),
-      );
-    };
 
     const handleExportTable = async () => {
       if (!supabase) {
@@ -1048,20 +1031,13 @@ function App() {
                   </div>
                   {viewMode === "multiRange" && (
                     <>
-                      <label className="dashboard-date-label">
-                        日期
-                        <select
-                          className="dashboard-date-select"
-                          value={selectedDate ?? ""}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                        >
-                          {datesForSelection.map((d) => (
-                            <option key={d} value={d}>
-                              {d}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <DashboardSingleDatePicker
+                        key={selectedItemId}
+                        value={selectedDate ?? ""}
+                        datesWithData={datesForSelection}
+                        getTodayYmd={getTodayEast8}
+                        onSelectDate={(next) => setSelectedDate(next)}
+                      />
                       <label className="dashboard-date-label">
                         共
                         <select
@@ -1079,33 +1055,13 @@ function App() {
                     </>
                   )}
                   {viewMode === "multiPick" && (
-                    <div className="dashboard-pick-wrap" ref={pickRef}>
-                      <button
-                        type="button"
-                        className="dashboard-pick-trigger"
-                        onClick={() => setPickOpen((o) => !o)}
-                        aria-expanded={pickOpen}
-                      >
-                        选日期
-                        {selectedDatesPick.length > 0
-                          ? `（${selectedDatesPick.length} 天）`
-                          : ""}
-                      </button>
-                      {pickOpen && (
-                        <div className="dashboard-pick-dropdown">
-                          {datesForSelection.map((d) => (
-                            <label key={d} className="dashboard-pick-option">
-                              <input
-                                type="checkbox"
-                                checked={selectedDatesPick.includes(d)}
-                                onChange={() => togglePickDate(d)}
-                              />
-                              <span>{d}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <DashboardMultiDatePicker
+                      key={selectedItemId}
+                      value={selectedDatesPick}
+                      onChange={setSelectedDatesPick}
+                      datesWithData={datesForSelection}
+                      getTodayYmd={getTodayEast8}
+                    />
                   )}
                 </>
               )}

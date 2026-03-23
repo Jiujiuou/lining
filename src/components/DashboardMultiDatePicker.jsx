@@ -3,13 +3,18 @@ import { ymdParts, buildCalendarCells } from "../lib/dashboardCalendarUtils";
 import DashboardCalendarPopover from "./DashboardCalendarPopover";
 
 /**
- * 单日日期：月历弹层（有数据日圆点标记）
- * @param {{ value: string, datesWithData: string[], onSelectDate: (ymd: string) => void, getTodayYmd: () => string }} props
+ * 多日自选：月历多选（仅可切换 datesWithData 中的日期；圆点同单日）
+ * @param {{
+ *   value: string[],
+ *   onChange: (next: string[]) => void,
+ *   datesWithData: string[],
+ *   getTodayYmd: () => string,
+ * }} props
  */
-export default function DashboardSingleDatePicker({
-  value,
+export default function DashboardMultiDatePicker({
+  value = [],
+  onChange,
   datesWithData,
-  onSelectDate,
   getTodayYmd,
 }) {
   const datesFingerprint = Array.isArray(datesWithData)
@@ -21,10 +26,26 @@ export default function DashboardSingleDatePicker({
     return new Set(datesFingerprint.split("|").filter(Boolean));
   }, [datesFingerprint]);
 
+  const allowedSet = useMemo(() => {
+    if (!datesFingerprint) return new Set();
+    return new Set(datesFingerprint.split("|").filter(Boolean));
+  }, [datesFingerprint]);
+
+  const selectedSet = useMemo(
+    () => new Set(value.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))),
+    [value],
+  );
+
   const [calOpen, setCalOpen] = useState(false);
   const calWrapRef = useRef(null);
+  const anchorYmd =
+    value.length > 0
+      ? [...value].sort().slice(-1)[0]
+      : getTodayYmd();
   const visibleYmd =
-    value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : getTodayYmd();
+    anchorYmd && /^\d{4}-\d{2}-\d{2}$/.test(anchorYmd)
+      ? anchorYmd
+      : getTodayYmd();
   const [calView, setCalView] = useState(() => {
     const { y, m0 } = ymdParts(visibleYmd);
     return { y, m0 };
@@ -59,14 +80,29 @@ export default function DashboardSingleDatePicker({
   const calendarCells = useMemo(
     () =>
       buildCalendarCells(calView, dataSet, {
-        mode: "single",
-        value: value || "",
+        mode: "multi",
+        selectedSet,
+        allowedSet,
       }),
-    [calView, dataSet, value],
+    [calView, dataSet, selectedSet, allowedSet],
   );
 
+  const toggleYmd = useCallback(
+    (ymd) => {
+      if (!allowedSet.has(ymd)) return;
+      const next = value.includes(ymd)
+        ? value.filter((x) => x !== ymd)
+        : [...value, ymd].sort();
+      onChange(next);
+    },
+    [allowedSet, value, onChange],
+  );
+
+  const label =
+    value.length > 0 ? `选日期（${value.length} 天）` : "选日期";
+
   return (
-    <div className="dashboard-single-date-picker">
+    <div className="dashboard-multi-date-picker">
       <div className="dashboard-date-label dashboard-cal-inline">
         <span>日期</span>
         <div className="dashboard-cal-anchor" ref={calWrapRef}>
@@ -86,18 +122,16 @@ export default function DashboardSingleDatePicker({
             aria-expanded={calOpen}
             aria-haspopup="dialog"
           >
-            {value || "选择日期"}
+            {label}
           </button>
           {calOpen && (
             <DashboardCalendarPopover
               calView={calView}
               goMonth={goMonth}
               cells={calendarCells}
-              onDayClick={(ymd) => {
-                onSelectDate(ymd);
-                setCalOpen(false);
-              }}
-              hint="圆点表示当前视图下该日有数据"
+              onDayClick={toggleYmd}
+              hint="点击日期多选或取消；仅可选列表中有数据的日期。圆点表示该日有数据。"
+              dialogAriaLabel="自选多个日期"
             />
           )}
         </div>
