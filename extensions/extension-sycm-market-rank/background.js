@@ -83,7 +83,11 @@ importScripts('constants/defaults.js', 'constants/supabase.js', 'utils/time.js')
               row.shopTitle != null && String(row.shopTitle).trim() !== ''
                 ? String(row.shopTitle).trim()
                 : '（无店名）',
-            rank: row.rank != null ? Number(row.rank) : 0
+            rank: row.rank != null ? Number(row.rank) : 0,
+            item_title:
+              row.itemTitle != null && String(row.itemTitle).trim() !== ''
+                ? String(row.itemTitle).trim()
+                : null
           });
         }
 

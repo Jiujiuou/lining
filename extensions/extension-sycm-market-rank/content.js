@@ -65,11 +65,16 @@
       shopTitle = shopTitle != null && String(shopTitle).trim() !== '' ? String(shopTitle).trim() : '';
       var rankRaw = row && row.cateRankId && row.cateRankId.value;
       var rank = rankRaw != null && rankRaw !== '' ? Number(rankRaw) : NaN;
+      var itemTitle =
+        row && row.item && row.item.title != null
+          ? String(row.item.title).trim()
+          : '';
       if (!itemId && !shopTitle) continue;
       items.push({
         shopTitle: shopTitle,
         rank: isNaN(rank) ? null : rank,
-        itemId: itemId
+        itemId: itemId,
+        itemTitle: itemTitle
       });
     }
     if (items.length === 0) return null;

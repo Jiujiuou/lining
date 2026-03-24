@@ -624,6 +624,16 @@
   margin-bottom: 4px;
 }
 
+.chart-cell--compact .chart-cell-title-sub {
+  font-size: 0.65rem;
+  margin-top: -2px;
+  margin-bottom: 4px;
+}
+
+.chart-cell--compact .chart-cell-title-block--with-sub .chart-cell-title {
+  margin-bottom: 2px;
+}
+
 .chart-cell--compact .chart-cell-chart-wrap {
   flex: 1;
   min-height: 0;
@@ -653,12 +663,34 @@
   height: 280px;
 }
 
+.chart-cell-title-block {
+  flex-shrink: 0;
+  width: 100%;
+}
+
 .chart-cell-title {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--text);
   margin-bottom: 8px;
   text-align: center;
+}
+
+.chart-cell-title-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.35;
+  margin-top: -4px;
+  margin-bottom: 8px;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.chart-cell-title-block--with-sub .chart-cell-title {
+  margin-bottom: 4px;
 }
 
 /* 数据点 hover 时显示手型 */

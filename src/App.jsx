@@ -292,7 +292,7 @@ function App() {
           fetchAllRowsByPage((from, to) =>
             supabase
               .from("sycm_market_rank_log")
-              .select("created_at, shop_title, rank")
+              .select("created_at, shop_title, rank, item_title")
               // 与 goods_detail_slot_log 同一窗口，便于「多日→自选」列出窗口内所有有排名数据的日期
               .gte("created_at", rangeStartStr)
               .lte("created_at", dayEnd)
@@ -434,10 +434,11 @@ function App() {
             row.created_at ?? row.recorded_at ?? row.recordedAt;
           const shop_title = row.shop_title ?? row.shopTitle;
           const rank = row.rank;
+          const item_title = row.item_title ?? row.itemTitle;
           if (created_at && shop_title != null) {
             setRawMarketRankRows((prev) => [
               ...prev,
-              { created_at, shop_title, rank },
+              { created_at, shop_title, rank, item_title },
             ]);
           }
         },

@@ -160,6 +160,10 @@ export default function ChartCell({
   const first = items[0];
   const isRate = first.isRate;
   const title = isRate ? `${first.subCategory} %` : first.subCategory;
+  const titleSubtitle =
+    first.itemTitle != null && String(first.itemTitle).trim() !== ""
+      ? String(first.itemTitle).trim()
+      : "";
 
   const single = seriesItem || first;
   const useSlots =
@@ -276,7 +280,17 @@ export default function ChartCell({
             }
           : {})}
       >
-        <div className="chart-cell-title">{title}</div>
+        <div
+          className={
+            "chart-cell-title-block" +
+            (titleSubtitle ? " chart-cell-title-block--with-sub" : "")
+          }
+        >
+          <div className="chart-cell-title">{title}</div>
+          {titleSubtitle ? (
+            <div className="chart-cell-title-sub">{titleSubtitle}</div>
+          ) : null}
+        </div>
         <div
           className={
             compact ? "chart-cell-chart-wrap" : "chart-cell-chart-wrap-large"
@@ -369,7 +383,17 @@ export default function ChartCell({
           }
         : {})}
     >
-      <div className="chart-cell-title">{title}</div>
+      <div
+        className={
+          "chart-cell-title-block" +
+          (titleSubtitle ? " chart-cell-title-block--with-sub" : "")
+        }
+      >
+        <div className="chart-cell-title">{title}</div>
+        {titleSubtitle ? (
+          <div className="chart-cell-title-sub">{titleSubtitle}</div>
+        ) : null}
+      </div>
       <div
         className={
           compact ? "chart-cell-chart-wrap" : "chart-cell-chart-wrap-large"

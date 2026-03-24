@@ -153,17 +153,28 @@
       .map(function (row, index) {
         var rk = rowKey(row, index);
         var r = row.rank != null ? String(row.rank) : '—';
-        var t = escapeHtml(
+        var shopLabel =
           row.shopTitle != null && String(row.shopTitle).trim() !== ''
             ? String(row.shopTitle).trim()
-            : '（无店名）'
+            : '（无店名）';
+        var t = escapeHtml(shopLabel);
+        var rawItemTitle =
+          row.itemTitle != null && String(row.itemTitle).trim() !== ''
+            ? String(row.itemTitle).trim()
+            : '';
+        var itemSub = rawItemTitle ? escapeHtml(rawItemTitle) : '';
+        var titleAttr = escapeHtml(
+          rawItemTitle ? shopLabel + ' · ' + rawItemTitle : shopLabel,
         );
         var checked = !!selected[rk];
         var checkedAttr = checked ? ' checked' : '';
         var safeRk = escapeHtml(rk);
+        var itemBlock = itemSub
+          ? '<span class="popup-rank-item-title">' + itemSub + '</span>'
+          : '';
         return (
           '<div class="popup-findpage-item" role="listitem" title="' +
-          t +
+          escapeHtml(titleAttr) +
           '">' +
           '<input type="checkbox" id="rank-cb-' +
           index +
@@ -177,10 +188,13 @@
           '<span class="popup-rank-num">' +
           escapeHtml(r) +
           '</span>' +
-          '<label class="popup-findpage-name" for="rank-cb-' +
+          '<label class="popup-findpage-name popup-findpage-name--stack" for="rank-cb-' +
           index +
           '">' +
+          '<span class="popup-findpage-shop">' +
           t +
+          '</span>' +
+          itemBlock +
           '</label>' +
           '</div>'
         );

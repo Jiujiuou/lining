@@ -20,7 +20,16 @@ export const MARKET_RANK_SLOT_LABELS = (() => {
 function getRowValue(row, key) {
   const snake = row[key];
   if (snake !== undefined && snake !== null) return snake;
-  const camel = key === 'recorded_at' ? 'recordedAt' : key === 'created_at' ? 'createdAt' : key === 'shop_title' ? 'shopTitle' : key;
+  const camel =
+    key === 'recorded_at'
+      ? 'recordedAt'
+      : key === 'created_at'
+        ? 'createdAt'
+        : key === 'shop_title'
+          ? 'shopTitle'
+          : key === 'item_title'
+            ? 'itemTitle'
+            : key;
   return row[camel];
 }
 
@@ -77,14 +86,16 @@ function parseRecordedAtToSlot(recordedAt) {
 
 /**
  * 按 20 分钟槽位聚合：byDateSlot[dateStr][slotIndex][shopName] = rank（槽位内取最新）
- * @param {Array<{ created_at?: string, recorded_at?: string, shop_title: string, rank: number }>} rows
- * @returns {{ byDateSlot: Record<string, Record<number, Record<string, number>>>, shopNames: string[] }}
+ * @param {Array<{ created_at?: string, recorded_at?: string, shop_title: string, rank: number, item_title?: string }>} rows
+ * @returns {{ byDateSlot: Record<string, Record<number, Record<string, number>>>, shopNames: string[], itemTitleByShop: Record<string, string> }}
  */
 export function marketRankRowsToChartData(rows) {
   const byDateSlot = {};
   const shopSet = new Set();
+  /** 店铺 -> 该行时间戳字符串，用于取全量窗口内「最新一条」的商品名 */
+  const shopLatestTitle = {};
   if (!Array.isArray(rows) || rows.length === 0) {
-    return { byDateSlot, shopNames: [] };
+    return { byDateSlot, shopNames: [], itemTitleByShop: {} };
   }
   for (const row of rows) {
     const created = getRowValue(row, 'created_at');
@@ -98,16 +109,30 @@ export function marketRankRowsToChartData(rows) {
     const rankVal = getRowValue(row, 'rank');
     const rank = Number(rankVal);
     if (!Number.isFinite(rank)) continue;
+    const recStr = String(recordedAt);
+    const rawTitle = getRowValue(row, 'item_title');
+    const titleStr =
+      rawTitle != null && String(rawTitle).trim() !== ''
+        ? String(rawTitle).trim()
+        : '';
+    const prevT = shopLatestTitle[shopStr];
+    if (!prevT || recStr > prevT.rec) {
+      shopLatestTitle[shopStr] = { rec: recStr, title: titleStr };
+    }
     shopSet.add(shopStr);
     if (!byDateSlot[dateStr]) byDateSlot[dateStr] = {};
     if (!byDateSlot[dateStr][slotIndex]) byDateSlot[dateStr][slotIndex] = {};
     const existing = byDateSlot[dateStr][slotIndex][shopStr];
-    const recStr = String(recordedAt);
     if (existing === undefined || recStr > String(existing.recorded_at)) {
       byDateSlot[dateStr][slotIndex][shopStr] = { rank, recorded_at: recStr };
     }
   }
   const shopNames = Array.from(shopSet).filter(Boolean).sort();
+  const itemTitleByShop = {};
+  for (const name of shopNames) {
+    const ent = shopLatestTitle[name];
+    if (ent && ent.title) itemTitleByShop[name] = ent.title;
+  }
   // 只保留 rank 数值，便于上层使用
   const byDateSlotRank = {};
   for (const dateStr of Object.keys(byDateSlot)) {
@@ -120,7 +145,7 @@ export function marketRankRowsToChartData(rows) {
       }
     }
   }
-  return { byDateSlot: byDateSlotRank, shopNames };
+  return { byDateSlot: byDateSlotRank, shopNames, itemTitleByShop };
 }
 
 /**
@@ -140,7 +165,7 @@ function slotValuesForShopDay(byDateSlot, dateStr, shopName) {
 }
 
 export function marketRankChartToGridItems(chart, context) {
-  const { byDateSlot, shopNames } = chart || {};
+  const { byDateSlot, shopNames, itemTitleByShop = {} } = chart || {};
   if (!shopNames || !shopNames.length) return [];
   const { viewMode, selectedDate, selectedDates = [], trendDates = [] } = context || {};
   const isTrend = viewMode === 'trend';
@@ -150,6 +175,7 @@ export function marketRankChartToGridItems(chart, context) {
     selectedDates.length > 0 ? selectedDates : selectedDate ? [selectedDate] : [];
 
   return shopNames.map((name) => {
+    const itemTitle = itemTitleByShop[name] || '';
     if (isTrend && trendDates.length > 0) {
       return {
         key: 'market-rank-' + name,
@@ -164,6 +190,7 @@ export function marketRankChartToGridItems(chart, context) {
           })(date, name),
         })),
         isRate: false,
+        itemTitle,
       };
     }
     // 多日对比：每条线对应一天，颜色由 ChartCell 的 SERIES_COLORS 区分
@@ -174,6 +201,7 @@ export function marketRankChartToGridItems(chart, context) {
         subCategory: name,
         isRate: false,
         slotValues: slotValuesForShopDay(byDateSlot, dateStr, name),
+        itemTitle,
       }));
       return {
         key: 'market-rank-' + name,
@@ -181,6 +209,7 @@ export function marketRankChartToGridItems(chart, context) {
         seriesItems,
         seriesItem: null,
         isRate: false,
+        itemTitle,
       };
     }
     const dateStr = selectedDate || selectedDates[0];
@@ -193,8 +222,10 @@ export function marketRankChartToGridItems(chart, context) {
         subCategory: name,
         isRate: false,
         slotValues,
+        itemTitle,
       },
       isRate: false,
+      itemTitle,
     };
   });
 }

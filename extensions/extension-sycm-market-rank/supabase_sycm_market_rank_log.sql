@@ -8,6 +8,7 @@ create table if not exists public.sycm_market_rank_log (
   id bigint generated always as identity primary key,
   shop_title text not null,
   rank integer not null,
+  item_title text,
   created_at timestamptz default now()
 );
 

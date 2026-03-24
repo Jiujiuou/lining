@@ -397,6 +397,29 @@ body {
   overflow-wrap: break-word;
 }
 
+.popup-findpage-name--stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  cursor: pointer;
+}
+
+.popup-findpage-name--stack .popup-findpage-shop {
+  color: var(--popup-accent);
+  font-weight: 500;
+}
+
+.popup-rank-item-title {
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  font-weight: 400;
+  color: var(--popup-text-muted);
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
 /* 生效：绿色文案（与网站绿标一致） */
 .popup-findpage-item--effective .popup-findpage-name {
   color: #0d9488;
