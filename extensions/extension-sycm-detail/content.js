@@ -4,7 +4,7 @@
  * 运行环境：sycm.taobao.com 页面内、与页面 JS 隔离（Content Script 隔离世界）。
  * 职责：
  * 1. 通过 <script> 先注入 constants/config.js，再注入 inject.js，使 inject 在页面主世界执行并读取 __SYCM_CONFIG__
- * 2. 监听各 pipeline 的 eventName，按可配置节流粒度去重后写入 Supabase（单条或批量）
+ * 2. 监听各 pipeline 的 eventName，按可配置节流粒度去重后 merge 写入 Supabase（商品加购、流量来源等）
  *
  * 依赖（由 manifest content_scripts 顺序加载）：constants/defaults.js, constants/config.js, constants/supabase.js,
  * utils/time.js, utils/supabase.js, utils/storage.js, utils/logger.js → content.js
@@ -28,9 +28,6 @@
 
   var getSlotKey = timeUtil.getSlotKey;
   var getSlotTsISO = timeUtil.getSlotTsISO;
-  var toCreatedAtISO = timeUtil.toCreatedAtISO;
-  var sendToSupabase = supabaseUtil.sendToSupabase;
-  var batchSendToSupabase = supabaseUtil.batchSendToSupabase;
   var mergeGoodsDetailSlot = supabaseUtil.mergeGoodsDetailSlot;
   var mergeGoodsDetailSlotBatch = supabaseUtil.mergeGoodsDetailSlotBatch;
   var getThrottleMinutes = storageUtil.getThrottleMinutes;
@@ -339,51 +336,6 @@
       });
       return;
     }
-
-    var storageKey = STORAGE_KEYS.lastSlotPrefix + sink.eventName;
-    chrome.storage.local.get([storageKey], function (result) {
-      var lastSlot = result[storageKey];
-      if (lastSlot === slotKey) {
-        if (logger) logger.log(PREFIX + ' 已捕获 [' + sink.eventName + ']，未写入（本时段已写入过）');
-        return;
-      }
-
-      var createdAt = toCreatedAtISO(recordedAt);
-
-      if (sink.multiRows && d.payload && Array.isArray(d.payload.items)) {
-        var records = d.payload.items.map(function (item) {
-          return {
-            shop_title: item.shop_title,
-            rank: item.rank,
-            created_at: createdAt
-          };
-        });
-        batchSendToSupabase(sink.table, records, credentials, logOpts).then(function (res) {
-          if (res && res.ok) {
-            setLastSlot(sink.eventName, slotKey, function () { });
-            if (logger) logger.log(PREFIX + ' 已捕获 [' + sink.eventName + ']，已批量写入 Supabase');
-          }
-        });
-      } else {
-        var record;
-        if (sink.fullRecord && d.payload && typeof d.payload === 'object') {
-          record = {};
-          for (var k in d.payload) record[k] = d.payload[k];
-          record.created_at = createdAt;
-        } else {
-          if (typeof d.value === 'undefined') return;
-          record = {};
-          record[sink.valueKey] = d.value;
-          record.created_at = createdAt;
-        }
-        sendToSupabase(sink.table, record, credentials, logOpts).then(function (res) {
-          if (res && res.ok) {
-            setLastSlot(sink.eventName, slotKey, function () { });
-            if (logger) logger.log(PREFIX + ' 已捕获 [' + sink.eventName + ']，已写入 Supabase');
-          }
-        });
-      }
-    });
   }
 
   function registerListeners() {

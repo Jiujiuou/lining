@@ -1,733 +1,150 @@
 {
-  "traceId": "213e047c17739034817442620e0d95",
+  "traceId": "213e041017743163291207921e10e8",
   "code": 0,
+  "message": "操作成功",
   "data": {
-    "updateTime": "2026-03-19 14:58:02",
-    "interval": 30,
-    "data": {
-      "recordCount": 8,
-      "data": [
-        {
-          "itmDstPrice": 168.0,
-          "taoSeUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCltByrCnt": {
-            "cycleCrc": 1.0000000000,
-            "value": 70
-          },
-          "sellerId": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "payItmCnt": {
-            "cycleCrc": -0.2054794521,
-            "value": 116
-          },
-          "visitCartRate": {
-            "cycleCrc": -0.2142199873,
-            "value": 0.029202037351443125
-          },
-          "itemStatus": "已下架",
-          "isMonitored": false,
-          "itmUv": {
-            "cycleCrc": 0.2531914894,
-            "value": 8835
-          },
-          "statDate": {
-            "value": 1773849600000
-          },
-          "item": {
-            "itemId": "674580183021",
-            "isImageTest": true,
-            "online": true,
-            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i2\/2212656730171\/O1CN01VIutqu1D8Mr0cKx0O_!!4611686018427383867-0-item_pic.jpg",
-            "mallItem": true,
-            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=674580183021&amp;mi_id=hPpMIR7I8zxI2bYsitSyVnXvkEfg8xyUQaQVRwaeJvgGNqs53SAduGBZMrn5kWskEpyPGfkHoyGJlDrFviPfDw",
-            "title": "【iPhone17新机首选】图拉斯小冰块新款45W适用苹果17充电器线17ProMax手机16正品Air快充头数据线15一套40W",
-            "userId": 2212656730171,
-            "categoryId": 50012584
-          },
-          "payByrCnt": {
-            "cycleCrc": -0.1615384615,
-            "value": 109
-          },
-          "itemTag": "充电器1,售后全店充电器,小冰块1",
-          "liveStarLevel": 4.0,
-          "payRate": {
-            "cycleCrc": -0.3309390101,
-            "value": 0.012337294850028296
-          },
-          "hasSku": true,
-          "hasCrowd": {
-            "value": true
-          },
-          "itemCartByrCnt": {
-            "cycleCrc": -0.0152671756,
-            "value": 258
-          },
-          "isTmallNewItem": false,
-          "payAmt": {
-            "cycleCrc": -0.2075745132,
-            "value": 16721.2
-          },
-          "taoRecUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCartCnt": {
-            "cycleCrc": 0.0336700337,
-            "value": 307
-          },
-          "itemId": {
-            "cycleCrc": 0E-10,
-            "value": "674580183021"
-          },
-          "payPct": {
-            "cycleCrc": -0.0549052932,
-            "value": 153.40550458715597
-          },
-          "itmPv": {
-            "cycleCrc": 0.1495263870,
-            "value": 13592
-          },
-          "showItem": true,
-          "visitCltRate": {
-            "cycleCrc": 0.5959252971,
-            "value": 0.00792303338992643
-          }
-        },
-        {
-          "itmDstPrice": 108.0,
-          "taoSeUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCltByrCnt": {
-            "cycleCrc": 0.1866666667,
-            "value": 89
-          },
-          "sellerId": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "payItmCnt": {
-            "cycleCrc": -0.2407407407,
-            "value": 164
-          },
-          "visitCartRate": {
-            "cycleCrc": -0.0820997972,
-            "value": 0.06396965865992414
-          },
-          "itemStatus": "已下架",
-          "isMonitored": false,
-          "itmUv": {
-            "cycleCrc": -0.0750701590,
-            "value": 3955
-          },
-          "statDate": {
-            "value": 1773849600000
-          },
-          "item": {
-            "itemId": "661273839123",
-            "isImageTest": true,
-            "online": true,
-            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i3\/2212656730171\/O1CN01BvnjRK1D8Mr62pmV0_!!4611686018427383867-0-item_pic.jpg",
-            "mallItem": true,
-            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=661273839123&amp;mi_id=Ffo3e-QfRs1Mkia61fs6JV-0s3Yru_t1bFiziMbIx6IPHJZ8L3zkZLeswVG1qAn4FhLY3U6gbFQ9UYgCWhoiYQ",
-            "title": "【papi酱同款】图拉斯小冰块lite新款45W适用苹果充电器线iPhone17ProMax手机Air正品16快充头一套40W数据线",
-            "userId": 2212656730171,
-            "categoryId": 50012584
-          },
-          "payByrCnt": {
-            "cycleCrc": -0.2352941176,
-            "value": 156
-          },
-          "itemTag": "充电器1,售后全店充电器,充电器H3,小冰块1",
-          "liveStarLevel": 3.0,
-          "payRate": {
-            "cycleCrc": -0.1732282293,
-            "value": 0.039443742098609354
-          },
-          "hasSku": true,
-          "hasCrowd": {
-            "value": true
-          },
-          "itemCartByrCnt": {
-            "cycleCrc": -0.1510067114,
-            "value": 253
-          },
-          "isTmallNewItem": false,
-          "payAmt": {
-            "cycleCrc": -0.2411727123,
-            "value": 19478.11
-          },
-          "taoRecUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCartCnt": {
-            "cycleCrc": -0.1005747126,
-            "value": 313
-          },
-          "itemId": {
-            "cycleCrc": 0E-10,
-            "value": "661273839123"
-          },
-          "payPct": {
-            "cycleCrc": -0.0076877023,
-            "value": 124.85967948717949
-          },
-          "itmPv": {
-            "cycleCrc": -0.1285332093,
-            "value": 7492
-          },
-          "showItem": true,
-          "visitCltRate": {
-            "cycleCrc": 0.2829801938,
-            "value": 0.022503160556257902
-          }
-        },
-        {
-          "itmDstPrice": 198.0,
-          "taoSeUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCltByrCnt": {
-            "cycleCrc": -0.1428571429,
-            "value": 24
-          },
-          "sellerId": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "payItmCnt": {
-            "cycleCrc": -0.4000000000,
-            "value": 39
-          },
-          "visitCartRate": {
-            "cycleCrc": -0.1147026943,
-            "value": 0.03747290182719108
-          },
-          "itemStatus": "已下架",
-          "isMonitored": false,
-          "itmUv": {
-            "cycleCrc": -0.2881393298,
-            "value": 3229
-          },
-          "statDate": {
-            "value": 1773849600000
-          },
-          "item": {
-            "itemId": "784373540552",
-            "isImageTest": true,
-            "online": true,
-            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i3\/2212656730171\/O1CN01ayB2231D8Mr5XixC7_!!4611686018427383867-0-item_pic.jpg",
-            "mallItem": true,
-            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=784373540552&amp;mi_id=Wp_MZgNQzPLRoRe6f9oQpZZ1cqXRMSZh9bF1rjlWjNB6TUk6y2AiCIhvkI79lfQwc8EtevzI4eOfzWB2dccWzQ",
-            "title": "【papi酱同款】图拉斯Yoga充电器自带伸缩线45W适用苹果iPhone17ProMax手机40W数据线typec16快充头air插头",
-            "userId": 2212656730171,
-            "categoryId": 50012584
-          },
-          "payByrCnt": {
-            "cycleCrc": -0.4074074074,
-            "value": 32
-          },
-          "itemTag": "yoga,售后全店充电器,小冰块1",
-          "liveStarLevel": 4.0,
-          "payRate": {
-            "cycleCrc": -0.1675441313,
-            "value": 0.009910188912976153
-          },
-          "hasSku": true,
-          "hasCrowd": {
-            "value": true
-          },
-          "itemCartByrCnt": {
-            "cycleCrc": -0.3697916667,
-            "value": 121
-          },
-          "isTmallNewItem": false,
-          "payAmt": {
-            "cycleCrc": -0.4213997801,
-            "value": 8368.7
-          },
-          "taoRecUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCartCnt": {
-            "cycleCrc": -0.3488372093,
-            "value": 140
-          },
-          "itemId": {
-            "cycleCrc": 0E-10,
-            "value": "784373540552"
-          },
-          "payPct": {
-            "cycleCrc": -0.0236121425,
-            "value": 261.521875
-          },
-          "itmPv": {
-            "cycleCrc": -0.3211569486,
-            "value": 5891
-          },
-          "showItem": true,
-          "visitCltRate": {
-            "cycleCrc": 0.2040879529,
-            "value": 0.007432641684732115
-          }
-        },
-        {
-          "itmDstPrice": 138.0,
-          "taoSeUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCltByrCnt": {
-            "cycleCrc": -0.2222222222,
-            "value": 7
-          },
-          "sellerId": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "payItmCnt": {
-            "cycleCrc": -0.2000000000,
-            "value": 40
-          },
-          "visitCartRate": {
-            "cycleCrc": -0.1489823778,
-            "value": 0.0774385703648548
-          },
-          "itemStatus": "已下架",
-          "isMonitored": false,
-          "itmUv": {
-            "cycleCrc": 0.2729857820,
-            "value": 1343
-          },
-          "statDate": {
-            "value": 1773849600000
-          },
-          "item": {
-            "itemId": "669806298540",
-            "isImageTest": true,
-            "online": true,
-            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i4\/2212656730171\/O1CN01AUUL811D8Mr0XReIE_!!4611686018427383867-0-item_pic.jpg",
-            "mallItem": true,
-            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=669806298540&amp;mi_id=LXRoKAmfXsOzUwsxkYXEhurzJvNexZmsQRnnzAkmh3zsamvK_9M5ieBoW2HQI0olR1lAhEuss2hUsZ9c3s2t1Q",
-            "title": "【iPhone17新机首选】图拉斯小冰块Pro新款45W适用苹果17ProMax充电器16\/15手机40W快充头Air数据线typec一套",
-            "userId": 2212656730171,
-            "categoryId": 50012584
-          },
-          "payByrCnt": {
-            "cycleCrc": -0.1702127660,
-            "value": 39
-          },
-          "itemTag": "充电器1,售后全店充电器,小冰块1",
-          "liveStarLevel": 3.0,
-          "payRate": {
-            "cycleCrc": -0.3481567149,
-            "value": 0.029039463886820552
-          },
-          "hasSku": true,
-          "hasCrowd": {
-            "value": true
-          },
-          "itemCartByrCnt": {
-            "cycleCrc": 0.0833333333,
-            "value": 104
-          },
-          "isTmallNewItem": false,
-          "payAmt": {
-            "cycleCrc": -0.1940000000,
-            "value": 6931.6
-          },
-          "taoRecUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCartCnt": {
-            "cycleCrc": 0.0176991150,
-            "value": 115
-          },
-          "itemId": {
-            "cycleCrc": 0E-10,
-            "value": "669806298540"
-          },
-          "payPct": {
-            "cycleCrc": -0.0286665424,
-            "value": 177.73333333333335
-          },
-          "itmPv": {
-            "cycleCrc": 0.1025202905,
-            "value": 2581
-          },
-          "showItem": true,
-          "visitCltRate": {
-            "cycleCrc": -0.3890129892,
-            "value": 0.0052122114668652275
-          }
-        },
-        {
-          "itmDstPrice": 128.0,
-          "taoSeUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCltByrCnt": {
-            "cycleCrc": -0.2727272727,
-            "value": 8
-          },
-          "sellerId": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "payItmCnt": {
-            "cycleCrc": -0.5505617978,
-            "value": 40
-          },
-          "visitCartRate": {
-            "cycleCrc": -0.0516960450,
-            "value": 0.09593023255813954
-          },
-          "itemStatus": "已下架",
-          "isMonitored": false,
-          "itmUv": {
-            "cycleCrc": -0.3350515464,
-            "value": 1032
-          },
-          "statDate": {
-            "value": 1773849600000
-          },
-          "item": {
-            "itemId": "789440494320",
-            "isImageTest": true,
-            "online": true,
-            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i3\/2212656730171\/O1CN011iMLRZ1D8Mr0D88YN_!!4611686018427383867-0-item_pic.jpg",
-            "mallItem": true,
-            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=789440494320&amp;mi_id=_A5PnDSVbCwVjr_-kD_6bI_VkLDBjyc5BhbB2VlyzoJrpy4FM--oRE7x5VjgMyYuGbXxEZqsFzX_CIH6fLozbw",
-            "title": "【iPhone专用】图拉斯小冰块Lite新款适用苹果充电器头iPhone17ProMax手机16数据线typec45W快充30W正品air插",
-            "userId": 2212656730171,
-            "categoryId": 50012584
-          },
-          "payByrCnt": {
-            "cycleCrc": -0.6024096386,
-            "value": 33
-          },
-          "itemTag": "充电器1,售后全店充电器,小冰块1",
-          "liveStarLevel": 4.0,
-          "payRate": {
-            "cycleCrc": -0.4020734099,
-            "value": 0.03197674418604651
-          },
-          "hasSku": true,
-          "hasCrowd": {
-            "value": true
-          },
-          "itemCartByrCnt": {
-            "cycleCrc": -0.3694267516,
-            "value": 99
-          },
-          "isTmallNewItem": false,
-          "payAmt": {
-            "cycleCrc": -0.5284626103,
-            "value": 4375.3
-          },
-          "taoRecUv": {
-            "cycleCrc": -1.0000000000,
-            "value": 0
-          },
-          "itemCartCnt": {
-            "cycleCrc": -0.3879781421,
-            "value": 112
-          },
-          "itemId": {
-            "cycleCrc": 0E-10,
-            "value": "789440494320"
-          },
-          "payPct": {
-            "cycleCrc": 0.1859884276,
-            "value": 132.5848484848485
-          },
-          "itmPv": {
-            "cycleCrc": -0.3707250342,
-            "value": 2300
-          },
-          "showItem": true,
-          "visitCltRate": {
-            "cycleCrc": 0.0937279774,
-            "value": 0.007751937984496124
-          }
-        },
-        {
-          "taoSeUv": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemCltByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "sellerId": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "payItmCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "visitCartRate": {
-            "value": 0.0
-          },
-          "itemStatus": "已下架",
-          "isMonitored": false,
-          "itmUv": {
-            "cycleCrc": null,
-            "value": 6
-          },
-          "statDate": {
-            "value": 1773849600000
-          },
-          "item": {
-            "itemId": "679757969741",
-            "isImageTest": false,
-            "online": false,
-            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i2\/2212656730171\/O1CN01qlVFy51D8MqzxCgY8_!!4611686018427383867-0-item_pic.jpg",
-            "mallItem": true,
-            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=679757969741&amp;mi_id=mz3NSsuB73snQJ9E2nd4neAJLWTQ_Vl9F5COe9n055mime3455QwQZE9MdzD4g7MOz6NG1YhVvboYroJi0Kpcw",
-            "title": "图拉斯小冰块Pro炫彩版AVS快充头适用苹果17ProMax充电器iPhone16手机15正品一套装PD40W氮化镓45W数据线iPad",
-            "userId": 2212656730171,
-            "categoryId": 50012584
-          },
-          "payByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemTag": "售后全店充电器,充电器H3,小冰块1",
-          "payRate": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "hasSku": false,
-          "hasCrowd": {
-            "value": true
-          },
-          "itemCartByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "isTmallNewItem": false,
-          "payAmt": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "taoRecUv": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemCartCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemId": {
-            "cycleCrc": 0E-10,
-            "value": "679757969741"
-          },
-          "payPct": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "itmPv": {
-            "cycleCrc": null,
-            "value": 14
-          },
-          "showItem": true,
-          "visitCltRate": {
-            "value": 0.0
-          }
-        },
-        {
-          "taoSeUv": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemCltByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "sellerId": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "payItmCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "visitCartRate": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "itemStatus": "已下架",
-          "isMonitored": false,
-          "itmUv": {
-            "cycleCrc": -0.3750000000,
-            "value": 5
-          },
-          "statDate": {
-            "value": 1773849600000
-          },
-          "item": {
-            "itemId": "668939154646",
-            "isImageTest": false,
-            "online": false,
-            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i4\/2212656730171\/O1CN01YTKwn11D8MoaGfEgF_!!4611686018427383867-0-item_pic.jpg",
-            "mallItem": true,
-            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=668939154646&amp;mi_id=x0boGEI1amzyX5YB6ALp56A-B_y2kWUz7Sx1cRiQRgBMBfr3vpharjQbQLHLExSv4mTC_bIDYQW4LKP0jK40PQ",
-            "title": "图拉斯小冰块67W双口适用苹果充电器线iPhone17ProMax快充Air正品16多孔USB插头typeC一套装PD数据线手机40W",
-            "userId": 2212656730171,
-            "categoryId": 50012584
-          },
-          "payByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemTag": "充电器1,售后全店充电器,充电器H3,小冰块1",
-          "payRate": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "hasSku": false,
-          "hasCrowd": {
-            "value": true
-          },
-          "itemCartByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "isTmallNewItem": false,
-          "payAmt": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "taoRecUv": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemCartCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemId": {
-            "cycleCrc": 0E-10,
-            "value": "668939154646"
-          },
-          "payPct": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "itmPv": {
-            "cycleCrc": -0.3000000000,
-            "value": 7
-          },
-          "showItem": true,
-          "visitCltRate": {
-            "cycleCrc": null,
-            "value": 0.0
-          }
-        },
-        {
-          "taoSeUv": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemCltByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "sellerId": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "payItmCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "visitCartRate": {
-            "value": 0.0
-          },
-          "itemStatus": "已下架",
-          "isMonitored": false,
-          "itmUv": {
-            "cycleCrc": null,
-            "value": 2
-          },
-          "statDate": {
-            "value": 1773849600000
-          },
-          "item": {
-            "itemId": "837945763464",
-            "isImageTest": false,
-            "online": false,
-            "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i4\/2212656730171\/O1CN01vz9zgi1D8Moebxxgt_!!4611686018427383867-0-item_pic.jpg",
-            "mallItem": true,
-            "detailUrl": "\/\/detail.tmall.com\/item.htm?id=837945763464&amp;mi_id=V1vsqVU8Tn1Akjd26UPS4Zgi0EyzHMzauP2iCgSjHXN3n3zyUWsxD8XAVLiwRAGvXlaLZPdkWlGb7-dLXP14MQ",
-            "title": "图拉斯小冰块lite新款45W适用苹果iPhone17充电器线16ProMax充电头手机快充正品Air一套装PD数据线typec插40W",
-            "userId": 2212656730171,
-            "categoryId": 50012584
-          },
-          "payByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemTag": "充电器1,售后全店充电器,充电器H3,小冰块1",
-          "payRate": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "hasSku": false,
-          "hasCrowd": {
-            "value": true
-          },
-          "itemCartByrCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "isTmallNewItem": false,
-          "payAmt": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "taoRecUv": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemCartCnt": {
-            "cycleCrc": null,
-            "value": 0
-          },
-          "itemId": {
-            "cycleCrc": 0E-10,
-            "value": "837945763464"
-          },
-          "payPct": {
-            "cycleCrc": null,
-            "value": 0.0
-          },
-          "itmPv": {
-            "cycleCrc": null,
-            "value": 3
-          },
-          "showItem": true,
-          "visitCltRate": {
-            "value": 0.0
-          }
-        }
-      ]
-    },
-    "timestamp": 1773903482019
-  },
-  "message": "操作成功"
+      "updateTime": "2026-03-24 09:38:49",
+      "data": {
+          "recordCount": 4,
+          "data": [
+              {
+                  "itemId": {
+                      "value": "1016132254430"
+                  },
+                  "uv": {
+                      "value": "1000 ~ 2500"
+                  },
+                  "item": {
+                      "itemId": "1016132254430",
+                      "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i4\/1659916565\/O1CN01c8c2IG1yMpIezWMR1_!!4611686018427384085-2-item_pic.png",
+                      "detailUrl": "\/\/detail.tmall.com\/item.htm?id=1016132254430&amp;mi_id=yF1bDGUIDpsfzg0ZKofPe34-6yFwinKhWfl3qOMwL8Ajjc3gf5yQOUSGZrCSXr0NbCl09MNunzlNvl6zC47ang",
+                      "title": "图拉斯小贝壳充电宝3c认证可上飞机小巧便携移动电源2026新款大容量适用苹果17适用华为自带线手机超级快充",
+                      "userId": 1659916565
+                  },
+                  "isMonitor": {
+                      "value": false
+                  },
+                  "shop": {
+                      "b2CShop": true,
+                      "pictureUrl": "\/\/img.alicdn.com\/imgextrahttps:\/\/img.alicdn.com\/imgextra\/i2\/1659916565\/O1CN01CtYGJ01yMpFkZsjho_!!1659916565.jpg",
+                      "title": "图拉斯旗舰店",
+                      "shopUrl": "\/\/torras.tmall.com",
+                      "userId": 1659916565
+                  },
+                  "payByrCnt": {
+                      "value": "10 ~ 50"
+                  },
+                  "isSelfItem": {
+                      "value": false
+                  },
+                  "cateRankId": {
+                      "value": 21
+                  }
+              },
+              {
+                  "itemId": {
+                      "value": "1016964297195"
+                  },
+                  "uv": {
+                      "value": "750 ~ 1000"
+                  },
+                  "item": {
+                      "itemId": "1016964297195",
+                      "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i2\/896588234\/O1CN0150QyoO2AhEKrLQ6E1_!!4611686018427386314-0-item_pic.jpg",
+                      "detailUrl": "\/\/detail.tmall.com\/item.htm?id=1016964297195&amp;mi_id=yF1bDGUIDpsfzg0ZKofPe4j3sQosTEHVIgS7DXNTbtWlPdLuZHYT3Ecl9P4bE7AsqMkZSwomJE8B63krdr3PYQ",
+                      "title": "图拉斯小贝壳充电宝3C认证可上飞机小巧便携移动电源2026新款挂包双线45W快充自带线大容量适用苹果17华为AVS",
+                      "userId": 896588234
+                  },
+                  "isMonitor": {
+                      "value": false
+                  },
+                  "shop": {
+                      "b2CShop": true,
+                      "pictureUrl": "\/\/img.alicdn.com\/imgextrahttps:\/\/img.alicdn.com\/imgextra\/i1\/896588234\/O1CN01mjs2112AhEHraatkt_!!896588234.jpg",
+                      "title": "图拉斯数码旗舰店",
+                      "shopUrl": "\/\/tulasism.tmall.com",
+                      "userId": 896588234
+                  },
+                  "payByrCnt": {
+                      "value": "9"
+                  },
+                  "isSelfItem": {
+                      "value": false
+                  },
+                  "cateRankId": {
+                      "value": 93
+                  }
+              },
+              {
+                  "itemId": {
+                      "value": "1017849608938"
+                  },
+                  "uv": {
+                      "value": "1000 ~ 2500"
+                  },
+                  "item": {
+                      "itemId": "1017849608938",
+                      "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i3\/2212656730171\/O1CN01tTzIRv1D8Mr9NPlpk_!!4611686018427383867-2-item_pic.png",
+                      "detailUrl": "\/\/detail.tmall.com\/item.htm?id=1017849608938&amp;mi_id=lCiy0yI5ZJ-BPqL2tCszEsiaNdFMzXqW5DIxm1SnYbLtWhenE_7_5ziwDp_oixquNra6xFlIOCL0ADo_4xvvjA",
+                      "title": "图拉斯小贝壳充电宝3C认证可上飞机2026新款小巧便携移动电源45W快充大容量适用苹果17华为手机自带线旗舰店",
+                      "userId": 2212656730171
+                  },
+                  "isMonitor": {
+                      "value": false
+                  },
+                  "shop": {
+                      "b2CShop": true,
+                      "pictureUrl": "\/\/img.alicdn.com\/imgextrahttps:\/\/img.alicdn.com\/imgextra\/i4\/2212656730171\/O1CN01Z5CNxn1D8MoDlNQDG_!!2212656730171.jpg",
+                      "title": "图拉斯快充旗舰店",
+                      "shopUrl": "\/\/tlskc.tmall.com",
+                      "userId": 2212656730171
+                  },
+                  "payByrCnt": {
+                      "value": "7"
+                  },
+                  "isSelfItem": {
+                      "value": true
+                  },
+                  "cateRankId": {
+                      "value": 116
+                  }
+              },
+              {
+                  "itemId": {
+                      "value": "1027630956693"
+                  },
+                  "uv": {
+                      "value": "500 ~ 750"
+                  },
+                  "item": {
+                      "itemId": "1027630956693",
+                      "pictUrl": "\/\/img.alicdn.com\/bao\/uploaded\/i2\/2212627774247\/O1CN01a1CUJV1hFBDhpuAG7_!!4611686018427386663-0-item_pic.jpg",
+                      "detailUrl": "\/\/detail.tmall.com\/item.htm?id=1027630956693&amp;mi_id=oQDEGCudcROHAPQyDPz1OhyIA88IqnjMjn0lZBNvT_Yi23P2673lAwo_A11vv4tEt12orbLaPf2CgrL89oeMZw",
+                      "title": "图拉斯小贝壳充电宝3C认证可上飞机小巧便携2026新款移动电源国标45W快充大容量适用苹果17华为手机长自带线",
+                      "userId": 2212627774247
+                  },
+                  "isMonitor": {
+                      "value": false
+                  },
+                  "shop": {
+                      "b2CShop": true,
+                      "pictureUrl": "\/\/img.alicdn.com\/imgextrahttps:\/\/img.alicdn.com\/imgextra\/i4\/2212627774247\/O1CN01xT9jHG1hFBArzY7E9_!!2212627774247.jpg",
+                      "title": "图拉斯生活电器旗舰店",
+                      "shopUrl": "\/\/tlsshdq.tmall.com",
+                      "userId": 2212627774247
+                  },
+                  "payByrCnt": {
+                      "value": "5"
+                  },
+                  "isSelfItem": {
+                      "value": false
+                  },
+                  "cateRankId": {
+                      "value": 130
+                  }
+              }
+          ]
+      },
+      "timestamp": 1774316329169
+  }
 }

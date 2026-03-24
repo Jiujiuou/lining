@@ -1,5 +1,5 @@
 /**
- * Supabase（与同项目 extension-sycm-detail 共用同一库与表 sycm_market_rank_log）
+ * Supabase URL / anon key（可与仓库内其它扩展共用同一项目）
  */
 (function (global) {
   var SUPABASE_URL = 'https://ijfzeummbriivdmnhpsi.supabase.co';

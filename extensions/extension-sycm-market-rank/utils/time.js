@@ -1,5 +1,5 @@
 /**
- * 时间槽（与 extension-sycm-detail 逻辑一致）
+ * 东八区时间槽（与 extension-sycm-detail/utils/time.js 算法一致）
  */
 function getSlotKey(recordedAtStr, throttleMinutes) {
   var s = String(recordedAtStr).trim();
@@ -12,17 +12,8 @@ function getSlotKey(recordedAtStr, throttleMinutes) {
   return datePart + ':' + hour + ':' + slotMinStr;
 }
 
-function toCreatedAtISO(recordedAt) {
-  var s = String(recordedAt).trim();
-  if (s.length >= 19 && s[10] === ':') {
-    return s.slice(0, 10) + 'T' + s.slice(11, 19) + '+08:00';
-  }
-  return s;
-}
-
 (function (global) {
   (typeof globalThis !== 'undefined' ? globalThis : global).__SYCM_RANK_TIME__ = {
-    getSlotKey: getSlotKey,
-    toCreatedAtISO: toCreatedAtISO
+    getSlotKey: getSlotKey
   };
-})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : self);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : this);

@@ -5,7 +5,7 @@
 | **extension-template** | 新插件模板：MV3、`defaults` + `logger`、左右分栏 popup（主区占位 + 日志）；复制后按 README 替换命名与域名 |
 | **extension-shop-record** | 店铺记录数据（由模板派生）：默认匹配千牛 / 已卖出订单，骨架 + 注入日志 |
 | **extension-sycm-detail** | 生意参谋 `sycm.taobao.com` 商品详情槽数据 → Supabase |
-| **extension-sycm-market-rank** | 生意参谋市场排名 `rank.json` 单独采集 → Supabase（popup 勾选关键词后上报；按 tab 隔离） |
+| **extension-sycm-market-rank** | 生意参谋 `live/rank.json` 监听（含/不含搜索词），popup 展示排名与商品名；按 tab 分桶 |
 | **extension-campaign-register** | 万相台 `one.alimama.com` 推广列表登记 → Supabase |
 | **extension-order-userdata** | 千牛/淘宝已卖出订单导出买家昵称等 CSV |
 

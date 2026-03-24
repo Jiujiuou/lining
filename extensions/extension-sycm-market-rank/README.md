@@ -1,19 +1,17 @@
-# 生意参谋市场排名采集（独立扩展）
+# 生意参谋市场排名（独立扩展）
 
-由 `extension-template` 复制派生，**仅**负责 `rank.json`（`/mc/mq/mkt/item/live/rank.json`）→ Supabase 表 `sycm_market_rank_log`。
+监听生意参谋页面发起的 **`/mc/mq/mkt/item/live/rank.json`** 请求（URL 查询参数任意，**有/无 `keyWord` 均会处理**）。
 
-## 与 extension-sycm-detail 的关系
+## 行为
 
-- **暂不**从 `extension-sycm-detail` 中移除排名逻辑；待本扩展验证无误后再删旧逻辑，避免双扩展同时开启时重复写入。
-- 若两扩展同时启用且都命中同一请求，会**重复插入**同一批排名数据；验证阶段建议只启用其一。
+1. **inject.js**（页面主世界）拦截 `fetch` / `XMLHttpRequest`（含相对 URL），读取 JSON 后通过 **`window.postMessage`** 把 `{ source: 'sycm-rank-extension', requestUrl, data }` 发给 **content script**。  
+   （仅用 `CustomEvent` 在隔离环境下可能收不到，故以 `postMessage` 为主通道。）
+2. **content.js** 解析结构同 `src/response.json`：`data.data.data.data[]`，取 **`shop.title`（popup、控制台与上报均为店铺名）**、`item.itemId`（勾选键）、`cateRankId.value`，写入扩展日志并 `chrome.runtime.sendMessage` 交给 background。
+3. **background.js** 保存列表快照后，按 **popup 中已保存的勾选**（`itemId` 或 `idx-行号`）过滤行，将 **`shop_title`（店铺名）+ `rank`** 批量 **POST** 到 Supabase 表 **`sycm_market_rank_log`**（建表见本目录 **`supabase_sycm_market_rank_log.sql`**）。
+4. 若未勾选、或勾选与当前列表无交集，日志会说明原因，不会写入 Supabase。
+5. **20 分钟时间槽**：按 URL 中的 **搜索词 `keyWord`** 分桶，同一关键词在同一东八区时间槽内仅 **首次** 勾选命中时写入 Supabase；重复请求会记日志说明「本时间槽已上报过」。槽长可用 `chrome.storage.local` 的键 **`sycm_rank_only_throttle_minutes`**（数字）覆盖，默认 20。
+6. **每次**监听到 `rank.json` 都会在页面 **Console** 打印一行 `监听到 rank.json`；扩展 **日志** 与 **Console** 第二行会说明本次 **是否写入 Supabase** 及原因。
 
-## 行为说明
+## 加载
 
-- **列表来源**：页面请求 `rank.json` 时，从 URL 的 `keyWord=` 参数解析「搜索关键词」（decode 后与 popup 勾选一致），并写入当前标签页分桶的列表。
-- **上报条件**：仅在 popup 中**勾选**的关键词，才会把该次响应中的店铺排名写入 Supabase。
-- **节流**：按「关键词 + 时间槽（默认 20 分钟）」分别去重，与详情扩展中多商品加购的按 `item_id` 分槽类似。
-- **标签隔离**：`rankCatalogByTab`、`rankFilterByTab`、日志 `logsByTab`；关闭标签后 background 会清理对应分桶。
-
-## 加载方式
-
-Chrome「扩展程序 → 加载已解压的扩展程序」→ 选择本目录（含 `manifest.json`）。
+Chrome「扩展程序 → 加载已解压的扩展程序」→ 选择本目录。修改 `manifest` 后需重新加载扩展。

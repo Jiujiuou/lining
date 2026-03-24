@@ -1,5 +1,5 @@
 /**
- * popup：按 URL 关键词（keyWord）勾选后上报排名；按当前标签页分桶。
+ * 左侧：市场排名列表（勾选行，按 itemId）；展示店铺名；全选/全不选/保存设置/刷新列表；右侧日志（与推广一致）。
  */
 (function () {
   var logger = typeof __SYCM_RANK_LOGGER__ !== 'undefined' ? __SYCM_RANK_LOGGER__ : null;
@@ -7,25 +7,39 @@
     typeof __SYCM_RANK_DEFAULTS__ !== 'undefined' && __SYCM_RANK_DEFAULTS__.STORAGE_KEYS
       ? __SYCM_RANK_DEFAULTS__.STORAGE_KEYS
       : {
+          rankListByTab: 'sycm_rank_market_list_by_tab',
+          rankListLatest: 'sycm_rank_market_list_latest',
+          rankSelectionByTab: 'sycm_rank_selection_by_tab',
+          rankSelection: 'sycm_rank_selection_global',
           logs: 'sycm_rank_only_logs',
-          rankCatalog: 'sycm_rank_only_catalog',
-          rankFilter: 'sycm_rank_only_filter',
-          rankFilterByTab: 'sycm_rank_only_filter_by_tab',
-          rankCatalogByTab: 'sycm_rank_only_catalog_by_tab'
+          logsByTab: 'sycm_rank_only_logs_by_tab'
         };
 
+  var metaEl = document.getElementById('rank-meta');
+  var listEl = document.getElementById('rank-list');
   var logsListEl = document.getElementById('logs-list');
   var logsClearBtn = document.getElementById('logs-clear');
-  var goodsListEl = document.getElementById('goods-list');
-  var goodsMetaEl = document.getElementById('goods-meta');
-  var goodsRefreshBtn = document.getElementById('goods-refresh');
-  var goodsSelectAllBtn = document.getElementById('goods-select-all');
-  var goodsSelectNoneBtn = document.getElementById('goods-select-none');
-  var goodsSaveBtn = document.getElementById('goods-save');
+  var rankRefreshBtn = document.getElementById('rank-refresh');
+  var rankSelectAllBtn = document.getElementById('rank-select-all');
+  var rankSelectNoneBtn = document.getElementById('rank-select-none');
+  var rankSaveBtn = document.getElementById('rank-save');
 
-  var lastCatalogItems = [];
+  var refreshInterval = null;
+  var lastItems = [];
   var sessionSelection = null;
-  var catalogReloadTimer = null;
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function rowKey(row, index) {
+    if (row && row.itemId != null && String(row.itemId).trim() !== '') return String(row.itemId);
+    return 'idx-' + index;
+  }
 
   function formatLogTime(isoStr) {
     if (!isoStr) return '';
@@ -86,42 +100,6 @@
     });
   }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  function formatCatalogTime(isoStr) {
-    if (!isoStr) return '';
-    try {
-      var d = new Date(isoStr);
-      return d.toLocaleString('zh-CN', { hour12: false });
-    } catch (e) {
-      return '';
-    }
-  }
-
-  function getKeyWordsFromFilter(filter) {
-    if (!filter || !Array.isArray(filter.keyWords)) return [];
-    return filter.keyWords.map(function (k) {
-      return String(k);
-    });
-  }
-
-  function filterKeyWordsToCatalog(keyWords, items) {
-    var inCat = {};
-    for (var i = 0; i < items.length; i++) {
-      var row = items[i];
-      if (row && row.key_word != null) inCat[String(row.key_word)] = true;
-    }
-    return keyWords.filter(function (k) {
-      return inCat[k];
-    });
-  }
-
   function getActiveTabId(callback) {
     try {
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
@@ -133,206 +111,241 @@
     }
   }
 
-  function persistKeyWords(keyWords) {
-    getActiveTabId(function (tabId) {
-      var slice = keyWords.slice();
-      if (tabId == null) {
-        var payload = {};
-        payload[KEYS.rankFilter] = { keyWords: slice };
-        chrome.storage.local.set(payload, function () {});
-        return;
-      }
-      chrome.storage.local.get([KEYS.rankFilterByTab], function (r) {
-        var byTab = r && r[KEYS.rankFilterByTab] ? r[KEYS.rankFilterByTab] : {};
-        byTab[String(tabId)] = { keyWords: slice };
-        var o = {};
-        o[KEYS.rankFilterByTab] = byTab;
-        chrome.storage.local.set(o, function () {});
-      });
+  function filterIdsToCatalog(ids, items) {
+    var inCat = {};
+    for (var i = 0; i < items.length; i++) {
+      inCat[rowKey(items[i], i)] = true;
+    }
+    return ids.filter(function (id) {
+      return inCat[id];
     });
   }
 
-  function syncSelectionFromDom() {
-    sessionSelection = getCheckedKeyWordsFromDom();
-    persistKeyWords(sessionSelection);
+  function getKeyIdsFromFilter(filter) {
+    if (!filter || !Array.isArray(filter.itemIds)) return [];
+    return filter.itemIds.map(function (k) {
+      return String(k);
+    });
   }
 
-  function renderGoodsList(items, keyWords) {
-    if (!goodsListEl) return;
-    lastCatalogItems = Array.isArray(items) ? items.slice() : [];
+  function renderRankList(snapshot, selectedIds) {
+    if (!listEl) return;
+    lastItems = snapshot && Array.isArray(snapshot.items) ? snapshot.items.slice() : [];
     var selected = {};
-    for (var s = 0; s < keyWords.length; s++) selected[String(keyWords[s])] = true;
-    if (lastCatalogItems.length === 0) {
-      goodsListEl.innerHTML =
-        '<div class="popup-findpage-list--empty"><span>暂无数据。请在生意参谋触发市场排名 rank.json 请求后点「刷新列表」。</span></div>';
-      goodsListEl.classList.add('popup-findpage-list--empty');
-      if (goodsMetaEl) goodsMetaEl.textContent = '';
+    for (var s = 0; s < selectedIds.length; s++) selected[String(selectedIds[s])] = true;
+
+    if (lastItems.length === 0) {
+      listEl.innerHTML =
+        '<div class="popup-findpage-list--empty"><span>暂无数据。请在生意参谋触发 rank.json 后点「刷新列表」。</span></div>';
+      listEl.classList.add('popup-findpage-list--empty');
+      if (metaEl) metaEl.textContent = '';
       return;
     }
-    goodsListEl.classList.remove('popup-findpage-list--empty');
-    goodsListEl.innerHTML = lastCatalogItems
+    listEl.classList.remove('popup-findpage-list--empty');
+
+    var kw = snapshot.keyWord != null && String(snapshot.keyWord).trim() !== '';
+    var kwText = kw ? '搜索词：「' + String(snapshot.keyWord) + '」' : '搜索词：（空，未带 keyWord）';
+    var ut = snapshot.updateTime ? '接口更新：' + snapshot.updateTime : '';
+    var baseMeta = [kwText, ut].filter(Boolean).join(' · ');
+    if (metaEl) metaEl.textContent = baseMeta;
+
+    listEl.innerHTML = lastItems
       .map(function (row, index) {
-        var kw = row.key_word != null ? String(row.key_word) : '';
-        var name = row.item_name || kw || '（无关键词）';
-        var checked = !!selected[kw];
-        var safeKw = escapeHtml(kw);
-        var safeName = escapeHtml(name);
+        var rk = rowKey(row, index);
+        var r = row.rank != null ? String(row.rank) : '—';
+        var t = escapeHtml(
+          row.shopTitle != null && String(row.shopTitle).trim() !== ''
+            ? String(row.shopTitle).trim()
+            : '（无店名）'
+        );
+        var checked = !!selected[rk];
         var checkedAttr = checked ? ' checked' : '';
+        var safeRk = escapeHtml(rk);
         return (
           '<div class="popup-findpage-item" role="listitem" title="' +
-          safeName +
+          t +
           '">' +
-          '<input type="checkbox" id="goods-cb-' +
+          '<input type="checkbox" id="rank-cb-' +
           index +
-          '" data-key-word="' +
-          safeKw +
-          '" aria-label="上报「' +
-          safeName +
-          '」排名"' +
+          '" data-item-key="' +
+          safeRk +
+          '" aria-label="勾选「' +
+          t +
+          '」"' +
           checkedAttr +
           ' />' +
-          '<label class="popup-findpage-name" for="goods-cb-' +
+          '<span class="popup-rank-num">' +
+          escapeHtml(r) +
+          '</span>' +
+          '<label class="popup-findpage-name" for="rank-cb-' +
           index +
           '">' +
-          safeName +
+          t +
           '</label>' +
-          '<span class="popup-goods-id" title="' +
-          safeKw +
-          '">' +
-          safeKw +
-          '</span>' +
           '</div>'
         );
       })
       .join('');
   }
 
-  function loadGoodsUi() {
+  function getCheckedKeyIdsFromDom() {
+    if (!listEl) return [];
+    var inputs = listEl.querySelectorAll('input[type="checkbox"][data-item-key]');
+    var out = [];
+    for (var i = 0; i < inputs.length; i++) {
+      if (inputs[i].checked) out.push(String(inputs[i].getAttribute('data-item-key') || ''));
+    }
+    return out.filter(Boolean);
+  }
+
+  function persistSelection() {
+    var slice = getCheckedKeyIdsFromDom();
+    getActiveTabId(function (tabId) {
+      if (tabId == null) {
+        var payload = {};
+        payload[KEYS.rankSelection] = { itemIds: slice };
+        chrome.storage.local.set(payload, function () {});
+        return;
+      }
+      chrome.storage.local.get([KEYS.rankSelectionByTab], function (r) {
+        var byTab = r && r[KEYS.rankSelectionByTab] ? r[KEYS.rankSelectionByTab] : {};
+        byTab[String(tabId)] = { itemIds: slice };
+        var o = {};
+        o[KEYS.rankSelectionByTab] = byTab;
+        chrome.storage.local.set(o, function () {});
+      });
+    });
+  }
+
+  function syncSelectionFromDom() {
+    sessionSelection = getCheckedKeyIdsFromDom();
+    persistSelection();
+  }
+
+  function setAllCheckboxes(checked) {
+    if (!listEl) return;
+    var inputs = listEl.querySelectorAll('input[type="checkbox"][data-item-key]');
+    for (var i = 0; i < inputs.length; i++) inputs[i].checked = !!checked;
+    syncSelectionFromDom();
+  }
+
+  function saveSettings() {
+    syncSelectionFromDom();
+    var kws = sessionSelection || [];
+    var msg = '已保存：当前勾选 ' + kws.length + ' 个店铺';
+    if (metaEl) {
+      getActiveTabId(function (tabId) {
+        chrome.storage.local.get([KEYS.rankListByTab, KEYS.rankListLatest], function (r) {
+          var snap =
+            tabId != null && r[KEYS.rankListByTab] && r[KEYS.rankListByTab][String(tabId)]
+              ? r[KEYS.rankListByTab][String(tabId)]
+              : r[KEYS.rankListLatest];
+          var extra = '';
+          if (snap && snap.updateTime) extra = ' · 列表数据：' + snap.updateTime;
+          metaEl.textContent = msg + extra;
+        });
+      });
+    }
+    if (logger) {
+      logger.log(msg);
+      loadLogs();
+    }
+  }
+
+  function loadRank() {
     chrome.storage.local.get(
-      [KEYS.rankCatalogByTab, KEYS.rankFilterByTab, KEYS.rankCatalog, KEYS.rankFilter],
+      [KEYS.rankListByTab, KEYS.rankListLatest, KEYS.rankSelectionByTab, KEYS.rankSelection],
       function (result) {
         getActiveTabId(function (tabId) {
-          var byCat = result[KEYS.rankCatalogByTab] || {};
-          var byFil = result[KEYS.rankFilterByTab] || {};
-          var cat =
-            tabId != null && Object.prototype.hasOwnProperty.call(byCat, String(tabId))
-              ? byCat[String(tabId)]
-              : result[KEYS.rankCatalog];
+          var snap = null;
+          if (tabId != null && result[KEYS.rankListByTab] && result[KEYS.rankListByTab][String(tabId)]) {
+            snap = result[KEYS.rankListByTab][String(tabId)];
+          } else if (result[KEYS.rankListLatest]) {
+            snap = result[KEYS.rankListLatest];
+          }
+
           var filter;
-          if (tabId != null && Object.prototype.hasOwnProperty.call(byFil, String(tabId))) {
-            filter = byFil[String(tabId)];
+          if (tabId != null && result[KEYS.rankSelectionByTab] && result[KEYS.rankSelectionByTab][String(tabId)]) {
+            filter = result[KEYS.rankSelectionByTab][String(tabId)];
           } else {
-            filter = result[KEYS.rankFilter];
+            filter = result[KEYS.rankSelection];
           }
-          var items = cat && Array.isArray(cat.items) ? cat.items : [];
-          var kwsFromStorage = getKeyWordsFromFilter(filter);
-          var baseKws = sessionSelection !== null ? sessionSelection : kwsFromStorage;
-          var kws = filterKeyWordsToCatalog(baseKws, items);
-          if (sessionSelection !== null && kws.length !== sessionSelection.length) {
+
+          var items = snap && Array.isArray(snap.items) ? snap.items : [];
+          var idsFromStorage = getKeyIdsFromFilter(filter);
+          var baseIds = sessionSelection !== null ? sessionSelection : idsFromStorage;
+          var kws = filterIdsToCatalog(baseIds, items);
+          if (sessionSelection !== null && kws.length !== baseIds.length) {
             sessionSelection = kws.slice();
-            persistKeyWords(sessionSelection);
+            persistSelection();
           }
-          renderGoodsList(items, kws);
-          if (goodsMetaEl && cat && cat.updatedAt) {
-            goodsMetaEl.textContent =
-              '最近捕获：' + formatCatalogTime(cat.updatedAt) + ' · ' + items.length + ' 个搜索关键词';
-          } else if (goodsMetaEl && items.length) {
-            goodsMetaEl.textContent = items.length + ' 个搜索关键词';
-          }
+
+          renderRankList(snap || { items: [], keyWord: '', updateTime: '' }, kws);
         });
       }
     );
   }
 
-  function getCheckedKeyWordsFromDom() {
-    if (!goodsListEl) return [];
-    var inputs = goodsListEl.querySelectorAll('input[type="checkbox"][data-key-word]');
-    var out = [];
-    for (var i = 0; i < inputs.length; i++) {
-      if (inputs[i].checked) out.push(String(inputs[i].getAttribute('data-key-word') || ''));
-    }
-    return out.filter(Boolean);
-  }
-
-  function setAllCheckboxes(checked) {
-    if (!goodsListEl) return;
-    var inputs = goodsListEl.querySelectorAll('input[type="checkbox"][data-key-word]');
-    for (var i = 0; i < inputs.length; i++) inputs[i].checked = !!checked;
-  }
-
-  function saveFilterSettings() {
-    syncSelectionFromDom();
-    var kws = sessionSelection || [];
-    var msg = '已保存：将上报 ' + kws.length + ' 个勾选关键词的排名（按关键词独立时间槽）';
-    if (goodsMetaEl) {
-      getActiveTabId(function (tabId) {
-        chrome.storage.local.get([KEYS.rankCatalogByTab, KEYS.rankCatalog], function (r) {
-          var byCat = r[KEYS.rankCatalogByTab] || {};
-          var cat =
-            tabId != null && Object.prototype.hasOwnProperty.call(byCat, String(tabId))
-              ? byCat[String(tabId)]
-              : r[KEYS.rankCatalog];
-          var extra = '';
-          if (cat && cat.updatedAt) extra = ' · 列表捕获于 ' + formatCatalogTime(cat.updatedAt);
-          goodsMetaEl.textContent = msg + extra;
+  function onRefreshClick() {
+    loadRank();
+    loadLogs();
+    if (logger) {
+      chrome.storage.local.get([KEYS.rankListByTab, KEYS.rankListLatest], function (r) {
+        getActiveTabId(function (tabId) {
+          var snap =
+            tabId != null && r[KEYS.rankListByTab] && r[KEYS.rankListByTab][String(tabId)]
+              ? r[KEYS.rankListByTab][String(tabId)]
+              : r[KEYS.rankListLatest];
+          var n = snap && Array.isArray(snap.items) ? snap.items.length : 0;
+          logger.log('[刷新列表] 共 ' + n + ' 条');
+          loadLogs();
         });
       });
     }
   }
 
-  function scheduleLoadGoodsFromCatalog() {
-    if (catalogReloadTimer) clearTimeout(catalogReloadTimer);
-    catalogReloadTimer = setTimeout(function () {
-      catalogReloadTimer = null;
-      loadGoodsUi();
-    }, 200);
-  }
-
+  loadRank();
   loadLogs();
-  loadGoodsUi();
 
+  if (rankRefreshBtn) rankRefreshBtn.addEventListener('click', onRefreshClick);
+  if (rankSelectAllBtn) rankSelectAllBtn.addEventListener('click', function () {
+    setAllCheckboxes(true);
+  });
+  if (rankSelectNoneBtn) rankSelectNoneBtn.addEventListener('click', function () {
+    setAllCheckboxes(false);
+  });
+  if (rankSaveBtn) rankSaveBtn.addEventListener('click', saveSettings);
   if (logsClearBtn) logsClearBtn.addEventListener('click', clearLogs);
-  if (goodsRefreshBtn) {
-    goodsRefreshBtn.addEventListener('click', function () {
-      sessionSelection = null;
-      loadGoodsUi();
-    });
-  }
-  if (goodsSelectAllBtn) {
-    goodsSelectAllBtn.addEventListener('click', function () {
-      setAllCheckboxes(true);
-      syncSelectionFromDom();
-    });
-  }
-  if (goodsSelectNoneBtn) {
-    goodsSelectNoneBtn.addEventListener('click', function () {
-      setAllCheckboxes(false);
-      syncSelectionFromDom();
-    });
-  }
-  if (goodsSaveBtn) goodsSaveBtn.addEventListener('click', saveFilterSettings);
 
-  if (goodsListEl) {
-    goodsListEl.addEventListener('change', function (e) {
+  if (listEl) {
+    listEl.addEventListener('change', function (e) {
       var t = e.target;
-      if (t && t.matches && t.matches('input[type="checkbox"][data-key-word]')) {
+      if (t && t.matches && t.matches('input[type="checkbox"][data-item-key]')) {
         syncSelectionFromDom();
       }
     });
   }
 
+  var catalogTimer = null;
   chrome.storage.onChanged.addListener(function (changes, area) {
     if (area !== 'local') return;
-    if (
-      changes[KEYS.rankCatalog] ||
-      changes[KEYS.rankCatalogByTab] ||
-      changes[KEYS.rankFilterByTab]
-    ) {
-      scheduleLoadGoodsFromCatalog();
+    if (changes[KEYS.rankListByTab] || changes[KEYS.rankListLatest]) {
+      if (catalogTimer) clearTimeout(catalogTimer);
+      catalogTimer = setTimeout(function () {
+        catalogTimer = null;
+        loadRank();
+      }, 200);
     }
+    if (changes[KEYS.rankSelectionByTab] || changes[KEYS.rankSelection]) {
+      if (catalogTimer) clearTimeout(catalogTimer);
+      catalogTimer = setTimeout(function () {
+        catalogTimer = null;
+        loadRank();
+      }, 200);
+    }
+    if (changes[KEYS.logsByTab] || (KEYS.logs && changes[KEYS.logs])) loadLogs();
   });
 
-  var refreshInterval = null;
   function startLogPoll() {
     if (refreshInterval) clearInterval(refreshInterval);
     refreshInterval = setInterval(loadLogs, 2000);
@@ -342,8 +355,8 @@
     refreshInterval = null;
   }
   window.addEventListener('focus', function () {
+    loadRank();
     loadLogs();
-    loadGoodsUi();
     startLogPoll();
   });
   window.addEventListener('blur', stopLogPoll);

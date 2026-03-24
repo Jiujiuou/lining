@@ -1,5 +1,6 @@
 {
   "manifest_version": 3,
+  "theme_color": "#0d9488",
   "name": "万相台推广登记",
   "version": "1.1.1",
   "description": "万相台推广列表捕获与手动登记至 Supabase（可与「生意参谋详情数据」扩展并行安装）",
@@ -7,13 +8,25 @@
   "background": {
     "service_worker": "background.js"
   },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
   "host_permissions": [
     "https://one.alimama.com/*",
     "https://*.supabase.co/*"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "万相台推广登记"
+    "default_title": "万相台推广登记",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
   },
   "content_scripts": [
     {

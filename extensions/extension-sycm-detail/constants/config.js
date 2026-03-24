@@ -88,31 +88,6 @@
           cart_pay_rate: cartPayRate
         };
       }
-    },
-    {
-      eventName: 'sycm-market-rank',
-      urlContains: '/mc/mq/mkt/item/live/rank.json',
-      urlFilter: function (url) { return url.indexOf('keyWord=%E5%B0%8F%E8%B4%9D%E5%A3%B3') !== -1; },
-      multiValue: true,
-      multiRows: true,
-      table: 'sycm_market_rank_log',
-      valueKey: null,
-      fullRecord: true,
-      extractValue: function (data) {
-        var inner = data && data.data && data.data.data;
-        var list = inner && inner.data;
-        if (!Array.isArray(list) || list.length === 0) return undefined;
-        var items = [];
-        for (var i = 0; i < list.length; i++) {
-          var row = list[i];
-          var shopTitle = (row.shop && (row.shop.title != null ? row.shop.title : row.shop.value)) || '';
-          var rankVal = row.cateRankId && (typeof row.cateRankId.value !== 'undefined' ? row.cateRankId.value : row.cateRankId);
-          var rank = rankVal != null ? Number(rankVal) : 0;
-          if (shopTitle === '' && !rank) continue;
-          items.push({ shop_title: String(shopTitle), rank: rank });
-        }
-        return items.length ? { items: items } : undefined;
-      }
     }
   ];
 

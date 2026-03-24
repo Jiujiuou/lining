@@ -1,5 +1,6 @@
 {
   "manifest_version": 3,
+  "theme_color": "#0d9488",
   "name": "扩展模板（勿直接发布）",
   "version": "0.1.0",
   "description": "复制本文件夹后改名并修改 manifest；默认仅示例域名，请替换为业务站点。含多标签隔离日志示例（background + logsByTab）。",
@@ -8,9 +9,21 @@
     "service_worker": "background.js"
   },
   "host_permissions": ["https://example.com/*"],
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "扩展模板"
+    "default_title": "扩展模板",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
   },
   "content_scripts": [
     {

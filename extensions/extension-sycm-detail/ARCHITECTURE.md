@@ -33,7 +33,7 @@
         │
         │  Supabase REST API
         ▼
-  Supabase 表（sycm_cart_log / sycm_flow_source_log / sycm_market_rank_log）
+  Supabase 表（sycm_cart_log / sycm_flow_source_log；市场排名见独立扩展 extension-sycm-market-rank）
 ```
 
 ## 二、为何需要 inject.js（Main World）
@@ -57,12 +57,12 @@
 
 - **节流粒度**：可配置（默认 20 分钟）。同一「时间槽」内同一 `eventName` 只写入一次；槽 key 由 `utils/time.js` 的 `getSlotKey(recordedAt, throttleMinutes)` 计算。
 - **节流配置**：存于 `chrome.storage.local` 的 `sycm_throttle_minutes`（可手动改）；content 写库前读取，未设置则用 defaults 默认 20。
-- **东八区时间**：inject 侧用 `getEast8TimeStr()` 生成 `recordedAt`；content 侧用 `toCreatedAtISO()` 转为 Supabase 的 `timestamptz` 格式。
+- **东八区时间**：inject 侧用 `getEast8TimeStr()` 生成 `recordedAt`；merge 写入 `goods_detail_slot_log` 时使用 `utils/time.js` 的 `getSlotTsISO()` 等。
 
-## 六、多行写入（multiRows）与批量
+## 六、多行写入（multiRows）
 
-- 如市场排名接口返回多店铺，`extractValue` 返回 `{ items: [{ shop_title, rank }, ...] }`。
-- content 将同一批 `items` 组装成多行 `created_at` 相同的 record，调用 **batchSendToSupabase** 一次 POST 多行，减少请求次数。
+- **商品加购**（`sycm-goods-live`）：`extractValue` 返回 `{ items: [{ item_id, item_name, item_cart_cnt }, ...] }`，经白名单与节流后 **mergeGoodsDetailSlotBatch** 写入 `goods_detail_slot_log`。
+- **市场排名**（`live/rank.json`）已拆至独立扩展 **extension-sycm-market-rank**，本扩展不再处理。
 
 ## 七、文件职责简表
 
@@ -72,8 +72,8 @@
 | constants/defaults.js | Content / 注入后 Main | 默认节流分钟数、storage key、PREFIX |
 | constants/config.js | Content / 注入后 Main | 统一 PIPELINES（URL、事件名、表、提取函数等） |
 | constants/supabase.js | Content | Supabase URL / anonKey（后续可改为 storage 或后端） |
-| utils/time.js | Content | getSlotKey、toCreatedAtISO |
-| utils/supabase.js | Content | sendToSupabase、batchSendToSupabase |
+| utils/time.js | Content | getSlotKey、getSlotTsISO |
+| utils/supabase.js | Content | mergeGoodsDetailSlot、mergeGoodsDetailSlotBatch（及通用 REST 封装） |
 | utils/storage.js | Content | 读取节流分钟、写入各 eventName 时间槽（去重） |
 | content.js | Content | 注入 config→inject、监听事件、节流去重、写 Supabase |
 | inject.js | Main World | 劫持 fetch/XHR、伪造 visibility、派发 CustomEvent |

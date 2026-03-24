@@ -6,7 +6,7 @@
 -- 表与扩展对应关系：
 --   sycm_cart_log         ← content.js SINKS sycm-cart-log（商品加购件数）
 --   sycm_flow_source_log  ← sycm-flow-source（流量来源 4 指标）
---   sycm_market_rank_log  ← sycm-market-rank（市场排名，多店铺多行）
+-- 市场排名表 sycm_market_rank_log 见 extension-sycm-market-rank/supabase_sycm_market_rank_log.sql
 -- ============================================================
 
 -- ============================================================
@@ -88,28 +88,6 @@ create policy "Allow anon select for sycm_flow_source_log"
 alter publication supabase_realtime add table public.sycm_flow_source_log;
 
 -- ============================================================
--- 市场排名 rank.json：每行一个店铺在该时刻的排名（店铺名 + 排名 + 时间）
--- 接口：/mc/mq/mkt/item/live/rank.json
--- ============================================================
-
-create table if not exists public.sycm_market_rank_log (
-  id bigint generated always as identity primary key,
-  shop_title text not null,
-  rank integer not null,
-  created_at timestamptz default now()
-);
-
-alter table public.sycm_market_rank_log enable row level security;
-
-create policy "Allow anon insert for sycm_market_rank_log"
-  on public.sycm_market_rank_log for insert to anon with check (true);
-
-create policy "Allow anon select for sycm_market_rank_log"
-  on public.sycm_market_rank_log for select to anon using (true);
-
-alter publication supabase_realtime add table public.sycm_market_rank_log;
-
--- ============================================================
 -- 图表数据点备注表（操作记录）
 -- 用途：按图表 + 日期 + 时段存储数据点备注，前端可读写。
 -- 在 Supabase Dashboard → SQL Editor 中执行
@@ -144,4 +122,3 @@ create policy "Allow anon update for sycm_chart_point_notes"
 -- ============================================================
 -- alter table public.sycm_cart_log drop column if exists recorded_at;
 -- alter table public.sycm_flow_source_log drop column if exists recorded_at;
--- alter table public.sycm_market_rank_log drop column if exists recorded_at;

@@ -1,31 +1,34 @@
 /**
- * 市场排名独立扩展：storage 键名、日志前缀、运行时消息（与 extension-sycm-detail 键名隔离）
+ * 市场排名扩展：storage 键、运行时消息（与 extension-sycm-detail 隔离）
  */
 (function (global) {
+  var STORAGE_KEYS = {
+    logs: 'sycm_rank_only_logs',
+    logsByTab: 'sycm_rank_only_logs_by_tab',
+    /** Record<tabIdStr, RankSnapshot> */
+    rankListByTab: 'sycm_rank_market_list_by_tab',
+    /** 无 tab 上下文时的最近一次 */
+    rankListLatest: 'sycm_rank_market_list_latest',
+    /** Record<tabIdStr, { itemIds: string[] }> 勾选行（itemId 或 idx-行号，与列表行对应） */
+    rankSelectionByTab: 'sycm_rank_selection_by_tab',
+    /** 无 tab 时的勾选 */
+    rankSelection: 'sycm_rank_selection_global',
+    /** 时间槽节流粒度（分钟），默认 20 */
+    throttleMinutes: 'sycm_rank_only_throttle_minutes',
+    /** 与 lastSlotPrefix 拼成 sycm_rank_only_last_slot_sycm-market-rank_<encodeURIComponent(keyWord)> */
+    lastSlotPrefix: 'sycm_rank_only_last_slot_'
+  };
+
   var DEFAULTS = {
     THROTTLE_MINUTES: 20
   };
 
-  var STORAGE_KEYS = {
-    throttleMinutes: 'sycm_rank_only_throttle_minutes',
-    lastSlotPrefix: 'sycm_rank_only_last_slot_',
-    logs: 'sycm_rank_only_logs',
-    logsByTab: 'sycm_rank_only_logs_by_tab',
-    /** 最近一次 rank.json 解析出的关键词列表（无 tab 时回落） */
-    rankCatalog: 'sycm_rank_only_catalog',
-    /** Record<tabIdStr, { updatedAt, items: { key_word, item_name }[] }> */
-    rankCatalogByTab: 'sycm_rank_only_catalog_by_tab',
-    /** { keyWords: string[] } */
-    rankFilter: 'sycm_rank_only_filter',
-    /** Record<tabIdStr, { keyWords }> */
-    rankFilterByTab: 'sycm_rank_only_filter_by_tab'
-  };
-
   var LOG_MAX_ENTRIES = 100;
-  var PREFIX = '[排名采集]';
+  var PREFIX = '[市场排名]';
 
   var RUNTIME = {
-    GET_TAB_ID_MESSAGE: 'SYCM_RANK_GET_TAB_ID'
+    GET_TAB_ID_MESSAGE: 'SYCM_RANK_GET_TAB_ID',
+    RANK_CAPTURE: 'SYCM_RANK_CAPTURE'
   };
 
   var obj = {

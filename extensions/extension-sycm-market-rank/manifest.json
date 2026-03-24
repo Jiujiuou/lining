@@ -1,46 +1,40 @@
 {
   "manifest_version": 3,
+  "theme_color": "#0d9488",
   "name": "生意参谋市场排名采集",
-  "version": "0.1.0",
-  "description": "单独采集生意参谋市场排名 rank.json → Supabase；popup 勾选关键词后仅上报选中项（按标签页隔离）",
+  "version": "0.2.0",
+  "description": "监听生意参谋 live/rank.json（含/不含搜索词），在 popup 展示排名与店铺名",
   "permissions": ["storage", "tabs"],
   "background": {
     "service_worker": "background.js"
   },
-  "host_permissions": [
-    "https://sycm.taobao.com/*",
-    "https://*.supabase.co/*"
-  ],
+  "host_permissions": ["https://sycm.taobao.com/*", "https://*.supabase.co/*"],
   "icons": {
-    "32": "assets/favicon-32x32.png",
-    "48": "assets/favicon-32x32.png"
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "市场排名采集",
+    "default_title": "市场排名",
     "default_icon": {
-      "32": "assets/favicon-32x32.png"
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
     }
   },
   "web_accessible_resources": [
     {
-      "resources": ["constants/config.js", "inject.js"],
+      "resources": ["inject.js"],
       "matches": ["https://sycm.taobao.com/*"]
     }
   ],
   "content_scripts": [
     {
       "matches": ["https://sycm.taobao.com/*"],
-      "js": [
-        "constants/defaults.js",
-        "constants/config.js",
-        "constants/supabase.js",
-        "utils/time.js",
-        "utils/supabase.js",
-        "utils/storage.js",
-        "utils/logger.js",
-        "content.js"
-      ],
+      "js": ["constants/defaults.js", "utils/logger.js", "content.js"],
       "run_at": "document_start",
       "all_frames": true
     }
