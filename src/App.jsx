@@ -1353,35 +1353,39 @@ function App() {
               )}
             </div>
           ) : (
-            <div className="chart-grid" ref={chartGridRef}>
-              {seriesGridItems.map((cell, i) => (
-                <ChartCell
-                  key={cell.key}
-                  seriesItem={cell.seriesItem}
-                  seriesItems={cell.seriesItems}
-                  actions={cell.actions}
-                  actionsByDate={cell.actionsByDate}
-                  compact
-                  chartKey={cell.key}
-                  currentDate={selectedDates[0]}
-                  notesMap={
-                    useGoodsScopedNotes ? goodsItemNotes : chartNotes[cell.key] ?? {}
-                  }
-                  detailPoints20m={
-                    dataSource === "supabase" &&
-                    cell.key === `${selectedItemName}-商品加购件数` &&
-                    selectedDates[0]
-                      ? getGoodsDetail20MinPointsForDate(
-                          rawGoodsDetailRows.filter(
-                            (r) => r.item_id === selectedItemId,
-                          ),
-                          selectedDates[0],
-                        )
-                      : null
-                  }
-                  onClick={() => setEnlargedIndex(i)}
-                />
-              ))}
+            <div className="chart-grid-scroll">
+              <div className="chart-grid" ref={chartGridRef}>
+                {seriesGridItems.map((cell, i) => (
+                  <ChartCell
+                    key={cell.key}
+                    seriesItem={cell.seriesItem}
+                    seriesItems={cell.seriesItems}
+                    actions={cell.actions}
+                    actionsByDate={cell.actionsByDate}
+                    compact
+                    chartKey={cell.key}
+                    currentDate={selectedDates[0]}
+                    notesMap={
+                      useGoodsScopedNotes
+                        ? goodsItemNotes
+                        : chartNotes[cell.key] ?? {}
+                    }
+                    detailPoints20m={
+                      dataSource === "supabase" &&
+                      cell.key === `${selectedItemName}-商品加购件数` &&
+                      selectedDates[0]
+                        ? getGoodsDetail20MinPointsForDate(
+                            rawGoodsDetailRows.filter(
+                              (r) => r.item_id === selectedItemId,
+                            ),
+                            selectedDates[0],
+                          )
+                        : null
+                    }
+                    onClick={() => setEnlargedIndex(i)}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </main>
