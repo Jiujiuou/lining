@@ -21,10 +21,27 @@
       : "shopRecordAppendLog";
   var OVERVIEW =
     "https://ad.alimama.com/openapi/param2/1/gateway.unionadv/data.home.overview.json";
+  var TABLE_NAME = "shop_record_daily";
+  var supabaseCfg =
+    typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
+  var supabaseUtil =
+    typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
 
   function extLog(msg) {
     try {
       chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, msg: PREFIX + " " + msg });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function appendLog(level, msg) {
+    try {
+      chrome.runtime.sendMessage({
+        type: APPEND_LOG_TYPE,
+        level: level || "log",
+        msg: String(msg)
+      });
     } catch {
       /* ignore */
     }
@@ -99,6 +116,33 @@
           var out = isNaN(n) ? String(raw) : n.toFixed(2);
           extLog("淘宝联盟：pay_ord_cfee_8 = " + out + "（元）");
           console.log("pay_ord_cfee_8", out);
+          if (
+            supabaseUtil &&
+            typeof supabaseUtil.upsertDailyRow === "function" &&
+            supabaseCfg
+          ) {
+            supabaseUtil
+              .upsertDailyRow(
+                TABLE_NAME,
+                {
+                  report_at: ymd,
+                  taobao_cps_spend_yuan: out
+                },
+                supabaseCfg,
+                {
+                  conflict: "report_at",
+                  prefix: PREFIX.trim(),
+                  logger: appendLog
+                }
+              )
+              .then(function (ret) {
+                if (ret && ret.ok) {
+                  extLog(
+                    "淘宝联盟：已上报 shop_record_daily 淘宝客花费（元） " + ymd + " = " + out
+                  );
+                }
+              });
+          }
         });
       })
       .catch(function (err) {

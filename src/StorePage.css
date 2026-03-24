@@ -1,0 +1,76 @@
+.store-page {
+  padding: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-page .dashboard-header {
+  flex: 0 0 auto;
+}
+
+.store-metrics-table {
+  margin: 10px 100px 12px;
+  width: 100%;
+  max-width: calc(100% - 200px);
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: var(--surface);
+  flex: 1 1 auto;
+  box-shadow: var(--shadow);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.store-metrics-table th,
+.store-metrics-table td {
+  border: 1px solid color-mix(in srgb, var(--accent-soft) 72%, var(--border));
+  padding: 6px 8px;
+  vertical-align: middle;
+  font-size: 18px;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.store-metrics-table th {
+  background: color-mix(in srgb, var(--accent-soft) 65%, var(--accent));
+  text-align: left;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.store-metrics-table td:nth-child(1),
+.store-metrics-table td:nth-child(3) {
+  width: 26%;
+  background: color-mix(in srgb, var(--accent-soft) 24%, var(--surface));
+  font-weight: 600;
+}
+
+.store-metrics-table td:nth-child(2),
+.store-metrics-table td:nth-child(4) {
+  width: 24%;
+  font-weight: 500;
+  background: var(--surface);
+}
+
+.store-metrics-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent-soft) 20%, var(--bg));
+}
+
+.store-page .dashboard-single-date-picker,
+.store-page .dashboard-date-label {
+  margin: 0;
+}
+
+@media (max-height: 900px) {
+  .store-metrics-table th,
+  .store-metrics-table td {
+    font-size: 16px;
+    padding: 5px 7px;
+  }
+  .store-metrics-table th {
+    font-size: 17px;
+  }
+}

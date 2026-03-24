@@ -2,6 +2,8 @@
  * MAIN world：拦截 report/query.json
  * - bizCode=onebpSearch → 万象台1
  * - bizCode=onebpDisplay → 万象台2
+ * - bizCode=onebpSite → 万象3（去重键忽略 csrfId）
+ * - bizCode=onebpShortVideo → 万象4（同上）
  * 同一规范化请求 URL 本标签页只打印第一次（GET/POST 均看 URL query）。
  */
 (function () {
@@ -23,11 +25,21 @@
     }
   }
 
-  function canonicalUrlKey(urlStr) {
+  function canonicalUrlKey(urlStr, optStripKeys) {
     try {
       var u = new URL(urlStr);
+      var strip =
+        optStripKeys && optStripKeys.length
+          ? Object.create(null)
+          : null;
+      if (strip) {
+        for (var si = 0; si < optStripKeys.length; si++) {
+          strip[optStripKeys[si]] = 1;
+        }
+      }
       var keys = [];
       u.searchParams.forEach(function (_v, k) {
+        if (strip && strip[k]) return;
         if (keys.indexOf(k) === -1) keys.push(k);
       });
       keys.sort();
@@ -41,6 +53,14 @@
     } catch (e) {
       return urlStr;
     }
+  }
+
+  /** 去重用：部分 biz 多次请求 URL 中 csrfId 可能不同，从键中剔除 */
+  function dedupeKeyForRequest(requestUrlStr, biz) {
+    if (biz === "onebpSite" || biz === "onebpShortVideo") {
+      return canonicalUrlKey(requestUrlStr, ["csrfId"]);
+    }
+    return canonicalUrlKey(requestUrlStr);
   }
 
   function hashStr(s) {
@@ -94,7 +114,7 @@
     return "";
   }
 
-  /** @returns {null|'onebpSearch'|'onebpDisplay'} */
+  /** @returns {null|'onebpSearch'|'onebpDisplay'|'onebpSite'|'onebpShortVideo'} */
   function matchBiz(urlStr) {
     try {
       var u = new URL(urlStr);
@@ -103,6 +123,8 @@
       var bc = u.searchParams.get("bizCode");
       if (bc === "onebpSearch") return "onebpSearch";
       if (bc === "onebpDisplay") return "onebpDisplay";
+      if (bc === "onebpSite") return "onebpSite";
+      if (bc === "onebpShortVideo") return "onebpShortVideo";
       return null;
     } catch (e) {
       return null;
@@ -110,11 +132,14 @@
   }
 
   function labelForBiz(biz) {
-    return biz === "onebpDisplay" ? "万象台2" : "万象台1";
+    if (biz === "onebpDisplay") return "万象台2";
+    if (biz === "onebpSite") return "万象3";
+    if (biz === "onebpShortVideo") return "万象4";
+    return "万象台1";
   }
 
   function printAndEmit(requestUrlStr, bodyText, biz) {
-    var c = canonicalUrlKey(requestUrlStr);
+    var c = dedupeKeyForRequest(requestUrlStr, biz);
     if (!isFirstForUrl(c)) return;
     var s = nextSeqFor(biz);
     var parsed = null;

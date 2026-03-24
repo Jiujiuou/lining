@@ -13,6 +13,10 @@
     defaults && defaults.ALIMAMA_DASHBOARD_URL
       ? defaults.ALIMAMA_DASHBOARD_URL
       : "https://ad.alimama.com/portal/v2/dashboard.htm";
+  var sycmMySpaceUrl =
+    defaults && defaults.SYCM_MY_SPACE_URL
+      ? defaults.SYCM_MY_SPACE_URL
+      : "https://sycm.taobao.com/adm/v3/my_space?_old_module_code_=adm-eportal-order-experience-transit&_old_module_expiration_=1773970265356&activeKey=common&tab=fetch";
   function yesterdayYmd() {
     var d = new Date();
     d.setDate(d.getDate() - 1);
@@ -45,12 +49,37 @@
       ymd
     );
   }
+  /** 万象台无界·全站推广（startTime/endTime 为昨天，与万象台1/2 一致） */
+  function buildOnebpSiteUrl() {
+    var ymd = yesterdayYmd();
+    return (
+      "https://one.alimama.com/index.html#!/manage/onesite?mx_bizCode=onebpSite&bizCode=onebpSite&tab=campaign&startTime=" +
+      ymd +
+      "&endTime=" +
+      ymd +
+      "&effectEqual=15&unifyType=last_click_by_effect_time"
+    );
+  }
+  /** 万象4·短视频（startTime/endTime 为昨天） */
+  function buildOnebpShortVideoUrl() {
+    var ymd = yesterdayYmd();
+    return (
+      "https://one.alimama.com/index.html#!/manage/content?mx_bizCode=onebpShortVideo&bizCode=onebpShortVideo&tab=campaign&startTime=" +
+      ymd +
+      "&endTime=" +
+      ymd +
+      "&unifyType=video_kuan"
+    );
+  }
   var logsListEl = document.getElementById("logs-list");
   var logsClearBtn = document.getElementById("logs-clear");
   var shopRateOpenBtn = document.getElementById("shop-rate-open");
   var alimamaOpenBtn = document.getElementById("alimama-open");
   var onebpOpenBtn = document.getElementById("onebp-open");
   var onebpDisplayOpenBtn = document.getElementById("onebp-display-open");
+  var onebpSiteOpenBtn = document.getElementById("onebp-site-open");
+  var onebpShortVideoOpenBtn = document.getElementById("onebp-shortvideo-open");
+  var sycmMySpaceOpenBtn = document.getElementById("sycm-my-space-open");
 
   if (shopRateOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
     shopRateOpenBtn.addEventListener("click", function () {
@@ -70,6 +99,21 @@
   if (onebpDisplayOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
     onebpDisplayOpenBtn.addEventListener("click", function () {
       chrome.tabs.create({ url: buildOnebpDisplayUrl() });
+    });
+  }
+  if (onebpSiteOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
+    onebpSiteOpenBtn.addEventListener("click", function () {
+      chrome.tabs.create({ url: buildOnebpSiteUrl() });
+    });
+  }
+  if (onebpShortVideoOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
+    onebpShortVideoOpenBtn.addEventListener("click", function () {
+      chrome.tabs.create({ url: buildOnebpShortVideoUrl() });
+    });
+  }
+  if (sycmMySpaceOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
+    sycmMySpaceOpenBtn.addEventListener("click", function () {
+      chrome.tabs.create({ url: sycmMySpaceUrl });
     });
   }
 

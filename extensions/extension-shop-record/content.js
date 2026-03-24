@@ -12,10 +12,23 @@
     __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
       ? __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
       : "shopRecordAppendLog";
+  var supabaseCfg =
+    typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
+  var supabaseUtil =
+    typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
+  var TABLE_NAME = "shop_record_daily";
 
   function sendLog(msg) {
     try {
       chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, msg: String(msg) });
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function appendLog(level, msg) {
+    try {
+      chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, level: level || "log", msg: String(msg) });
     } catch (e) {
       /* ignore */
     }
@@ -33,9 +46,24 @@
       .replace(/:/g, "");
   }
 
+  /** 本机日历「昨天」YYYY-MM-DD */
+  function yesterdayYmd() {
+    var d = new Date();
+    d.setDate(d.getDate() - 1);
+    var y = d.getFullYear();
+    var mo = String(d.getMonth() + 1);
+    var da = String(d.getDate());
+    return y + "-" + (mo.length < 2 ? "0" + mo : mo) + "-" + (da.length < 2 ? "0" + da : da);
+  }
+
+  var dsrData = null;
+  var refundData = null;
+  var uploaded = false;
+  var uploadInFlight = false;
+
   var scoresLogged = false;
   function tryLogShopScores() {
-    if (scoresLogged || !isUserRatePage()) return;
+    if (!isUserRatePage()) return;
     var root = document.getElementById("dsr") || document.querySelector("ul.dsr-info");
     if (!root) return;
 
@@ -64,23 +92,93 @@
       return;
     }
 
-    var msg =
-      PREFIX +
-      " 店铺分（" +
-      location.pathname +
-      "）宝贝与描述相符 " +
-      want["宝贝与描述相符"] +
-      " 分；卖家服务态度 " +
-      want["卖家的服务态度"] +
-      " 分；物流服务质量 " +
-      want["物流服务的质量"] +
-      " 分";
-    scoresLogged = true;
-    sendLog(msg);
+    dsrData = {
+      item_desc_match_score: want["宝贝与描述相符"],
+      seller_service_score: want["卖家的服务态度"],
+      seller_shipping_score: want["物流服务的质量"]
+    };
+    if (!scoresLogged) {
+      var msg =
+        PREFIX +
+        " 店铺分（" +
+        location.pathname +
+        "）宝贝与描述相符 " +
+        want["宝贝与描述相符"] +
+        " 分；卖家服务态度 " +
+        want["卖家的服务态度"] +
+        " 分；物流服务质量 " +
+        want["物流服务的质量"] +
+        " 分";
+      scoresLogged = true;
+      sendLog(msg);
+    }
+    maybeUploadDailyRow();
     return true;
   }
 
+  function handleRefundDataFromBridge(data) {
+    if (!data || typeof data !== "object") return;
+    if (!data.disputeRefundRate || !data.refundProFinishTime || !data.refundFinishRate) return;
+    refundData = {
+      refund_finish_duration: String(data.refundProFinishTime),
+      refund_finish_rate: String(data.refundFinishRate),
+      dispute_refund_rate: String(data.disputeRefundRate)
+    };
+    maybeUploadDailyRow();
+  }
+
+  function maybeUploadDailyRow() {
+    if (uploaded || uploadInFlight) return;
+    if (!dsrData || !refundData) return;
+    if (!supabaseCfg || !supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function") {
+      appendLog("warn", PREFIX + " Supabase 工具未加载，跳过上报");
+      uploaded = true;
+      return;
+    }
+    uploadInFlight = true;
+    var row = {
+      report_at: yesterdayYmd(),
+      item_desc_match_score: dsrData.item_desc_match_score,
+      seller_service_score: dsrData.seller_service_score,
+      seller_shipping_score: dsrData.seller_shipping_score,
+      refund_finish_duration: refundData.refund_finish_duration,
+      refund_finish_rate: refundData.refund_finish_rate,
+      dispute_refund_rate: refundData.dispute_refund_rate
+    };
+    supabaseUtil
+      .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
+        conflict: "report_at",
+        prefix: PREFIX.trim(),
+        logger: appendLog
+      })
+      .then(function (ret) {
+        if (ret && ret.ok) {
+          uploaded = true;
+          sendLog(
+            PREFIX +
+              " 已上报 shop_record_daily " +
+              row.report_at +
+              "（6 项店铺分）"
+          );
+        }
+      })
+      .finally(function () {
+        uploadInFlight = false;
+      });
+  }
+
   if (!isUserRatePage()) return;
+
+  try {
+    if (window.__SHOP_RECORD_RATE_REFUND_DATA__) {
+      handleRefundDataFromBridge(window.__SHOP_RECORD_RATE_REFUND_DATA__);
+    }
+  } catch (e0) {
+    /* ignore */
+  }
+  window.addEventListener("shop-record-refund-data", function (ev) {
+    handleRefundDataFromBridge(ev && ev.detail ? ev.detail : null);
+  });
 
   var extracted = false;
   function tick() {

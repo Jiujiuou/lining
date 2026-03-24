@@ -13,9 +13,14 @@
     "https://rate.taobao.com/user-rate-UvCIYvCxbMCcGvmHuvQTT.htm?spm=a1z10.1-b.d4918101.1.7b716fe7xfRnm3";
   /** 淘宝联盟·商家中心仪表盘 */
   var ALIMAMA_DASHBOARD_URL = "https://ad.alimama.com/portal/v2/dashboard.htm";
+  /** 生意参谋·个人空间（千牛后台入口，打开后由 content-sycm 请求 previewById） */
+  var SYCM_MY_SPACE_URL =
+    "https://sycm.taobao.com/adm/v3/my_space?_old_module_code_=adm-eportal-order-experience-transit&_old_module_expiration_=1773970265356&activeKey=common&tab=fetch";
   /**
    * 万象台无界·关键词推广（startTime/endTime 由 popup 按「昨天」拼接）
    * 基址：https://one.alimama.com/index.html#!/manage/search?mx_bizCode=onebpSearch&bizCode=onebpSearch&tab=campaign&startTime=&endTime=
+   * 万象3（全站）：#!/manage/onesite?...&effectEqual=15&unifyType=last_click_by_effect_time
+   * 万象4（短视频）：#!/manage/content?...&unifyType=video_kuan
    */
   var ONE_ALIMAMA_HOST = "https://one.alimama.com";
 
@@ -32,7 +37,8 @@
     RUNTIME: RUNTIME,
     SHOP_RATE_PAGE_URL: SHOP_RATE_PAGE_URL,
     ALIMAMA_DASHBOARD_URL: ALIMAMA_DASHBOARD_URL,
-    ONE_ALIMAMA_HOST: ONE_ALIMAMA_HOST
+    ONE_ALIMAMA_HOST: ONE_ALIMAMA_HOST,
+    SYCM_MY_SPACE_URL: SYCM_MY_SPACE_URL
   };
   (typeof globalThis !== "undefined" ? globalThis : global).__SHOP_RECORD_DEFAULTS__ = obj;
 })(typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self);
