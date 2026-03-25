@@ -77,78 +77,24 @@ body {
 }
 
 .popup-section--controls {
-  padding: var(--popup-space) var(--popup-space) calc(var(--popup-space) + 2px);
+  padding: 10px 10px 8px;
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-
 .popup-section--findpage {
-  gap: 4px;
+  gap: 0;
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
-  padding-top: 6px;
-  padding-bottom: 6px;
 }
 
 .popup-section--findpage-tight.popup-section {
-  padding: 4px 8px 6px;
-}
-
-.popup-findpage-header {
-  display: flex;
-  align-items: center;
-  gap: var(--popup-space-sm);
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
-.popup-daily-clear {
-  flex-shrink: 0;
-  margin-left: auto;
-  padding: 0.2rem 0.45rem;
-  font-family: var(--popup-font);
-  font-size: 0.625rem;
-  font-weight: 500;
-  color: var(--popup-text-muted);
-  background: var(--popup-surface);
-  border: 1px solid var(--popup-border);
-  border-radius: 4px;
-  cursor: pointer;
-  line-height: 1.2;
-  white-space: nowrap;
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
-}
-
-.popup-daily-clear:hover {
-  color: #b91c1c;
-  border-color: #fecaca;
-  background: #fef2f2;
-}
-
-.popup-daily-clear:focus {
-  outline: none;
-  border-color: var(--popup-accent);
-  box-shadow: 0 0 0 2px var(--popup-accent-soft);
-}
-
-.popup-findpage-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--popup-text);
-  margin: 0;
-  margin-right: auto;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
+  padding: 8px 10px 10px;
 }
 
 .popup-findpage-list {
@@ -159,8 +105,6 @@ body {
   gap: 6px;
   overflow-y: auto;
   padding: var(--popup-space-sm);
-  background: var(--popup-bg);
-  border: 1px solid var(--popup-border);
   border-radius: var(--popup-radius-sm);
   scrollbar-width: thin;
 }
@@ -168,8 +112,9 @@ body {
 /** 主内容指标：一屏展示、不在此区域滚动 */
 .popup-findpage-list--metrics {
   overflow: hidden;
-  padding: 4px 6px 6px;
+  padding: 0;
   gap: 2px;
+  height: 100%;
 }
 
 .popup-findpage-list::-webkit-scrollbar {
@@ -201,6 +146,8 @@ body {
   font-size: 0.625rem;
   color: var(--popup-text-muted);
   line-height: 1.2;
+  background: transparent;
+  border-radius: 0;
 }
 
 .popup-metrics-meta strong {
@@ -224,10 +171,12 @@ body {
 }
 
 .popup-metric-grid-row {
+  flex: 1;
   display: grid;
   grid-template-columns:
     minmax(0, 1fr)
     var(--popup-metric-value-col)
+    20px
     minmax(0, 1fr)
     var(--popup-metric-value-col);
   align-items: center;
@@ -273,34 +222,47 @@ body {
   overflow-wrap: anywhere;
 }
 
-.popup-controls-top-row {
-  flex-basis: 100%;
+.popup-metric-cell--spacer {
+  padding: 0;
+  border-right: none;
+  background: transparent;
+}
+
+.popup-metric-grid-row .popup-metric-cell:nth-child(2) {
+  border-right: none;
+}
+
+.popup-controls-page-row,
+.popup-controls-action-row {
   width: 100%;
   display: flex;
   flex-direction: row;
-  align-items: stretch;
-  gap: 8px;
-  margin-bottom: 4px;
+  align-items: center;
+  gap: 6px;
 }
 
-.popup-controls-top-row .popup-open-all {
+.popup-controls-page-row .popup-open-sites {
   flex: 1;
   min-width: 0;
-  width: auto;
-  flex-basis: auto;
-  margin-bottom: 0;
+  padding: 8px 4px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.popup-controls-action-row .popup-open-sites {
+  min-width: 0;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .popup-open-sites--fill {
-  flex-shrink: 0;
+  flex: 1;
 }
 
 .popup-open-all {
-  flex-basis: 100%;
-  width: 100%;
-  margin-bottom: 4px;
+  flex: 1.65;
   font-weight: 600;
-  border-style: dashed;
 }
 
 .popup-open-sites {
@@ -330,6 +292,32 @@ body {
 .popup-open-sites:focus {
   outline: none;
   box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+.popup-open-sites--clear {
+  flex: 1;
+  color: var(--popup-text-muted);
+  background: var(--popup-surface);
+  border-color: var(--popup-border);
+}
+
+.popup-open-sites--clear:hover {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.popup-metrics-inline-date {
+  flex: 1.1;
+  min-width: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--popup-text);
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .popup-findpage-refresh {

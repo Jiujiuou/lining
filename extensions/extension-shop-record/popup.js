@@ -99,6 +99,7 @@
   var onebpShortVideoOpenBtn = document.getElementById("onebp-shortvideo-open");
   var sycmMySpaceOpenBtn = document.getElementById("sycm-my-space-open");
   var reportSubmitOpenBtn = document.getElementById("report-submit-open");
+  var metricsDateEl = document.getElementById("metrics-date");
   var shopRecordBodyEl = document.getElementById("shop-record-body");
   var dailyLocalClearBtn = document.getElementById("daily-local-clear");
   var reportSubmitFillBtn = document.getElementById("report-submit-fill");
@@ -186,12 +187,15 @@
 
   function renderDailyMetrics(snap) {
     if (!shopRecordBodyEl) return;
+    var dateLabel = snap && snap.report_at ? String(snap.report_at) : yesterdayYmd();
+    if (metricsDateEl) {
+      metricsDateEl.textContent = dateLabel;
+    }
     if (!snap || typeof snap !== "object") {
       shopRecordBodyEl.innerHTML =
         '<div class="popup-findpage-list--empty">暂无本地快照。各页采集到数据后会自动写入本地。</div>';
       return;
     }
-    var dateLabel = snap.report_at ? String(snap.report_at) : yesterdayYmd();
     var n = Math.max(METRIC_COL_LEFT.length, METRIC_COL_RIGHT.length);
     var parts = [];
     var i;
@@ -201,27 +205,25 @@
       var zebra = i % 2 === 0 ? "popup-metric-grid-row--zebra-a" : "popup-metric-grid-row--zebra-b";
       parts.push(
         '<div class="popup-metric-grid-row ' +
-          zebra +
-          '">' +
-          '<span class="popup-metric-cell popup-metric-cell--label">' +
-          (left && left.label ? escHtml(left.label) : "") +
-          "</span>" +
-          '<span class="popup-metric-cell popup-metric-cell--value">' +
-          formatMetricCell(snap, left) +
-          "</span>" +
-          '<span class="popup-metric-cell popup-metric-cell--label">' +
-          (right && right.label ? escHtml(right.label) : "") +
-          "</span>" +
-          '<span class="popup-metric-cell popup-metric-cell--value">' +
-          formatMetricCell(snap, right) +
-          "</span>" +
-          "</div>"
+        zebra +
+        '">' +
+        '<span class="popup-metric-cell popup-metric-cell--label">' +
+        (left && left.label ? escHtml(left.label) : "") +
+        "</span>" +
+        '<span class="popup-metric-cell popup-metric-cell--value">' +
+        formatMetricCell(snap, left) +
+        "</span>" +
+        '<span class="popup-metric-cell popup-metric-cell--spacer" aria-hidden="true"></span>' +
+        '<span class="popup-metric-cell popup-metric-cell--label">' +
+        (right && right.label ? escHtml(right.label) : "") +
+        "</span>" +
+        '<span class="popup-metric-cell popup-metric-cell--value">' +
+        formatMetricCell(snap, right) +
+        "</span>" +
+        "</div>"
       );
     }
     shopRecordBodyEl.innerHTML =
-      '<div class="popup-metrics-meta">统计日 <strong>' +
-      escHtml(dateLabel) +
-      "</strong></div>" +
       '<div class="popup-metrics-grid" role="table" aria-label="本地合并指标">' +
       parts.join("") +
       "</div>";
@@ -355,11 +357,11 @@
             if (logger) {
               logger.log(
                 PREFIX +
-                  " 自动填充成功：已写入 " +
-                  (res.filled != null ? res.filled : "?") +
-                  " 项（统计日 " +
-                  (res.reportAt || "") +
-                  "）"
+                " 自动填充成功：已写入 " +
+                (res.filled != null ? res.filled : "?") +
+                " 项（统计日 " +
+                (res.reportAt || "") +
+                "）"
               );
             }
           } else {
