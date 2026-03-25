@@ -95,20 +95,24 @@ const ROWS = [
   {
     leftLabel: "抖音推广花费",
     leftKey: null,
+    defaultLeft: "0",
     rightLabel: "品销宝花费",
     rightKey: null,
+    defaultRight: "0",
   },
   {
     leftLabel: "超级直播花费",
     leftKey: null,
+    defaultLeft: "0",
     rightLabel: "钻展花费",
     rightKey: null,
+    defaultRight: "0",
   },
   {
     leftLabel: "全站推广花费",
-    leftKey: null,
+    leftKey: "site_wide_charge_yuan",
     rightLabel: "全站推广ROI",
-    rightKey: null,
+    rightKey: "site_wide_roi",
   },
   {
     leftLabel: "内容推广花费",
@@ -222,9 +226,25 @@ export default function StorePage() {
           {ROWS.map((r) => (
             <tr key={`${r.leftLabel}-${r.rightLabel}`}>
               <td>{r.leftLabel}</td>
-              <td>{r.leftKey && row ? (row[r.leftKey] ?? "") : ""}</td>
+              <td>
+                {r.leftKey
+                  ? row
+                    ? String(row[r.leftKey] ?? "")
+                    : ""
+                  : r.defaultLeft != null
+                    ? r.defaultLeft
+                    : ""}
+              </td>
               <td>{r.rightLabel}</td>
-              <td>{r.rightKey && row ? (row[r.rightKey] ?? "") : ""}</td>
+              <td>
+                {r.rightKey
+                  ? row
+                    ? String(row[r.rightKey] ?? "")
+                    : ""
+                  : r.defaultRight != null
+                    ? r.defaultRight
+                    : ""}
+              </td>
             </tr>
           ))}
         </tbody>

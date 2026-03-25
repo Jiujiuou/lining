@@ -198,6 +198,71 @@
   }
 
   /**
+   * 万象3 onebpSite：data.list[0] 的 charge、roi → 全站推广花费 / 全站推广ROI
+   */
+  function maybeUpsertOnebpSite(bizCode, payload) {
+    if (bizCode !== "onebpSite") return;
+    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
+      return;
+    }
+    var p = payload;
+    if (typeof p === "string") {
+      try {
+        p = JSON.parse(p);
+      } catch (e) {
+        return;
+      }
+    }
+    if (!p || typeof p !== "object") return;
+    var list = p.data && p.data.list;
+    var row0 = Array.isArray(list) && list[0] ? list[0] : null;
+    if (!row0) return;
+
+    var ymd = yesterdayYmd();
+    if (row0.thedate && /^\d{4}-\d{2}-\d{2}$/.test(String(row0.thedate))) {
+      ymd = String(row0.thedate);
+    }
+
+    function numStr(v, decimals) {
+      if (v == null || v === "") return null;
+      var n = Number(v);
+      if (Number.isNaN(n)) return String(v);
+      var dec = decimals != null ? decimals : 2;
+      return n.toFixed(dec);
+    }
+
+    var charge = numStr(row0.charge, 2);
+    var roi = numStr(row0.roi, 2);
+    if (!charge && !roi) return;
+
+    var row = { report_at: ymd };
+    if (charge) row.site_wide_charge_yuan = charge;
+    if (roi) row.site_wide_roi = roi;
+
+    supabaseUtil
+      .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
+        conflict: "report_at",
+        prefix: PREFIX.trim(),
+        logger: appendLog
+      })
+      .then(function (ret) {
+        if (ret && ret.ok) {
+          try {
+            chrome.runtime.sendMessage({
+              type: APPEND_LOG_TYPE,
+              msg:
+                PREFIX +
+                " 万象3：已上报 shop_record_daily 全站推广花费/ROI " +
+                ymd
+            });
+          } catch (e2) {
+            /* ignore */
+          }
+        }
+      });
+  }
+
+  /**
    * 万象4 onebpShortVideo：data.list[0] 的 charge、roi → 内容推广花费 / 内容推广ROI
    */
   function maybeUpsertOnebpShortVideo(bizCode, payload) {
@@ -292,6 +357,7 @@
 
     maybeUpsertOnebpSearch(d.bizCode, d.payload);
     maybeUpsertOnebpDisplay(d.bizCode, d.payload);
+    maybeUpsertOnebpSite(d.bizCode, d.payload);
     maybeUpsertOnebpShortVideo(d.bizCode, d.payload);
   });
 })();

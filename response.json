@@ -1,14 +1,38 @@
-16:01:46[店铺记录数据] 生意参谋：已注入 my_space，将请求 previewById
-16:01:47[店铺记录数据] 千牛后台 昨日「2026-03-23」
-统计日期 2026-03-23
-浏览量 376,728
-访客数 101,812
-支付买家数 3,387
-支付件数 5,548
-支付金额 775,341.73
-客单价 228.92
-支付转化率 3.33%
-老访客数 34,660
-平均停留时长 13.18
-人均浏览量 3.70
-跳失率 47.26%
+{
+  "data": {
+    "list": [
+      {
+        "alipayDirAmt": 186577.13000000032,
+        "alipayInshopAmt": 216893.94,
+        "charge": 26857.180000000146,
+        "adPv": 278427,
+        "alipayDirNum": 794,
+        "click": 14032,
+        "roi": 8.07583,
+        "retainedRoi": 6.87015,
+        "operationList": [],
+        "thedate": "2026-03-24",
+        "cartInshopNum": 2495,
+        "special_campaign_filter": 256,
+        "alipayInshopAmtBoost": 22643.395631589457,
+        "startTime": "2026-03-24",
+        "endTime": "2026-03-24",
+        "refundInshopAmt": 32381.09,
+        "ecpc": 1.914,
+        "memberId": 2093420056
+      }
+    ]
+  },
+  "info": {
+    "strategyPoints": null,
+    "lockSla": false,
+    "redirectUrl": null,
+    "errorEntityIdList": null,
+    "httpStatus": null,
+    "errorCode": null,
+    "unlockUrl": null,
+    "ok": true,
+    "message": null,
+    "disableTime": false
+  }
+}

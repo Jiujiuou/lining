@@ -23,6 +23,8 @@ create table if not exists public.shop_record_daily (
   ylmf_roi text,
   content_promo_charge_yuan text,
   content_promo_roi text,
+  site_wide_charge_yuan text,
+  site_wide_roi text,
   sycm_pv text,
   sycm_uv text,
   sycm_pay_buyers text,

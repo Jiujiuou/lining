@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "theme_color": "#0d9488",
   "name": "店铺记录数据",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "店铺侧数据记录（骨架版：日志 + 内容脚本占位，默认匹配千牛/已卖出订单页）",
   "permissions": ["storage", "tabs"],
   "background": {
