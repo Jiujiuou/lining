@@ -17,6 +17,10 @@
     defaults && defaults.SYCM_MY_SPACE_URL
       ? defaults.SYCM_MY_SPACE_URL
       : "https://sycm.taobao.com/adm/v3/my_space?_old_module_code_=adm-eportal-order-experience-transit&_old_module_expiration_=1773970265356&activeKey=common&tab=fetch";
+  var reportSubmitPageUrl =
+    defaults && defaults.REPORT_SUBMIT_PAGE_URL
+      ? defaults.REPORT_SUBMIT_PAGE_URL
+      : "https://oa1.ilanhe.com:8088/wui/index.html?v=1774405351993#/?_key=c2rpyg";
   function yesterdayYmd() {
     var d = new Date();
     d.setDate(d.getDate() - 1);
@@ -80,6 +84,15 @@
   var onebpSiteOpenBtn = document.getElementById("onebp-site-open");
   var onebpShortVideoOpenBtn = document.getElementById("onebp-shortvideo-open");
   var sycmMySpaceOpenBtn = document.getElementById("sycm-my-space-open");
+  var reportSubmitOpenBtn = document.getElementById("report-submit-open");
+  var oaFillReportBtn = document.getElementById("oa-fill-report");
+  var PREFIX =
+    defaults && defaults.PREFIX ? defaults.PREFIX : "[店铺记录数据]";
+  var OA_FILL_MSG =
+    defaults && defaults.RUNTIME && defaults.RUNTIME.OA_FILL_REPORT_MESSAGE
+      ? defaults.RUNTIME.OA_FILL_REPORT_MESSAGE
+      : "SR_OA_FILL_REPORT";
+  var OA_REPORT_HOST = "oa1.ilanhe.com";
 
   if (shopRateOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
     shopRateOpenBtn.addEventListener("click", function () {
@@ -114,6 +127,52 @@
   if (sycmMySpaceOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
     sycmMySpaceOpenBtn.addEventListener("click", function () {
       chrome.tabs.create({ url: sycmMySpaceUrl });
+    });
+  }
+  if (reportSubmitOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
+    reportSubmitOpenBtn.addEventListener("click", function () {
+      chrome.tabs.create({ url: reportSubmitPageUrl });
+    });
+  }
+  if (
+    oaFillReportBtn &&
+    typeof chrome !== "undefined" &&
+    chrome.tabs &&
+    chrome.tabs.query &&
+    chrome.tabs.sendMessage
+  ) {
+    oaFillReportBtn.addEventListener("click", function () {
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var tab = tabs && tabs[0];
+        if (!tab || tab.id == null) {
+          if (logger) logger.warn(PREFIX + " 填充数据：未找到当前标签页");
+          return;
+        }
+        var url = tab.url || "";
+        if (url.indexOf(OA_REPORT_HOST) === -1) {
+          if (logger) {
+            logger.warn(
+              PREFIX + " 填充数据：请先在浏览器中打开联核 OA 上报页（当前页不是 OA）"
+            );
+          }
+          return;
+        }
+        chrome.tabs.sendMessage(tab.id, { type: OA_FILL_MSG }, function (res) {
+          if (chrome.runtime.lastError) {
+            if (logger) {
+              logger.error(
+                PREFIX +
+                  " 填充数据失败（请刷新 OA 页后重试）：" +
+                  chrome.runtime.lastError.message
+              );
+            }
+            return;
+          }
+          if (res && res.ok === false && res.error && logger) {
+            logger.error(PREFIX + " " + res.error);
+          }
+        });
+      });
     });
   }
 

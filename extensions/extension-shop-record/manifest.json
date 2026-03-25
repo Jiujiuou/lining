@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "theme_color": "#0d9488",
   "name": "店铺记录数据",
-  "version": "0.2.13",
+  "version": "0.2.17",
   "description": "店铺侧数据记录（骨架版：日志 + 内容脚本占位，默认匹配千牛/已卖出订单页）",
   "permissions": ["storage", "tabs"],
   "background": {
@@ -20,7 +20,8 @@
     "https://rate.taobao.com/*",
     "https://ad.alimama.com/*",
     "https://one.alimama.com/*",
-    "https://sycm.taobao.com/*"
+    "https://sycm.taobao.com/*",
+    "https://oa1.ilanhe.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -73,6 +74,11 @@
     {
       "matches": ["https://sycm.taobao.com/*"],
       "js": ["constants/defaults.js", "constants/supabase.js", "utils/supabase.js", "content-sycm.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://oa1.ilanhe.com/*"],
+      "js": ["constants/defaults.js", "constants/supabase.js", "content-oa-fill.js"],
       "run_at": "document_idle"
     }
   ]
