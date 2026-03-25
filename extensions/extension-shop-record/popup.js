@@ -20,7 +20,7 @@
   var reportSubmitPageUrl =
     defaults && defaults.REPORT_SUBMIT_PAGE_URL
       ? defaults.REPORT_SUBMIT_PAGE_URL
-      : "https://oa1.ilanhe.com:8088/wui/index.html?v=1774405351993#/?_key=c2rpyg";
+      : "https://oa1.ilanhe.com:8088/spa/workflow/static4form/index.html?_rdm=1774403128141#/main/workflow/req?iscreate=1&workflowid=1663&isagent=0&beagenter=0&f_weaver_belongto_userid=&f_weaver_belongto_usertype=0&menuIds=1,12&menuPathIds=1,12&preloadkey=1774403128141&timestamp=1774403128141&_key=ldyx2e";
   function yesterdayYmd() {
     var d = new Date();
     d.setDate(d.getDate() - 1);
@@ -75,8 +75,22 @@
       "&unifyType=video_kuan"
     );
   }
+  /** 与上方各入口一致：店铺分 → 淘宝联盟 → 万象1～4 → 千牛后台 → 上报页 */
+  function getAllPageUrls() {
+    return [
+      shopRateUrl,
+      alimamaUrl,
+      buildOnebpSearchUrl(),
+      buildOnebpDisplayUrl(),
+      buildOnebpSiteUrl(),
+      buildOnebpShortVideoUrl(),
+      sycmMySpaceUrl,
+      reportSubmitPageUrl
+    ];
+  }
   var logsListEl = document.getElementById("logs-list");
   var logsClearBtn = document.getElementById("logs-clear");
+  var openAllPagesBtn = document.getElementById("open-all-pages");
   var shopRateOpenBtn = document.getElementById("shop-rate-open");
   var alimamaOpenBtn = document.getElementById("alimama-open");
   var onebpOpenBtn = document.getElementById("onebp-open");
@@ -85,15 +99,16 @@
   var onebpShortVideoOpenBtn = document.getElementById("onebp-shortvideo-open");
   var sycmMySpaceOpenBtn = document.getElementById("sycm-my-space-open");
   var reportSubmitOpenBtn = document.getElementById("report-submit-open");
-  var oaFillReportBtn = document.getElementById("oa-fill-report");
   var PREFIX =
     defaults && defaults.PREFIX ? defaults.PREFIX : "[店铺记录数据]";
-  var OA_FILL_MSG =
-    defaults && defaults.RUNTIME && defaults.RUNTIME.OA_FILL_REPORT_MESSAGE
-      ? defaults.RUNTIME.OA_FILL_REPORT_MESSAGE
-      : "SR_OA_FILL_REPORT";
-  var OA_REPORT_HOST = "oa1.ilanhe.com";
 
+  if (openAllPagesBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
+    openAllPagesBtn.addEventListener("click", function () {
+      getAllPageUrls().forEach(function (url) {
+        chrome.tabs.create({ url: url });
+      });
+    });
+  }
   if (shopRateOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
     shopRateOpenBtn.addEventListener("click", function () {
       chrome.tabs.create({ url: shopRateUrl });
@@ -132,47 +147,6 @@
   if (reportSubmitOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
     reportSubmitOpenBtn.addEventListener("click", function () {
       chrome.tabs.create({ url: reportSubmitPageUrl });
-    });
-  }
-  if (
-    oaFillReportBtn &&
-    typeof chrome !== "undefined" &&
-    chrome.tabs &&
-    chrome.tabs.query &&
-    chrome.tabs.sendMessage
-  ) {
-    oaFillReportBtn.addEventListener("click", function () {
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        var tab = tabs && tabs[0];
-        if (!tab || tab.id == null) {
-          if (logger) logger.warn(PREFIX + " 填充数据：未找到当前标签页");
-          return;
-        }
-        var url = tab.url || "";
-        if (url.indexOf(OA_REPORT_HOST) === -1) {
-          if (logger) {
-            logger.warn(
-              PREFIX + " 填充数据：请先在浏览器中打开联核 OA 上报页（当前页不是 OA）"
-            );
-          }
-          return;
-        }
-        chrome.tabs.sendMessage(tab.id, { type: OA_FILL_MSG }, function (res) {
-          if (chrome.runtime.lastError) {
-            if (logger) {
-              logger.error(
-                PREFIX +
-                  " 填充数据失败（请刷新 OA 页后重试）：" +
-                  chrome.runtime.lastError.message
-              );
-            }
-            return;
-          }
-          if (res && res.ok === false && res.error && logger) {
-            logger.error(PREFIX + " " + res.error);
-          }
-        });
-      });
     });
   }
 

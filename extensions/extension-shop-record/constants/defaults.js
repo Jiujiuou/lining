@@ -16,9 +16,9 @@
   /** 生意参谋·个人空间（千牛后台入口，打开后由 content-sycm 请求 previewById） */
   var SYCM_MY_SPACE_URL =
     "https://sycm.taobao.com/adm/v3/my_space?_old_module_code_=adm-eportal-order-experience-transit&_old_module_expiration_=1773970265356&activeKey=common&tab=fetch";
-  /** 联核 OA 上报页（popup「上报页」按钮） */
+  /** 联核 OA 上报页（popup「上报页」按钮；须带完整参数否则会跳到其它页） */
   var REPORT_SUBMIT_PAGE_URL =
-    "https://oa1.ilanhe.com:8088/wui/index.html?v=1774405351993#/?_key=c2rpyg";
+    "https://oa1.ilanhe.com:8088/spa/workflow/static4form/index.html?_rdm=1774403128141#/main/workflow/req?iscreate=1&workflowid=1663&isagent=0&beagenter=0&f_weaver_belongto_userid=&f_weaver_belongto_usertype=0&menuIds=1,12&menuPathIds=1,12&preloadkey=1774403128141&timestamp=1774403128141&_key=ldyx2e";
   /**
    * 万象台无界·关键词推广（startTime/endTime 由 popup 按「昨天」拼接）
    * 基址：https://one.alimama.com/index.html#!/manage/search?mx_bizCode=onebpSearch&bizCode=onebpSearch&tab=campaign&startTime=&endTime=
@@ -30,9 +30,7 @@
   /** background / logger / sendMessage 共用 type，避免与 storage 键硬编码漂移（对齐 extension-template） */
   var RUNTIME = {
     GET_TAB_ID_MESSAGE: "SR_GET_TAB_ID",
-    CONTENT_APPEND_LOG_MESSAGE: "shopRecordAppendLog",
-    /** popup → content-oa-fill：按数据日期填充联核 OA 表单 */
-    OA_FILL_REPORT_MESSAGE: "SR_OA_FILL_REPORT"
+    CONTENT_APPEND_LOG_MESSAGE: "shopRecordAppendLog"
   };
 
   var obj = {
