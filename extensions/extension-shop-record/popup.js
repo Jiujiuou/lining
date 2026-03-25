@@ -183,7 +183,7 @@
     if (!shopRecordBodyEl) return;
     if (!snap || typeof snap !== "object") {
       shopRecordBodyEl.innerHTML =
-        '<div class="popup-findpage-list--empty">暂无本地快照。各页采集到数据后会自动写入本地（与是否上报云端无关）。</div>';
+        '<div class="popup-findpage-list--empty">暂无本地快照。各页采集到数据后会自动写入本地。</div>';
       return;
     }
     var dateLabel = snap.report_at ? String(snap.report_at) : yesterdayYmd();

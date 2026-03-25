@@ -12,25 +12,12 @@
     __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
       ? __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
       : "shopRecordAppendLog";
-  var supabaseCfg =
-    typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
-  var supabaseUtil =
-    typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
   var localDaily =
     typeof __SHOP_RECORD_LOCAL_DAILY__ !== "undefined" ? __SHOP_RECORD_LOCAL_DAILY__ : null;
-  var TABLE_NAME = "shop_record_daily";
 
   function sendLog(msg) {
     try {
       chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, msg: String(msg) });
-    } catch (e) {
-      /* ignore */
-    }
-  }
-
-  function appendLog(level, msg) {
-    try {
-      chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, level: level || "log", msg: String(msg) });
     } catch (e) {
       /* ignore */
     }
@@ -60,8 +47,7 @@
 
   var dsrData = null;
   var refundData = null;
-  var uploaded = false;
-  var uploadInFlight = false;
+  var savedLocal = false;
 
   var scoresLogged = false;
   function tryLogShopScores() {
@@ -114,7 +100,7 @@
       scoresLogged = true;
       sendLog(msg);
     }
-    maybeUploadDailyRow();
+    maybeSaveDailyRowLocal();
     return true;
   }
 
@@ -126,11 +112,11 @@
       refund_finish_rate: String(data.refundFinishRate),
       dispute_refund_rate: String(data.disputeRefundRate)
     };
-    maybeUploadDailyRow();
+    maybeSaveDailyRowLocal();
   }
 
-  function maybeUploadDailyRow() {
-    if (uploaded || uploadInFlight) return;
+  function maybeSaveDailyRowLocal() {
+    if (savedLocal) return;
     if (!dsrData || !refundData) return;
     var row = {
       report_at: yesterdayYmd(),
@@ -144,32 +130,8 @@
     if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
       localDaily.mergeDailyRowPatch(row);
     }
-    if (!supabaseCfg || !supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function") {
-      appendLog("warn", PREFIX + " Supabase 工具未加载，跳过上报");
-      uploaded = true;
-      return;
-    }
-    uploadInFlight = true;
-    supabaseUtil
-      .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
-        conflict: "report_at",
-        prefix: PREFIX.trim(),
-        logger: appendLog
-      })
-      .then(function (ret) {
-        if (ret && ret.ok) {
-          uploaded = true;
-          sendLog(
-            PREFIX +
-              " 已上报 shop_record_daily " +
-              row.report_at +
-              "（6 项店铺分）"
-          );
-        }
-      })
-      .finally(function () {
-        uploadInFlight = false;
-      });
+    savedLocal = true;
+    sendLog(PREFIX + " 已写入本地 " + row.report_at + "（6 项店铺分）");
   }
 
   if (!isUserRatePage()) return;

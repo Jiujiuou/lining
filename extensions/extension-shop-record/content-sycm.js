@@ -21,29 +21,12 @@
   var PREVIEW_API = "https://sycm.taobao.com/adm/v2/execute/previewById.json";
   var PREVIEW_ID = "2267754";
   var REPORT_TYPE = "1";
-  var TABLE_NAME = "shop_record_daily";
-  var supabaseCfg =
-    typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
-  var supabaseUtil =
-    typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
   var localDaily =
     typeof __SHOP_RECORD_LOCAL_DAILY__ !== "undefined" ? __SHOP_RECORD_LOCAL_DAILY__ : null;
 
   function extLog(msg) {
     try {
       chrome.runtime.sendMessage({ type: APPEND_LOG_TYPE, msg: PREFIX + " " + msg });
-    } catch (e) {
-      /* ignore */
-    }
-  }
-
-  function appendLog(level, msg) {
-    try {
-      chrome.runtime.sendMessage({
-        type: APPEND_LOG_TYPE,
-        level: level || "log",
-        msg: String(msg)
-      });
     } catch (e) {
       /* ignore */
     }
@@ -133,8 +116,8 @@
     return parseFloat(String(s).replace(/,/g, ""));
   }
 
-  /** 千牛后台昨日行 → shop_record_daily 流量列（含老访客占比=老访客数/访客数） */
-  function maybeUpsertSycmShopMetrics(row, titles) {
+  /** 千牛后台昨日行 → 本地合并 流量列（含老访客占比=老访客数/访客数） */
+  function maybeMergeSycmShopMetrics(row, titles) {
     if (!row || !Array.isArray(titles)) return;
 
     var ymd = yesterdayYmd();
@@ -179,20 +162,7 @@
     if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
       localDaily.mergeDailyRowPatch(payload);
     }
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
-    supabaseUtil
-      .upsertDailyRow(TABLE_NAME, payload, supabaseCfg, {
-        conflict: "report_at",
-        prefix: PREFIX.trim(),
-        logger: appendLog
-      })
-      .then(function (ret) {
-        if (ret && ret.ok) {
-          extLog("千牛后台：已上报 shop_record_daily 生意参谋指标 " + ymd);
-        }
-      });
+    extLog("千牛后台：已写入本地 生意参谋指标 " + ymd);
   }
 
   function doFetch() {
@@ -253,7 +223,7 @@
           if (out.ok) {
             console.log(PREFIX + " 千牛后台 昨日行", out.row);
             if (out.row && out.titles) {
-              maybeUpsertSycmShopMetrics(out.row, out.titles);
+              maybeMergeSycmShopMetrics(out.row, out.titles);
             }
           } else {
             console.warn(PREFIX, out.text, parsed);

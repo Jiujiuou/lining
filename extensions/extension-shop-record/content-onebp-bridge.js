@@ -11,25 +11,8 @@
       ? __SHOP_RECORD_DEFAULTS__.RUNTIME.CONTENT_APPEND_LOG_MESSAGE
       : "shopRecordAppendLog";
   var MSG = "shop-record-onebp-query";
-  var TABLE_NAME = "shop_record_daily";
-  var supabaseCfg =
-    typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
-  var supabaseUtil =
-    typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
   var localDaily =
     typeof __SHOP_RECORD_LOCAL_DAILY__ !== "undefined" ? __SHOP_RECORD_LOCAL_DAILY__ : null;
-
-  function appendLog(level, msg) {
-    try {
-      chrome.runtime.sendMessage({
-        type: APPEND_LOG_TYPE,
-        level: level || "log",
-        msg: String(msg)
-      });
-    } catch (e) {
-      /* ignore */
-    }
-  }
 
   /** 本机日历「昨天」YYYY-MM-DD */
   function yesterdayYmd() {
@@ -44,7 +27,7 @@
   /**
    * 万象1 onebpSearch：data.list[0] 的 charge/cvr/ecpc/roi → shop_record_daily
    */
-  function maybeUpsertOnebpSearch(bizCode, payload) {
+  function maybeMergeOnebpSearch(bizCode, payload) {
     if (bizCode !== "onebpSearch") return;
     var p = payload;
     if (typeof p === "string") {
@@ -97,36 +80,12 @@
     if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
       localDaily.mergeDailyRowPatch(row);
     }
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
-    supabaseUtil
-      .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
-        conflict: "report_at",
-        prefix: PREFIX.trim(),
-        logger: appendLog
-      })
-      .then(function (ret) {
-        if (ret && ret.ok) {
-          try {
-            chrome.runtime.sendMessage({
-              type: APPEND_LOG_TYPE,
-              msg:
-                PREFIX +
-                " 万象台1：已上报 shop_record_daily 直通车四项 " +
-                ymd
-            });
-          } catch (e2) {
-            /* ignore */
-          }
-        }
-      });
   }
 
   /**
    * 万象2 onebpDisplay：data.list[0] 同结构 → 引力魔方四项
    */
-  function maybeUpsertOnebpDisplay(bizCode, payload) {
+  function maybeMergeOnebpDisplay(bizCode, payload) {
     if (bizCode !== "onebpDisplay") return;
     var p = payload;
     if (typeof p === "string") {
@@ -179,36 +138,12 @@
     if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
       localDaily.mergeDailyRowPatch(row);
     }
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
-    supabaseUtil
-      .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
-        conflict: "report_at",
-        prefix: PREFIX.trim(),
-        logger: appendLog
-      })
-      .then(function (ret) {
-        if (ret && ret.ok) {
-          try {
-            chrome.runtime.sendMessage({
-              type: APPEND_LOG_TYPE,
-              msg:
-                PREFIX +
-                " 万象台2：已上报 shop_record_daily 引力魔方四项 " +
-                ymd
-            });
-          } catch (e2) {
-            /* ignore */
-          }
-        }
-      });
   }
 
   /**
    * 万象3 onebpSite：data.list[0] 的 charge、roi → 全站推广花费 / 全站推广ROI
    */
-  function maybeUpsertOnebpSite(bizCode, payload) {
+  function maybeMergeOnebpSite(bizCode, payload) {
     if (bizCode !== "onebpSite") return;
     var p = payload;
     if (typeof p === "string") {
@@ -247,36 +182,12 @@
     if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
       localDaily.mergeDailyRowPatch(row);
     }
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
-    supabaseUtil
-      .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
-        conflict: "report_at",
-        prefix: PREFIX.trim(),
-        logger: appendLog
-      })
-      .then(function (ret) {
-        if (ret && ret.ok) {
-          try {
-            chrome.runtime.sendMessage({
-              type: APPEND_LOG_TYPE,
-              msg:
-                PREFIX +
-                " 万象3：已上报 shop_record_daily 全站推广花费/ROI " +
-                ymd
-            });
-          } catch (e2) {
-            /* ignore */
-          }
-        }
-      });
   }
 
   /**
    * 万象4 onebpShortVideo：data.list[0] 的 charge、roi → 内容推广花费 / 内容推广ROI
    */
-  function maybeUpsertOnebpShortVideo(bizCode, payload) {
+  function maybeMergeOnebpShortVideo(bizCode, payload) {
     if (bizCode !== "onebpShortVideo") return;
     var p = payload;
     if (typeof p === "string") {
@@ -315,30 +226,6 @@
     if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
       localDaily.mergeDailyRowPatch(row);
     }
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
-    supabaseUtil
-      .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
-        conflict: "report_at",
-        prefix: PREFIX.trim(),
-        logger: appendLog
-      })
-      .then(function (ret) {
-        if (ret && ret.ok) {
-          try {
-            chrome.runtime.sendMessage({
-              type: APPEND_LOG_TYPE,
-              msg:
-                PREFIX +
-                " 万象4：已上报 shop_record_daily 内容推广花费/ROI " +
-                ymd
-            });
-          } catch (e2) {
-            /* ignore */
-          }
-        }
-      });
   }
 
   window.addEventListener("message", function (ev) {
@@ -369,9 +256,9 @@
       /* ignore */
     }
 
-    maybeUpsertOnebpSearch(d.bizCode, d.payload);
-    maybeUpsertOnebpDisplay(d.bizCode, d.payload);
-    maybeUpsertOnebpSite(d.bizCode, d.payload);
-    maybeUpsertOnebpShortVideo(d.bizCode, d.payload);
+    maybeMergeOnebpSearch(d.bizCode, d.payload);
+    maybeMergeOnebpDisplay(d.bizCode, d.payload);
+    maybeMergeOnebpSite(d.bizCode, d.payload);
+    maybeMergeOnebpShortVideo(d.bizCode, d.payload);
   });
 })();

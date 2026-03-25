@@ -1,5 +1,5 @@
 /**
- * 将 shop_record_daily 各来源上报行合并写入 chrome.storage.local（按 report_at 分桶）
+ * 将各来源采集到的每日字段合并写入 chrome.storage.local（按 report_at 分桶）
  */
 (function (global) {
   function getStorageKey() {
@@ -12,7 +12,7 @@
   }
 
   /**
-   * @param {Object} patch 须含 report_at；其余字段与每日行一致，会合并进同日快照（与云端上报成败无关）
+   * @param {Object} patch 须含 report_at；其余字段与每日行一致，会合并进同日快照
    * @param {function=} done 可选回调
    */
   function mergeDailyRowPatch(patch, done) {

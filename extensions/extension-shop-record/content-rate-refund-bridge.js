@@ -34,7 +34,7 @@
       /* ignore */
     }
 
-    // 同步给同一隔离世界下的 content.js，便于与 DSR 三项汇总后上报 Supabase
+    // 同步给同一隔离世界下的 content.js，便于与 DSR 三项汇总后写入本地
     try {
       window.__SHOP_RECORD_RATE_REFUND_DATA__ = {
         disputeRefundRate: a,
