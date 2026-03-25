@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "theme_color": "#0d9488",
   "name": "店铺记录数据",
-  "version": "0.3.9",
+  "version": "0.4.2",
   "description": "店铺侧数据记录（日志 + 各页采集合并写入本地）",
   "permissions": ["storage", "tabs"],
   "background": {
@@ -15,6 +15,7 @@
     "128": "assets/icon-128.png"
   },
   "host_permissions": [
+    "https://*.supabase.co/*",
     "https://qn.taobao.com/*",
     "https://trade.taobao.com/*",
     "https://rate.taobao.com/*",

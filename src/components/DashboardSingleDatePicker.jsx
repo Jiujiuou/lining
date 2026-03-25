@@ -4,13 +4,15 @@ import DashboardCalendarPopover from "./DashboardCalendarPopover";
 
 /**
  * 单日日期：月历弹层（有数据日圆点标记）
- * @param {{ value: string, datesWithData: string[], onSelectDate: (ymd: string) => void, getTodayYmd: () => string }} props
+ * @param {{ value: string, datesWithData: string[], onSelectDate: (ymd: string) => void, getTodayYmd: () => string, label?: string, calendarHint?: string }} props
  */
 export default function DashboardSingleDatePicker({
   value,
   datesWithData,
   onSelectDate,
   getTodayYmd,
+  label = "日期",
+  calendarHint = "圆点表示当前视图下该日有数据",
 }) {
   const datesFingerprint = Array.isArray(datesWithData)
     ? [...datesWithData].sort().join("|")
@@ -68,7 +70,7 @@ export default function DashboardSingleDatePicker({
   return (
     <div className="dashboard-single-date-picker">
       <div className="dashboard-date-label dashboard-cal-inline">
-        <span>日期</span>
+        <span>{label}</span>
         <div className="dashboard-cal-anchor" ref={calWrapRef}>
           <button
             type="button"
@@ -97,7 +99,7 @@ export default function DashboardSingleDatePicker({
                 onSelectDate(ymd);
                 setCalOpen(false);
               }}
-              hint="圆点表示当前视图下该日有数据"
+              hint={calendarHint}
             />
           )}
         </div>
