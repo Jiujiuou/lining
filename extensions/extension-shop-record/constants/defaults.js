@@ -39,6 +39,92 @@
     CONTENT_FILL_REPORT_MESSAGE: "SR_FILL_REPORT"
   };
 
+  /**
+   * 联核上报「自动填充」必填：与 utils/report-page-fill.js 中 FIELD_MAP + MORE_FIELDS 一致，每项须非空才允许填充。
+   */
+  var REPORT_FILL_REQUIRED = [
+    { key: "item_desc_match_score", label: "宝贝与描述相符" },
+    { key: "sycm_pv", label: "浏览量PV" },
+    { key: "seller_service_score", label: "卖家服务态度" },
+    { key: "sycm_uv", label: "访客数UV" },
+    { key: "seller_shipping_score", label: "卖家发货速度" },
+    { key: "sycm_pay_buyers", label: "支付买家数" },
+    { key: "refund_finish_duration", label: "退款完结时长" },
+    { key: "sycm_pay_items", label: "支付商品件数" },
+    { key: "refund_finish_rate", label: "退款自主完结率" },
+    { key: "sycm_pay_amount", label: "支付金额（元）" },
+    { key: "dispute_refund_rate", label: "退款纠纷率" },
+    { key: "sycm_aov", label: "客单价（元）" },
+    { key: "taobao_cps_spend_yuan", label: "淘宝客花费（元）" },
+    { key: "sycm_pay_cvr", label: "支付转化率" },
+    { key: "ztc_charge_yuan", label: "直通车花费（元）" },
+    { key: "sycm_old_visitor_ratio", label: "老访客数占比" },
+    { key: "ztc_cvr", label: "直通车转化率" },
+    { key: "sycm_avg_stay_sec", label: "人均停留时长（秒）" },
+    { key: "ztc_ppc", label: "直通车PPC" },
+    { key: "sycm_avg_pv_depth", label: "人均浏览量（访问深度）" },
+    { key: "ztc_roi", label: "直通车ROI" },
+    { key: "sycm_bounce_rate", label: "跳失率" },
+    { key: "ylmf_charge_yuan", label: "引力魔方花费（元）" },
+    { key: "ylmf_cvr", label: "引力魔方转化率" },
+    { key: "ylmf_ppc", label: "引力魔方PPC" },
+    { key: "ylmf_roi", label: "引力魔方ROI" },
+    { key: "site_wide_charge_yuan", label: "全站推广花费（元）" },
+    { key: "site_wide_roi", label: "全站推广ROI" },
+    { key: "content_promo_charge_yuan", label: "内容推广花费（元）" },
+    { key: "content_promo_roi", label: "内容推广ROI" }
+  ];
+
+  function yesterdayYmdForSnapshot() {
+    var d = new Date();
+    d.setDate(d.getDate() - 1);
+    var y = d.getFullYear();
+    var mo = String(d.getMonth() + 1);
+    var da = String(d.getDate());
+    return y + "-" + (mo.length < 2 ? "0" + mo : mo) + "-" + (da.length < 2 ? "0" + da : da);
+  }
+
+  function pickSnapshotFromDailyBag(bag) {
+    if (!bag || typeof bag !== "object") return null;
+    var ymd = yesterdayYmdForSnapshot();
+    if (bag[ymd]) return bag[ymd];
+    var dates = Object.keys(bag).filter(function (k) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(k);
+    });
+    dates.sort();
+    return dates.length ? bag[dates[dates.length - 1]] : null;
+  }
+
+  /**
+   * @param {Object|null} snap 单日合并快照
+   * @returns {{ ok: true } | { ok: false, missing: Array<{ key: string, label: string }> }}
+   */
+  function validateReportSnapshotForFill(snap) {
+    var missing = [];
+    if (!snap || typeof snap !== "object") {
+      for (var j = 0; j < REPORT_FILL_REQUIRED.length; j++) {
+        missing.push({
+          key: REPORT_FILL_REQUIRED[j].key,
+          label: REPORT_FILL_REQUIRED[j].label
+        });
+      }
+      return { ok: false, missing: missing };
+    }
+    for (var i = 0; i < REPORT_FILL_REQUIRED.length; i++) {
+      var row = REPORT_FILL_REQUIRED[i];
+      var raw = snap[row.key];
+      var has =
+        raw !== undefined &&
+        raw !== null &&
+        String(raw).replace(/\s/g, "") !== "";
+      if (!has) {
+        missing.push({ key: row.key, label: row.label });
+      }
+    }
+    if (missing.length === 0) return { ok: true };
+    return { ok: false, missing: missing };
+  }
+
   var obj = {
     STORAGE_KEYS: STORAGE_KEYS,
     LOG_MAX_ENTRIES: LOG_MAX_ENTRIES,
@@ -48,7 +134,10 @@
     ALIMAMA_DASHBOARD_URL: ALIMAMA_DASHBOARD_URL,
     ONE_ALIMAMA_HOST: ONE_ALIMAMA_HOST,
     SYCM_MY_SPACE_URL: SYCM_MY_SPACE_URL,
-    REPORT_SUBMIT_PAGE_URL: REPORT_SUBMIT_PAGE_URL
+    REPORT_SUBMIT_PAGE_URL: REPORT_SUBMIT_PAGE_URL,
+    REPORT_FILL_REQUIRED: REPORT_FILL_REQUIRED,
+    pickSnapshotFromDailyBag: pickSnapshotFromDailyBag,
+    validateReportSnapshotForFill: validateReportSnapshotForFill
   };
   (typeof globalThis !== "undefined" ? globalThis : global).__SHOP_RECORD_DEFAULTS__ = obj;
 })(typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self);

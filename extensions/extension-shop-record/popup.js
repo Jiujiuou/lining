@@ -298,36 +298,83 @@
   }
   if (reportSubmitFillBtn && typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
     reportSubmitFillBtn.addEventListener("click", function () {
-      if (logger) {
-        logger.log(PREFIX + " 已请求：向联核上报页自动填充本地数据…");
-        loadLogs();
-      }
-      chrome.runtime.sendMessage({ type: FILL_REPORT_PAGE_MSG }, function (res) {
-        if (chrome.runtime.lastError) {
-          if (logger) {
-            logger.warn(PREFIX + " 自动填充失败：" + String(chrome.runtime.lastError.message));
-          }
-        } else if (res && res.ok) {
-          if (logger) {
-            logger.log(
-              PREFIX +
-                " 自动填充成功：已写入 " +
-                (res.filled != null ? res.filled : "?") +
-                " 项（统计日 " +
-                (res.reportAt || "") +
-                "）"
-            );
-          }
-        } else {
-          if (logger) {
-            logger.warn(
-              PREFIX +
-                " 自动填充未完成：" +
-                (res && res.error ? String(res.error) : "未知原因（请确认上报页已加载）")
-            );
-          }
+      if (
+        !defaults ||
+        typeof defaults.pickSnapshotFromDailyBag !== "function" ||
+        typeof defaults.validateReportSnapshotForFill !== "function"
+      ) {
+        if (logger) {
+          logger.warn(PREFIX + " 自动填充已取消：无法校验本地数据（defaults 未就绪）");
         }
         loadLogs();
+        return;
+      }
+      if (!chrome.storage || !chrome.storage.local) {
+        if (logger) {
+          logger.warn(PREFIX + " 自动填充已取消：无法读取本地存储");
+        }
+        loadLogs();
+        return;
+      }
+      chrome.storage.local.get([STORAGE_DAILY], function (result) {
+        if (chrome.runtime && chrome.runtime.lastError) {
+          if (logger) {
+            logger.warn(
+              PREFIX + " 自动填充已取消：读取本地数据失败 " + String(chrome.runtime.lastError.message)
+            );
+          }
+          loadLogs();
+          return;
+        }
+        var bag = result[STORAGE_DAILY];
+        var snap = defaults.pickSnapshotFromDailyBag(bag);
+        var vr = defaults.validateReportSnapshotForFill(snap);
+        if (!vr.ok) {
+          var miss = vr.missing || [];
+          if (logger) {
+            miss.forEach(function (m) {
+              logger.warn(PREFIX + " 「" + m.label + "」数据未读取到，已拦截自动填充");
+            });
+            logger.warn(
+              PREFIX + " 自动填充已取消：本地数据不完整（共 " + miss.length + " 项缺失）"
+            );
+          }
+          loadLogs();
+          return;
+        }
+        if (logger) {
+          logger.log(PREFIX + " 已请求：向联核上报页自动填充本地数据…");
+          loadLogs();
+        }
+        chrome.runtime.sendMessage({ type: FILL_REPORT_PAGE_MSG }, function (res) {
+          if (chrome.runtime.lastError) {
+            if (logger) {
+              logger.warn(PREFIX + " 自动填充失败：" + String(chrome.runtime.lastError.message));
+            }
+          } else if (res && res.ok) {
+            if (logger) {
+              logger.log(
+                PREFIX +
+                  " 自动填充成功：已写入 " +
+                  (res.filled != null ? res.filled : "?") +
+                  " 项（统计日 " +
+                  (res.reportAt || "") +
+                  "）"
+              );
+            }
+          } else {
+            if (logger) {
+              var errMsg =
+                res && res.error === "incomplete_data"
+                  ? "本地数据不完整（共 " + (res.missingCount != null ? res.missingCount : "?") + " 项缺失）"
+                  : res && res.error
+                    ? String(res.error)
+                    : "未知原因（请确认上报页已加载）";
+              logger.warn(PREFIX + " 自动填充未完成：" + errMsg);
+            }
+          }
+          loadLogs();
+        });
       });
     });
   }

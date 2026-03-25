@@ -2,6 +2,7 @@
  * 联核 OA 上报页：将本地合并快照字段写入表单 input#fieldXXXX
  * 与 popup 指标字段名一致；不包含「总推广花费」「推广占比」
  */
+/* global __SHOP_RECORD_DEFAULTS__ */
 (function (global) {
   /** [storageKey, fieldIdSuffix] */
   var FIELD_MAP = [
@@ -47,18 +48,96 @@
     return FIELD_MAP.concat(MORE_FIELDS);
   }
 
-  function setFieldValue(fieldIdSuffix, str) {
-    var id = "field" + fieldIdSuffix;
-    var el = document.getElementById(id);
-    if (!el) return false;
-    var v = str == null ? "" : String(str);
-    el.value = v;
+  function setNativeInputOrTextareaValue(el, v) {
+    var desc = null;
+    if (el instanceof HTMLTextAreaElement) {
+      desc = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value");
+    } else if (el instanceof HTMLInputElement) {
+      desc = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    }
+    if (desc && desc.set) {
+      desc.set.call(el, v);
+    } else {
+      el.value = v;
+    }
+  }
+
+  function dispatchInputAndChange(el, v) {
+    var isEmpty = v === "";
+    var inputType = isEmpty ? "deleteContentBackward" : "insertFromPaste";
     try {
-      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(
+        new InputEvent("input", {
+          bubbles: true,
+          cancelable: true,
+          inputType: inputType,
+          data: isEmpty ? null : v
+        })
+      );
+    } catch {
+      try {
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
       el.dispatchEvent(new Event("change", { bubbles: true }));
-    } catch (e) {
+    } catch {
       /* ignore */
     }
+  }
+
+  function dispatchOnFieldMarkCell(el) {
+    var cell = el.closest && el.closest("[data-fieldmark]");
+    if (!cell) return;
+    try {
+      cell.dispatchEvent(
+        new InputEvent("input", { bubbles: true, cancelable: true, composed: true })
+      );
+    } catch {
+      try {
+        cell.dispatchEvent(new Event("input", { bubbles: true }));
+      } catch {
+        /* ignore */
+      }
+    }
+    try {
+      cell.dispatchEvent(new Event("change", { bubbles: true }));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function getFieldControlElement(fieldIdSuffix) {
+    var id = "field" + fieldIdSuffix;
+    var cell = document.querySelector('[data-fieldmark="' + id + '"]');
+    if (cell) {
+      var inner = cell.querySelector("input.wf-input, input, textarea");
+      if (inner) return inner;
+    }
+    var byId = document.getElementById(id);
+    if (byId && (byId.tagName === "INPUT" || byId.tagName === "TEXTAREA")) return byId;
+    return null;
+  }
+
+  function setFieldValue(fieldIdSuffix, str) {
+    var id = "field" + fieldIdSuffix;
+    var el = getFieldControlElement(fieldIdSuffix);
+    if (!el) return false;
+    var v = str == null ? "" : String(str);
+
+    var tag = el.tagName && el.tagName.toLowerCase();
+    if (tag === "input" || tag === "textarea") {
+      setNativeInputOrTextareaValue(el, v);
+      dispatchInputAndChange(el, v);
+      dispatchOnFieldMarkCell(el);
+    } else {
+      el.value = v;
+      dispatchInputAndChange(el, v);
+      dispatchOnFieldMarkCell(el);
+    }
+
     var sp = document.getElementById(id + "span");
     if (sp && el.type === "hidden") {
       sp.textContent = v;
