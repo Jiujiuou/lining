@@ -1,5 +1,7 @@
 /* 店铺记录数据 popup：与 extension-template / campaign-register 相同的左右分栏 */
 :root {
+  /** 主内容表格：左右两列「数值」栏等宽（与标签列 fr 独立） */
+  --popup-metric-value-col: 6.75rem;
   --popup-bg: #f2f5f4;
   --popup-surface: #ffffff;
   --popup-surface-hover: #fafbfb;
@@ -85,26 +87,68 @@ body {
   flex-shrink: 0;
 }
 
+
 .popup-section--findpage {
-  gap: var(--popup-space-sm);
+  gap: 4px;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.popup-section--findpage-tight.popup-section {
+  padding: 4px 8px 6px;
 }
 
 .popup-findpage-header {
   display: flex;
   align-items: center;
   gap: var(--popup-space-sm);
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.popup-daily-clear {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0.2rem 0.45rem;
+  font-family: var(--popup-font);
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--popup-text-muted);
+  background: var(--popup-surface);
+  border: 1px solid var(--popup-border);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.popup-daily-clear:hover {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.popup-daily-clear:focus {
+  outline: none;
+  border-color: var(--popup-accent);
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
 }
 
 .popup-findpage-title {
-  font-size: var(--popup-font-size-title);
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--popup-text);
   margin: 0;
   margin-right: auto;
   letter-spacing: 0.01em;
+  line-height: 1.2;
 }
 
 .popup-findpage-list {
@@ -119,6 +163,13 @@ body {
   border: 1px solid var(--popup-border);
   border-radius: var(--popup-radius-sm);
   scrollbar-width: thin;
+}
+
+/** 主内容指标：一屏展示、不在此区域滚动 */
+.popup-findpage-list--metrics {
+  overflow: hidden;
+  padding: 4px 6px 6px;
+  gap: 2px;
 }
 
 .popup-findpage-list::-webkit-scrollbar {
@@ -140,6 +191,86 @@ body {
   color: var(--popup-text-muted);
   font-size: var(--popup-font-size);
   padding: 20px 12px;
+  text-align: center;
+  line-height: 1.55;
+}
+
+.popup-metrics-meta {
+  flex-shrink: 0;
+  padding: 0 1px 3px;
+  font-size: 0.625rem;
+  color: var(--popup-text-muted);
+  line-height: 1.2;
+}
+
+.popup-metrics-meta strong {
+  color: var(--popup-text);
+  font-weight: 600;
+}
+
+/** 两列 ×（标签 + 数值）四栏，与生意参谋式后台一致 */
+.popup-metrics-grid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--popup-border);
+  font-size: 0.625rem;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.popup-metric-grid-row {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    var(--popup-metric-value-col)
+    minmax(0, 1fr)
+    var(--popup-metric-value-col);
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  border-bottom: 1px solid var(--popup-border);
+}
+
+.popup-metric-grid-row:last-child {
+  border-bottom: none;
+}
+
+.popup-metric-grid-row--zebra-a {
+  background: #ecf8f5;
+}
+
+.popup-metric-grid-row--zebra-b {
+  background: #ffffff;
+}
+
+.popup-metric-cell {
+  padding: 2px 4px;
+  min-width: 0;
+  border-right: 1px solid var(--popup-border);
+}
+
+.popup-metric-cell:last-child {
+  border-right: none;
+}
+
+.popup-metric-cell--label {
+  color: var(--popup-text);
+  text-align: left;
+}
+
+.popup-metric-cell--value {
+  width: 100%;
+  max-width: none;
+  text-align: right;
+  color: var(--popup-text);
+  font-weight: 500;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .popup-open-all {

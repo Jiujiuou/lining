@@ -44,13 +44,19 @@
             上报页
           </button>
         </section>
-        <section class="popup-section popup-section--findpage" id="shop-record-findpage-section">
+        <section
+          class="popup-section popup-section--findpage popup-section--findpage-tight"
+          id="shop-record-findpage-section"
+        >
           <header class="popup-findpage-header">
             <h2 class="popup-findpage-title">主内容</h2>
+            <button type="button" id="daily-local-clear" class="popup-daily-clear" title="清除合并后的每日指标快照（不影响云端）">
+              清空本地数据
+            </button>
           </header>
           <div
             id="shop-record-body"
-            class="popup-findpage-list"
+            class="popup-findpage-list popup-findpage-list--metrics"
             role="region"
             aria-label="主内容区"
           ></div>

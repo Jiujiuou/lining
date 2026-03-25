@@ -16,6 +16,8 @@
     typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
   var supabaseUtil =
     typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
+  var localDaily =
+    typeof __SHOP_RECORD_LOCAL_DAILY__ !== "undefined" ? __SHOP_RECORD_LOCAL_DAILY__ : null;
 
   function appendLog(level, msg) {
     try {
@@ -44,9 +46,6 @@
    */
   function maybeUpsertOnebpSearch(bizCode, payload) {
     if (bizCode !== "onebpSearch") return;
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
     var p = payload;
     if (typeof p === "string") {
       try {
@@ -95,6 +94,12 @@
     if (ppc) row.ztc_ppc = ppc;
     if (roi) row.ztc_roi = roi;
 
+    if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
+      localDaily.mergeDailyRowPatch(row);
+    }
+    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
+      return;
+    }
     supabaseUtil
       .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
         conflict: "report_at",
@@ -123,9 +128,6 @@
    */
   function maybeUpsertOnebpDisplay(bizCode, payload) {
     if (bizCode !== "onebpDisplay") return;
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
     var p = payload;
     if (typeof p === "string") {
       try {
@@ -174,6 +176,12 @@
     if (ppc) row.ylmf_ppc = ppc;
     if (roi) row.ylmf_roi = roi;
 
+    if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
+      localDaily.mergeDailyRowPatch(row);
+    }
+    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
+      return;
+    }
     supabaseUtil
       .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
         conflict: "report_at",
@@ -202,9 +210,6 @@
    */
   function maybeUpsertOnebpSite(bizCode, payload) {
     if (bizCode !== "onebpSite") return;
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
     var p = payload;
     if (typeof p === "string") {
       try {
@@ -239,6 +244,12 @@
     if (charge) row.site_wide_charge_yuan = charge;
     if (roi) row.site_wide_roi = roi;
 
+    if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
+      localDaily.mergeDailyRowPatch(row);
+    }
+    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
+      return;
+    }
     supabaseUtil
       .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
         conflict: "report_at",
@@ -267,9 +278,6 @@
    */
   function maybeUpsertOnebpShortVideo(bizCode, payload) {
     if (bizCode !== "onebpShortVideo") return;
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
     var p = payload;
     if (typeof p === "string") {
       try {
@@ -304,6 +312,12 @@
     if (charge) row.content_promo_charge_yuan = charge;
     if (roi) row.content_promo_roi = roi;
 
+    if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
+      localDaily.mergeDailyRowPatch(row);
+    }
+    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
+      return;
+    }
     supabaseUtil
       .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
         conflict: "report_at",

@@ -4,7 +4,9 @@
 (function (global) {
   var STORAGE_KEYS = {
     logs: "shop_record_logs",
-    logsByTab: "shop_record_logs_by_tab"
+    logsByTab: "shop_record_logs_by_tab",
+    /** 按日合并的 shop_record_daily 本地快照 { [yyyy-mm-dd]: { ...columns } } */
+    dailyLocalByDate: "shop_record_daily_local_by_date"
   };
   var LOG_MAX_ENTRIES = 100;
   var PREFIX = "[店铺记录数据]";

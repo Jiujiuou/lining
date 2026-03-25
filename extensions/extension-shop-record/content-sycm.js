@@ -26,6 +26,8 @@
     typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
   var supabaseUtil =
     typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
+  var localDaily =
+    typeof __SHOP_RECORD_LOCAL_DAILY__ !== "undefined" ? __SHOP_RECORD_LOCAL_DAILY__ : null;
 
   function extLog(msg) {
     try {
@@ -133,9 +135,6 @@
 
   /** 千牛后台昨日行 → shop_record_daily 流量列（含老访客占比=老访客数/访客数） */
   function maybeUpsertSycmShopMetrics(row, titles) {
-    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
-      return;
-    }
     if (!row || !Array.isArray(titles)) return;
 
     var ymd = yesterdayYmd();
@@ -177,6 +176,12 @@
 
     if (Object.keys(payload).length <= 1) return;
 
+    if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
+      localDaily.mergeDailyRowPatch(payload);
+    }
+    if (!supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function" || !supabaseCfg) {
+      return;
+    }
     supabaseUtil
       .upsertDailyRow(TABLE_NAME, payload, supabaseCfg, {
         conflict: "report_at",

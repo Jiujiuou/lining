@@ -16,6 +16,8 @@
     typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
   var supabaseUtil =
     typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
+  var localDaily =
+    typeof __SHOP_RECORD_LOCAL_DAILY__ !== "undefined" ? __SHOP_RECORD_LOCAL_DAILY__ : null;
   var TABLE_NAME = "shop_record_daily";
 
   function sendLog(msg) {
@@ -130,12 +132,6 @@
   function maybeUploadDailyRow() {
     if (uploaded || uploadInFlight) return;
     if (!dsrData || !refundData) return;
-    if (!supabaseCfg || !supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function") {
-      appendLog("warn", PREFIX + " Supabase 工具未加载，跳过上报");
-      uploaded = true;
-      return;
-    }
-    uploadInFlight = true;
     var row = {
       report_at: yesterdayYmd(),
       item_desc_match_score: dsrData.item_desc_match_score,
@@ -145,6 +141,15 @@
       refund_finish_rate: refundData.refund_finish_rate,
       dispute_refund_rate: refundData.dispute_refund_rate
     };
+    if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
+      localDaily.mergeDailyRowPatch(row);
+    }
+    if (!supabaseCfg || !supabaseUtil || typeof supabaseUtil.upsertDailyRow !== "function") {
+      appendLog("warn", PREFIX + " Supabase 工具未加载，跳过上报");
+      uploaded = true;
+      return;
+    }
+    uploadInFlight = true;
     supabaseUtil
       .upsertDailyRow(TABLE_NAME, row, supabaseCfg, {
         conflict: "report_at",

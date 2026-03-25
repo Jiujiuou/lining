@@ -26,6 +26,8 @@
     typeof __SHOP_RECORD_SUPABASE__ !== "undefined" ? __SHOP_RECORD_SUPABASE__ : null;
   var supabaseUtil =
     typeof __SHOP_RECORD_SUPABASE_UTIL__ !== "undefined" ? __SHOP_RECORD_SUPABASE_UTIL__ : null;
+  var localDaily =
+    typeof __SHOP_RECORD_LOCAL_DAILY__ !== "undefined" ? __SHOP_RECORD_LOCAL_DAILY__ : null;
 
   function extLog(msg) {
     try {
@@ -116,6 +118,13 @@
           var out = isNaN(n) ? String(raw) : n.toFixed(2);
           extLog("淘宝联盟：pay_ord_cfee_8 = " + out + "（元）");
           console.log("pay_ord_cfee_8", out);
+          var rowCps = {
+            report_at: ymd,
+            taobao_cps_spend_yuan: out
+          };
+          if (localDaily && typeof localDaily.mergeDailyRowPatch === "function") {
+            localDaily.mergeDailyRowPatch(rowCps);
+          }
           if (
             supabaseUtil &&
             typeof supabaseUtil.upsertDailyRow === "function" &&
@@ -124,10 +133,7 @@
             supabaseUtil
               .upsertDailyRow(
                 TABLE_NAME,
-                {
-                  report_at: ymd,
-                  taobao_cps_spend_yuan: out
-                },
+                rowCps,
                 supabaseCfg,
                 {
                   conflict: "report_at",
