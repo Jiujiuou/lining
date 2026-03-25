@@ -605,6 +605,10 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* 在图表上移动/拖拽（含 Shift 测距、tooltip）时避免误选标题与浮层文案 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .chart-cell:hover {
@@ -612,6 +616,18 @@
 }
 
 .chart-cell:focus {
+  outline: none;
+}
+
+.chart-cell:focus-visible {
+  outline: none;
+}
+
+/* 点击 Recharts/SVG 后焦点落在子节点上，浏览器会画蓝色轮廓；统一去掉 */
+.chart-cell svg:focus,
+.chart-cell .recharts-responsive-container:focus,
+.chart-cell .recharts-wrapper:focus,
+.chart-cell .recharts-surface:focus {
   outline: none;
 }
 
@@ -691,6 +707,86 @@
 
 .chart-cell-title-block--with-sub .chart-cell-title {
   margin-bottom: 4px;
+}
+
+/* 左上角唯一浮层：hover 数值与测距共用容器（Recharts Tooltip 本体已隐藏） */
+.chart-floating-panel {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  z-index: 2;
+  max-width: min(92%, 280px);
+  pointer-events: none;
+}
+
+.chart-floating-panel .chart-tooltip {
+  pointer-events: none;
+}
+
+.chart-floating-panel .chart-measure-panel {
+  pointer-events: auto;
+}
+
+/* 测距：Shift+点击 / 长按后点两点 */
+.chart-measure-panel {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-hover);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  text-align: left;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chart-measure-panel--hint {
+  color: var(--text);
+}
+
+.chart-measure-panel-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.chart-measure-panel-row:last-of-type {
+  margin-bottom: 6px;
+}
+
+.chart-measure-label {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.chart-measure-hint {
+  color: var(--muted);
+  font-size: 0.7rem;
+  margin-left: 4px;
+}
+
+.chart-measure-hint-line {
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.chart-measure-clear {
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chart-measure-clear:hover {
+  color: var(--text);
+  border-color: var(--accent);
 }
 
 /* 数据点 hover 时显示手型 */
