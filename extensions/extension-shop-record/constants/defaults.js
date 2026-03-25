@@ -32,7 +32,11 @@
   /** background / logger / sendMessage 共用 type，避免与 storage 键硬编码漂移（对齐 extension-template） */
   var RUNTIME = {
     GET_TAB_ID_MESSAGE: "SR_GET_TAB_ID",
-    CONTENT_APPEND_LOG_MESSAGE: "shopRecordAppendLog"
+    CONTENT_APPEND_LOG_MESSAGE: "shopRecordAppendLog",
+    /** popup → background：请求向联核 OA 上报页填充本地快照 */
+    FILL_REPORT_PAGE_MESSAGE: "SR_FILL_REPORT_PAGE",
+    /** background → content-report-submit：执行填充 */
+    CONTENT_FILL_REPORT_MESSAGE: "SR_FILL_REPORT"
   };
 
   var obj = {

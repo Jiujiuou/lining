@@ -101,8 +101,13 @@
   var reportSubmitOpenBtn = document.getElementById("report-submit-open");
   var shopRecordBodyEl = document.getElementById("shop-record-body");
   var dailyLocalClearBtn = document.getElementById("daily-local-clear");
+  var reportSubmitFillBtn = document.getElementById("report-submit-fill");
   var PREFIX =
     defaults && defaults.PREFIX ? defaults.PREFIX : "[店铺记录数据]";
+  var FILL_REPORT_PAGE_MSG =
+    defaults && defaults.RUNTIME && defaults.RUNTIME.FILL_REPORT_PAGE_MESSAGE
+      ? defaults.RUNTIME.FILL_REPORT_PAGE_MESSAGE
+      : "SR_FILL_REPORT_PAGE";
   var STORAGE_DAILY =
     defaults && defaults.STORAGE_KEYS && defaults.STORAGE_KEYS.dailyLocalByDate
       ? defaults.STORAGE_KEYS.dailyLocalByDate
@@ -289,6 +294,41 @@
   if (reportSubmitOpenBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
     reportSubmitOpenBtn.addEventListener("click", function () {
       chrome.tabs.create({ url: reportSubmitPageUrl });
+    });
+  }
+  if (reportSubmitFillBtn && typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+    reportSubmitFillBtn.addEventListener("click", function () {
+      if (logger) {
+        logger.log(PREFIX + " 已请求：向联核上报页自动填充本地数据…");
+        loadLogs();
+      }
+      chrome.runtime.sendMessage({ type: FILL_REPORT_PAGE_MSG }, function (res) {
+        if (chrome.runtime.lastError) {
+          if (logger) {
+            logger.warn(PREFIX + " 自动填充失败：" + String(chrome.runtime.lastError.message));
+          }
+        } else if (res && res.ok) {
+          if (logger) {
+            logger.log(
+              PREFIX +
+                " 自动填充成功：已写入 " +
+                (res.filled != null ? res.filled : "?") +
+                " 项（统计日 " +
+                (res.reportAt || "") +
+                "）"
+            );
+          }
+        } else {
+          if (logger) {
+            logger.warn(
+              PREFIX +
+                " 自动填充未完成：" +
+                (res && res.error ? String(res.error) : "未知原因（请确认上报页已加载）")
+            );
+          }
+        }
+        loadLogs();
+      });
     });
   }
 

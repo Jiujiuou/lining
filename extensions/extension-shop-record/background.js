@@ -13,6 +13,9 @@ importScripts("constants/defaults.js");
   var MAX = SR.LOG_MAX_ENTRIES;
   var GET_TAB_MSG = SR.RUNTIME.GET_TAB_ID_MESSAGE;
   var APPEND_MSG = SR.RUNTIME.CONTENT_APPEND_LOG_MESSAGE;
+  var FILL_REPORT_MSG = SR.RUNTIME.FILL_REPORT_PAGE_MESSAGE;
+  var CONTENT_FILL_MSG = SR.RUNTIME.CONTENT_FILL_REPORT_MESSAGE;
+  var REPORT_SUBMIT_URL = SR.REPORT_SUBMIT_PAGE_URL;
 
   var logQueue = [];
   var logWriting = false;
@@ -79,6 +82,56 @@ importScripts("constants/defaults.js");
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         var id = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
         sendResponse({ tabId: id });
+      });
+      return true;
+    }
+    if (request && request.type === FILL_REPORT_MSG) {
+      if (!REPORT_SUBMIT_URL) {
+        sendResponse({ ok: false, error: "未配置上报页 URL" });
+        return true;
+      }
+      chrome.tabs.query({ url: "https://oa1.ilanhe.com/*" }, function (tabs) {
+        function deliver(tabId) {
+          chrome.tabs.sendMessage(
+            tabId,
+            { type: CONTENT_FILL_MSG },
+            function (res) {
+              if (chrome.runtime.lastError) {
+                sendResponse({
+                  ok: false,
+                  error: chrome.runtime.lastError.message || "内容脚本未响应"
+                });
+                return;
+              }
+              sendResponse(res && typeof res === "object" ? res : { ok: false });
+            }
+          );
+        }
+        if (tabs && tabs.length > 0) {
+          var tid = tabs[0].id;
+          chrome.tabs.update(tid, { active: true }, function () {
+            setTimeout(function () {
+              deliver(tid);
+            }, 400);
+          });
+        } else {
+          chrome.tabs.create({ url: REPORT_SUBMIT_URL }, function (tab) {
+            if (!tab || tab.id == null) {
+              sendResponse({ ok: false, error: "无法创建上报页标签" });
+              return;
+            }
+            var createdId = tab.id;
+            var listener = function (tabId, changeInfo) {
+              if (tabId === createdId && changeInfo.status === "complete") {
+                chrome.tabs.onUpdated.removeListener(listener);
+                setTimeout(function () {
+                  deliver(createdId);
+                }, 1000);
+              }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+          });
+        }
       });
       return true;
     }

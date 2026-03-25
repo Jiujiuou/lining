@@ -273,6 +273,28 @@ body {
   overflow-wrap: anywhere;
 }
 
+.popup-controls-top-row {
+  flex-basis: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.popup-controls-top-row .popup-open-all {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  flex-basis: auto;
+  margin-bottom: 0;
+}
+
+.popup-open-sites--fill {
+  flex-shrink: 0;
+}
+
 .popup-open-all {
   flex-basis: 100%;
   width: 100%;
