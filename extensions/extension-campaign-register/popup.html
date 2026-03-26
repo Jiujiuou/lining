@@ -14,34 +14,126 @@
   </head>
   <body>
     <div class="popup">
-      <div class="popup-left">
-        <section class="popup-section popup-section--open-links">
-          <button type="button" id="open-onesite-record" class="popup-open-sites">货品全站推广</button>
-          <button type="button" id="open-search-record" class="popup-open-sites">关键词推广</button>
-          <button type="button" id="open-promo-record" class="popup-open-sites">人群推广</button>
-          <button type="button" id="open-content-record" class="popup-open-sites">内容营销</button>
+      <div class="popup-col popup-col--left">
+        <section
+          class="popup-section popup-section--local-register"
+          id="amcr-local-register-section"
+        >
+          <div
+            id="amcr-local-table-wrap"
+            class="popup-local-table-wrap"
+            role="region"
+            aria-label="本地推广登记表"
+          ></div>
         </section>
-        <section class="popup-section popup-section--findpage" id="findpage-section">
-          <header class="popup-findpage-header">
-            <h2 class="popup-findpage-title">推广列表</h2>
-            <button type="button" id="findpage-action" class="popup-findpage-refresh">登记</button>
-            <button type="button" id="findpage-refresh" class="popup-findpage-refresh" aria-label="刷新列表">
-              刷新列表
-            </button>
-          </header>
+
+        <section
+          class="popup-section popup-section--findpage"
+          id="findpage-section"
+        >
           <div id="findpage-list" class="popup-findpage-list" role="list"></div>
         </section>
       </div>
-      <section class="popup-section popup-section--logs">
-        <header class="popup-logs-header">
-          <h2 class="popup-logs-title">日志</h2>
-          <button type="button" id="logs-clear" class="popup-logs-clear" aria-label="清空日志">清空</button>
-        </header>
-        <div id="logs-list" class="popup-logs-list" role="log" aria-live="polite"></div>
-      </section>
+
+      <div class="popup-col popup-col--right">
+        <section class="popup-section popup-section--open-links">
+          <div
+            class="popup-open-links-grid"
+            role="group"
+            aria-label="打开推广记录页"
+          >
+            <button
+              type="button"
+              id="open-onesite-record"
+              class="popup-open-sites"
+            >
+              货品全站推广
+            </button>
+            <button
+              type="button"
+              id="open-search-record"
+              class="popup-open-sites"
+            >
+              关键词推广
+            </button>
+            <button
+              type="button"
+              id="open-promo-record"
+              class="popup-open-sites"
+            >
+              人群推广
+            </button>
+            <button
+              type="button"
+              id="open-content-record"
+              class="popup-open-sites"
+            >
+              内容营销
+            </button>
+          </div>
+          <div
+            class="popup-open-links-toolbar"
+            role="toolbar"
+            aria-label="本地与列表操作"
+          >
+            <button
+              type="button"
+              id="amcr-local-clear"
+              class="popup-daily-clear popup-open-links-toolbar-btn"
+              title="清除本地已保存的推广登记快照（不影响云端）"
+            >
+              清空本地数据
+            </button>
+            <button
+              type="button"
+              id="findpage-action"
+              class="popup-findpage-refresh popup-open-links-toolbar-btn"
+            >
+              登记
+            </button>
+            <button
+              type="button"
+              id="findpage-refresh"
+              class="popup-findpage-refresh popup-open-links-toolbar-btn"
+              aria-label="刷新列表"
+            >
+              刷新列表
+            </button>
+            <button
+              type="button"
+              id="amcr-local-export"
+              class="popup-findpage-refresh popup-open-links-toolbar-btn"
+              aria-label="导出表格"
+            >
+              导出表格
+            </button>
+          </div>
+        </section>
+
+        <section class="popup-section popup-section--logs">
+          <header class="popup-logs-header">
+            <h2 class="popup-logs-title">日志</h2>
+            <button
+              type="button"
+              id="logs-clear"
+              class="popup-logs-clear"
+              aria-label="清空日志"
+            >
+              清空
+            </button>
+          </header>
+          <div
+            id="logs-list"
+            class="popup-logs-list"
+            role="log"
+            aria-live="polite"
+          ></div>
+        </section>
+      </div>
     </div>
     <script src="constants/defaults.js"></script>
     <script src="constants/supabase.js"></script>
+    <script src="utils/local-campaign-register-store.js"></script>
     <script src="utils/logger.js"></script>
     <script src="popup.js"></script>
   </body>

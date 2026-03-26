@@ -38,14 +38,15 @@ body {
   font-family: var(--popup-font);
   font-size: var(--popup-font-size);
   color: var(--popup-text);
-  background: var(--popup-bg);
+  background: #ffffff;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
 .popup {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
+  gap: 6px;
   width: 800px;
   max-width: 800px;
   height: 560px;
@@ -53,79 +54,384 @@ body {
   overflow: hidden;
 }
 
-.popup-left {
-  flex: 1;
+.popup-col {
   min-width: 0;
+  min-height: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.popup-col--left {
+  grid-template-rows: minmax(0, 5fr) minmax(0, 5fr);
+  gap: 8px;
+}
+
+.popup-col--right {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: 6px;
 }
 
 /* ---------- 区块通用 ---------- */
 .popup-section {
   display: flex;
   flex-direction: column;
-  padding: var(--popup-space);
   background: var(--popup-surface);
-  border-bottom: 1px solid var(--popup-border);
-}
-
-.popup-left .popup-section:last-of-type {
-  flex: 1;
-  border-bottom: none;
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  padding: 6px;
+  min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
-/* ---------- 主操作：推广记录页入口（四按钮，空间不足时换行） ---------- */
+.popup-section--local-register {
+  background: #f8fbfa;
+  border-color: #dbe9e6;
+  padding: 8px;
+}
+
+.popup-section--findpage {
+  background: #f9fcfb;
+  border-color: #dbe9e6;
+  padding: 8px;
+}
+
 .popup-section--open-links {
-  padding: var(--popup-space) var(--popup-space) calc(var(--popup-space) + 2px);
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px;
+  background: #f7fbfa;
 }
 
-.popup-open-sites {
+.popup-section--logs {
+  background: #f8fbfa;
+}
+
+/* ---------- 区块标题（左栏表格 / 列表） ---------- */
+.popup-section-title {
+  flex-shrink: 0;
+  margin: 0 0 6px;
+  font-size: var(--popup-font-size-title);
+  font-weight: 600;
+  color: var(--popup-text);
+  letter-spacing: 0.01em;
+}
+
+.popup-section-title--compact {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+/* ---------- 本地登记表格（参考 extension-shop-record 077f111） ---------- */
+.popup-section--local-register {
+  gap: 6px;
+}
+
+.popup-daily-clear {
+  flex-shrink: 0;
+  margin-left: auto;
+  height: 34px;
+  padding: 0 10px;
+  font-family: var(--popup-font);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--popup-text-muted);
+  background: var(--popup-surface);
+  border: 1px solid var(--popup-border);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.popup-daily-clear:hover {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.popup-daily-clear:focus {
+  outline: none;
+  border-color: var(--popup-accent);
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+.popup-local-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.popup-local-table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  border-radius: 6px;
+  border: none;
+  background: var(--popup-surface);
+  box-shadow: inset 0 0 0 1px #e6efed;
+}
+
+.popup-local-table-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.popup-local-table-scroll::-webkit-scrollbar-thumb {
+  background: var(--popup-border);
+  border-radius: 3px;
+}
+
+.popup-local-meta {
+  flex-shrink: 0;
+  padding: 0 2px 4px;
+  font-size: 0.625rem;
+  color: var(--popup-text-muted);
+  line-height: 1.25;
+}
+
+.popup-local-meta strong {
+  color: var(--popup-text);
+  font-weight: 600;
+}
+
+.popup-local-register-table {
+  /* 仅按内容撑开总宽，横向滚动；勿设 min-width:100%，否则列会被压成极窄竖排 */
+  width: max-content;
+  border-collapse: collapse;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  table-layout: auto;
+  writing-mode: horizontal-tb;
+}
+
+.popup-local-register-table th,
+.popup-local-register-table td {
+  border-bottom: 1px solid var(--popup-border);
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+  color: var(--popup-text);
+  writing-mode: horizontal-tb;
+}
+
+.popup-local-register-table th {
+  background: color-mix(
+    in srgb,
+    var(--popup-accent-soft) 55%,
+    var(--popup-accent)
+  );
+  color: var(--popup-text);
+  font-weight: 700;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--popup-border);
+}
+
+.popup-local-register-table th:nth-child(1),
+.popup-local-register-table td.popup-local-date {
+  min-width: 5.75rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.popup-local-register-table th:nth-child(2),
+.popup-local-register-table td.popup-local-name {
+  min-width: 8.5rem;
+  max-width: 12rem;
+  text-align: left;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* 指标列：第 3 列起（消耗/成交/ROI） */
+.popup-local-register-table th:nth-child(n + 3),
+.popup-local-register-table td.popup-local-num {
+  min-width: 4.35rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.popup-local-register-table tbody .popup-local-roi {
+  background: color-mix(
+    in srgb,
+    var(--popup-accent-soft) 32%,
+    var(--popup-surface)
+  );
+}
+
+.popup-local-register-table tbody tr:hover td {
+  background: #ffffff;
+}
+
+.popup-local-register-table tbody tr:hover .popup-local-roi {
+  background: color-mix(in srgb, var(--popup-accent-soft) 42%, var(--popup-bg));
+}
+
+.popup-local-register-table .popup-local-action {
+  width: 1%;
+  min-width: 3rem;
+  white-space: nowrap;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.amcr-local-delete-btn {
+  padding: 2px 8px;
+  font-family: var(--popup-font);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--popup-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.amcr-local-delete-btn:hover {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.amcr-local-delete-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+.popup-local-register-table tbody tr:nth-child(even) td:not(.popup-local-roi) {
+  background: rgba(236, 248, 245, 0.22);
+}
+
+.popup-local-register-table tbody tr:nth-child(even) td.popup-local-roi {
+  background: color-mix(
+    in srgb,
+    var(--popup-accent-soft) 38%,
+    var(--popup-surface)
+  );
+}
+
+.popup-local-table--empty {
+  padding: 16px 10px;
+  text-align: center;
+  color: var(--popup-text-muted);
+  font-size: var(--popup-font-size);
+  line-height: 1.5;
+}
+
+/* ---------- 右上：打开页 + 清空本地 / 登记 / 刷新 ---------- */
+.popup-section--open-links {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
   flex: 0 0 auto;
+  overflow: visible;
+}
+
+.popup-open-links-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-content: start;
+}
+
+.popup-open-links-toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.popup-open-links-toolbar-btn {
+  width: 100%;
+  margin-left: 0 !important;
+  justify-content: center;
+  text-align: center;
+}
+
+.popup-open-links-toolbar .popup-daily-clear {
+  margin-left: 0;
+  height: 34px;
+  padding: 0 8px;
+  font-size: 0.75rem;
+}
+
+.popup-open-links-toolbar .popup-findpage-refresh {
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  font-size: 0.75rem;
+}
+
+.popup-open-sites,
+.popup-open-links-toolbar .popup-daily-clear,
+.popup-open-links-toolbar .popup-findpage-refresh,
+.popup-logs-clear {
+  width: 100%;
   white-space: nowrap;
   min-width: 0;
-  padding: 8px 14px;
+  height: 34px;
+  padding: 0 8px;
   font-family: var(--popup-font);
-  font-size: var(--popup-font-size);
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--popup-surface);
   background: var(--popup-accent);
   border: 1px solid var(--popup-accent);
   border-radius: var(--popup-radius-sm);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
-.popup-open-sites:hover {
+.popup-open-sites:hover,
+.popup-open-links-toolbar .popup-daily-clear:hover,
+.popup-open-links-toolbar .popup-findpage-refresh:hover,
+.popup-logs-clear:hover {
   background: var(--popup-accent-hover);
   border-color: var(--popup-accent-hover);
+  color: var(--popup-surface);
 }
 
-.popup-open-sites:focus {
+.popup-open-sites:focus,
+.popup-open-links-toolbar .popup-daily-clear:focus,
+.popup-open-links-toolbar .popup-findpage-refresh:focus,
+.popup-logs-clear:focus {
   outline: none;
   box-shadow: 0 0 0 2px var(--popup-accent-soft);
 }
 
 /* ---------- 扩展日志区块（右侧列） ---------- */
 .popup-section--logs {
-  width: 260px;
-  flex-shrink: 0;
-  border-bottom: none;
-  border-left: 1px solid var(--popup-border);
   gap: var(--popup-space-sm);
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex: 1 1 auto;
 }
 
 .popup-logs-header {
@@ -145,31 +451,9 @@ body {
 
 .popup-logs-clear {
   flex-shrink: 0;
-  padding: 8px 14px;
-  font-family: var(--popup-font);
-  font-size: var(--popup-font-size);
-  font-weight: 500;
-  color: var(--popup-text-muted);
-  background: var(--popup-surface);
-  border: 1px solid var(--popup-border);
-  border-radius: var(--popup-radius-sm);
-  cursor: pointer;
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
-}
-
-.popup-logs-clear:hover {
-  color: var(--popup-accent);
-  border-color: var(--popup-accent);
-  background: var(--popup-accent-soft);
-}
-
-.popup-logs-clear:focus {
-  outline: none;
-  border-color: var(--popup-accent);
-  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+  width: auto;
+  min-width: 64px;
+  padding: 0 10px;
 }
 
 /* ---------- 日志列表容器（仅此区域滚动，popup 整体不滚动） ---------- */
@@ -181,7 +465,7 @@ body {
   overflow-x: hidden;
   padding: var(--popup-space-sm);
   background: var(--popup-bg);
-  border: 1px solid var(--popup-border);
+
   border-radius: var(--popup-radius-sm);
   font-size: var(--popup-font-size);
   line-height: 1.45;
@@ -209,7 +493,7 @@ body {
   background: var(--popup-surface);
   border-radius: var(--popup-radius-sm);
   box-shadow: var(--popup-shadow-sm);
-  border: 1px solid var(--popup-border);
+
   transition: box-shadow 0.15s ease;
 }
 
@@ -277,7 +561,7 @@ body {
   font-weight: 500;
   color: var(--popup-text-muted);
   background: var(--popup-surface);
-  border: 1px solid var(--popup-border);
+
   border-radius: var(--popup-radius-sm);
   cursor: pointer;
   transition:
@@ -312,12 +596,11 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   overflow-y: auto;
-  padding: var(--popup-space-sm);
-  background: var(--popup-bg);
-  border: 1px solid var(--popup-border);
-  border-radius: var(--popup-radius-sm);
+  padding: 2px 0;
+  background: transparent;
+  border-radius: 0;
   scrollbar-width: thin;
 }
 
@@ -334,22 +617,23 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 9px 10px;
   width: 100%;
   box-sizing: border-box;
   flex: 0 0 auto;
   min-height: 0;
   background: var(--popup-surface);
   border-radius: var(--popup-radius-sm);
-  border: 1px solid var(--popup-border);
+  border: none;
+  box-shadow: inset 0 0 0 1px #eaf1ef;
   transition:
     background 0.15s ease,
-    border-color 0.15s ease;
+    box-shadow 0.15s ease;
 }
 
 .popup-findpage-item:hover {
   background: var(--popup-surface-hover);
-  border-color: var(--popup-accent-soft);
+  box-shadow: inset 0 0 0 1px #cbe8e2;
 }
 
 .popup-findpage-item input[type="checkbox"] {

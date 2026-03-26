@@ -18,9 +18,38 @@
   var findpageListEl = document.getElementById('findpage-list');
   var findpageActionBtn = document.getElementById('findpage-action');
   var findpageRefreshBtn = document.getElementById('findpage-refresh');
+  var amcrLocalExportBtn = document.getElementById('amcr-local-export');
+  var amcrLocalTableWrap = document.getElementById('amcr-local-table-wrap');
+  var amcrLocalClearBtn = document.getElementById('amcr-local-clear');
+
+  var STORAGE_LOCAL =
+    typeof __AMCR_DEFAULTS__ !== 'undefined' &&
+      __AMCR_DEFAULTS__.STORAGE_KEYS &&
+      __AMCR_DEFAULTS__.STORAGE_KEYS.localRegisterByDate
+      ? __AMCR_DEFAULTS__.STORAGE_KEYS.localRegisterByDate
+      : 'amcr_local_register_by_date';
+
+  var BIZ_TO_KEYS = {
+    onebpSearch: { c: 'charge_onebpsearch', a: 'alipay_inshop_amt_onebpsearch' },
+    onebpDisplay: { c: 'charge_onebpdisplay', a: 'alipay_inshop_amt_onebpdisplay' },
+    onebpSite: { c: 'charge_onebpsite', a: 'alipay_inshop_amt_onebpsite' },
+    onebpShortVideo: { c: 'charge_onebpshortvideo', a: 'alipay_inshop_amt_onebpshortvideo' }
+  };
+
+  /** 与 src/App.jsx CAMPAIGN_NAME_ORDER 一致 */
+  var CAMPAIGN_NAME_ORDER = [
+    '池_2万小方块',
+    '池_2万小云宝',
+    '池_鹅卵石',
+    '池_小贝壳',
+    '池_小云团',
+    '池_大云团'
+  ];
 
   var lastFindPageResponse = null;
   var lastFindPageBizCode = '';
+  var lastLocalRenderSignature = '';
+  var lastLocalScrollState = { left: 0, top: 0 };
 
   function getStateByTabKey() {
     return typeof __AMCR_DEFAULTS__ !== 'undefined' &&
@@ -158,6 +187,366 @@
     });
   }
 
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  /** 与 App 推广表一致：金额为 0 显示空 */
+  function displayMoneyCell(n) {
+    if (n == null || typeof n !== 'number' || isNaN(n)) return '';
+    var val = Number(n);
+    return val === 0 ? '' : val.toFixed(2);
+  }
+
+  /** ROI = 成交/消耗；消耗为 0 或 ROI 为 0 显示空 */
+  function displayRoiCell(charge, amt) {
+    var c = charge != null ? Number(charge) : 0;
+    if (c === 0 || isNaN(c)) return '';
+    var a = amt != null ? Number(amt) : 0;
+    if (isNaN(a)) return '';
+    var roi = a / c;
+    return roi === 0 ? '' : roi.toFixed(2);
+  }
+
+  function formatReportDateSlash(ymd) {
+    if (!ymd) return '';
+    return String(ymd).slice(0, 10).replace(/-/g, '/');
+  }
+
+  function escAttr(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function emptyWideRow() {
+    return {
+      charge_onebpsearch: 0,
+      alipay_inshop_amt_onebpsearch: 0,
+      charge_onebpdisplay: 0,
+      alipay_inshop_amt_onebpdisplay: 0,
+      charge_onebpsite: 0,
+      alipay_inshop_amt_onebpsite: 0,
+      charge_onebpshortvideo: 0,
+      alipay_inshop_amt_onebpshortvideo: 0
+    };
+  }
+
+  /**
+   * 将当日 byBiz 窄表合并为「商品名称」宽表行（同名多行会加总）
+   */
+  function pivotLocalDayToWideRows(day) {
+    var byName = {};
+    if (!day || !day.byBiz || typeof day.byBiz !== 'object') return [];
+    Object.keys(day.byBiz).forEach(function (biz) {
+      var keys = BIZ_TO_KEYS[biz];
+      if (!keys) return;
+      var rows = day.byBiz[biz];
+      if (!Array.isArray(rows)) return;
+      rows.forEach(function (r) {
+        var name = r && r.campaign_name != null ? String(r.campaign_name).trim() : '';
+        if (!name) return;
+        if (!byName[name]) byName[name] = emptyWideRow();
+        var row = byName[name];
+        var ch = r && r.charge != null ? Number(r.charge) : 0;
+        var am = r && r.alipay_inshop_amt != null ? Number(r.alipay_inshop_amt) : 0;
+        if (!isNaN(ch)) row[keys.c] = (row[keys.c] || 0) + ch;
+        if (!isNaN(am)) row[keys.a] = (row[keys.a] || 0) + am;
+      });
+    });
+    var names = Object.keys(byName);
+    var orderMap = {};
+    var i;
+    for (i = 0; i < CAMPAIGN_NAME_ORDER.length; i++) {
+      orderMap[CAMPAIGN_NAME_ORDER[i]] = i;
+    }
+    names.sort(function (a, b) {
+      var ia = orderMap.hasOwnProperty(a) ? orderMap[a] : CAMPAIGN_NAME_ORDER.length;
+      var ib = orderMap.hasOwnProperty(b) ? orderMap[b] : CAMPAIGN_NAME_ORDER.length;
+      if (ia !== ib) return ia - ib;
+      return a.localeCompare(b, 'zh-CN');
+    });
+    return names.map(function (n) {
+      return { campaign_name: n, metrics: byName[n] };
+    });
+  }
+
+  function pickLocalRegisterDay(bag) {
+    if (!bag || typeof bag !== 'object') return { ymd: null, day: null };
+    var ymdPrefer = getYesterdayEast8();
+    if (bag[ymdPrefer] && typeof bag[ymdPrefer] === 'object') {
+      return { ymd: ymdPrefer, day: bag[ymdPrefer] };
+    }
+    var dates = Object.keys(bag).filter(function (k) {
+      return /^\d{4}-\d{2}-\d{2}$/.test(k);
+    });
+    dates.sort();
+    if (!dates.length) return { ymd: null, day: null };
+    var last = dates[dates.length - 1];
+    return { ymd: last, day: bag[last] };
+  }
+
+  function buildLocalRenderSignature(ymd, day) {
+    if (!ymd || !day || !day.byBiz || typeof day.byBiz !== 'object') return 'EMPTY';
+    var byBiz = day.byBiz;
+    var keys = Object.keys(byBiz).sort();
+    var parts = [String(ymd), String(day.updated_at_local || '')];
+    keys.forEach(function (biz) {
+      var rows = byBiz[biz];
+      if (!Array.isArray(rows)) return;
+      parts.push(biz + ':' + String(rows.length));
+      rows.forEach(function (r) {
+        var n = r && r.campaign_name != null ? String(r.campaign_name).trim() : '';
+        var c = r && r.charge != null ? String(r.charge) : '';
+        var a = r && r.alipay_inshop_amt != null ? String(r.alipay_inshop_amt) : '';
+        parts.push(n + '|' + c + '|' + a);
+      });
+    });
+    return parts.join('||');
+  }
+
+  function snapshotLocalScroll() {
+    if (!amcrLocalTableWrap) return { left: 0, top: 0 };
+    var scroller = amcrLocalTableWrap.querySelector('.popup-local-table-scroll');
+    if (!scroller) return { left: 0, top: 0 };
+    return { left: scroller.scrollLeft || 0, top: scroller.scrollTop || 0 };
+  }
+
+  function restoreLocalScroll(state) {
+    if (!amcrLocalTableWrap) return;
+    var scroller = amcrLocalTableWrap.querySelector('.popup-local-table-scroll');
+    if (!scroller) return;
+    scroller.scrollLeft = state.left || 0;
+    scroller.scrollTop = state.top || 0;
+  }
+
+  function renderLocalRegisterTable(bag) {
+    if (!amcrLocalTableWrap) return;
+    var prevScroll = snapshotLocalScroll();
+    lastLocalScrollState = prevScroll;
+    var picked = pickLocalRegisterDay(bag);
+    var ymd = picked.ymd;
+    var day = picked.day;
+    var renderSignature = buildLocalRenderSignature(ymd, day);
+    if (renderSignature === lastLocalRenderSignature) {
+      return;
+    }
+    lastLocalRenderSignature = renderSignature;
+    if (!ymd || !day || !day.byBiz || typeof day.byBiz !== 'object') {
+      amcrLocalTableWrap.innerHTML =
+        '<div class="popup-local-table--empty">暂无本地登记数据。</div>';
+      lastLocalScrollState = { left: 0, top: 0 };
+      return;
+    }
+    var wideRows = pivotLocalDayToWideRows(day);
+    var parts = [];
+
+    if (wideRows.length === 0) {
+      amcrLocalTableWrap.innerHTML =
+        parts.join('') +
+        '<div class="popup-local-table--empty">该日尚无分来源行，请先在各推广页登记。</div>';
+      return;
+    }
+    parts.push('<div class="popup-local-table-scroll">');
+    parts.push(
+      '<table class="popup-local-register-table" role="table" aria-label="本地推广登记宽表"><thead><tr>' +
+      '<th scope="col">时间</th>' +
+      '<th scope="col" class="popup-local-th-name">商品名称</th>' +
+      '<th scope="col">关键词消耗</th>' +
+      '<th scope="col">关键词成交</th>' +
+      '<th scope="col" class="popup-local-roi">关键词ROI</th>' +
+      '<th scope="col">人群消耗</th>' +
+      '<th scope="col">人群成交</th>' +
+      '<th scope="col" class="popup-local-roi">人群ROI</th>' +
+      '<th scope="col">全站消耗</th>' +
+      '<th scope="col">全站成交</th>' +
+      '<th scope="col" class="popup-local-roi">全站ROI</th>' +
+      '<th scope="col">内容消耗</th>' +
+      '<th scope="col">内容成交</th>' +
+      '<th scope="col" class="popup-local-roi">内容ROI</th>' +
+      '<th scope="col" class="popup-local-action">操作</th>' +
+      '</tr></thead><tbody>'
+    );
+    function cellMoney(v) {
+      return '<td class="popup-local-num">' + escHtml(displayMoneyCell(v)) + '</td>';
+    }
+    function cellRoi(c, a) {
+      return '<td class="popup-local-num popup-local-roi">' + escHtml(displayRoiCell(c, a)) + '</td>';
+    }
+    wideRows.forEach(function (wr) {
+      var m = wr.metrics;
+      var name = wr.campaign_name;
+      var payload = escAttr(JSON.stringify({ ymd: ymd, name: name }));
+      parts.push(
+        '<tr>' +
+        '<td class="popup-local-date">' +
+        escHtml(formatReportDateSlash(ymd)) +
+        '</td>' +
+        '<td class="popup-local-name" title="' +
+        escAttr(name) +
+        '">' +
+        escHtml(name) +
+        '</td>' +
+        cellMoney(m.charge_onebpsearch) +
+        cellMoney(m.alipay_inshop_amt_onebpsearch) +
+        cellRoi(m.charge_onebpsearch, m.alipay_inshop_amt_onebpsearch) +
+        cellMoney(m.charge_onebpdisplay) +
+        cellMoney(m.alipay_inshop_amt_onebpdisplay) +
+        cellRoi(m.charge_onebpdisplay, m.alipay_inshop_amt_onebpdisplay) +
+        cellMoney(m.charge_onebpsite) +
+        cellMoney(m.alipay_inshop_amt_onebpsite) +
+        cellRoi(m.charge_onebpsite, m.alipay_inshop_amt_onebpsite) +
+        cellMoney(m.charge_onebpshortvideo) +
+        cellMoney(m.alipay_inshop_amt_onebpshortvideo) +
+        cellRoi(m.charge_onebpshortvideo, m.alipay_inshop_amt_onebpshortvideo) +
+        '<td class="popup-local-action">' +
+        '<button type="button" class="amcr-local-delete-btn" data-payload="' +
+        payload +
+        '">删除</button>' +
+        '</td>' +
+        '</tr>'
+      );
+    });
+    parts.push('</tbody></table></div>');
+    amcrLocalTableWrap.innerHTML = parts.join('');
+    restoreLocalScroll(prevScroll);
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () {
+        restoreLocalScroll(lastLocalScrollState);
+      });
+    }
+  }
+
+  function loadLocalRegisterTable() {
+    if (!amcrLocalTableWrap || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+      return;
+    }
+    chrome.storage.local.get([STORAGE_LOCAL], function (result) {
+      if (chrome.runtime && chrome.runtime.lastError) return;
+      renderLocalRegisterTable(result[STORAGE_LOCAL]);
+    });
+  }
+
+  function clearLocalRegister() {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
+    chrome.storage.local.remove(STORAGE_LOCAL, function () {
+      if (chrome.runtime && chrome.runtime.lastError) return;
+      loadLocalRegisterTable();
+    });
+  }
+
+  function pad2(n) {
+    return n < 10 ? '0' + n : String(n);
+  }
+
+  function makeExportFilename() {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = pad2(now.getMonth() + 1);
+    var d = pad2(now.getDate());
+    var hh = pad2(now.getHours());
+    var mm = pad2(now.getMinutes());
+    var ss = pad2(now.getSeconds());
+    return '推广登记_' + y + m + d + '_' + hh + mm + ss + '.xls';
+  }
+
+  function tableToExcelHtml(tableEl) {
+    var clone = tableEl.cloneNode(true);
+    var rows = clone.querySelectorAll('tr');
+    rows.forEach(function (tr) {
+      var cells = tr.querySelectorAll('th,td');
+      if (cells.length > 0) {
+        cells[cells.length - 1].remove();
+      }
+    });
+    return (
+      '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:x="urn:schemas-microsoft-com:office:excel" ' +
+      'xmlns="http://www.w3.org/TR/REC-html40">' +
+      '<head><meta charset="UTF-8"></head><body>' +
+      clone.outerHTML +
+      '</body></html>'
+    );
+  }
+
+  function exportLocalRegisterTable() {
+    if (!amcrLocalTableWrap) return;
+    var table = amcrLocalTableWrap.querySelector('.popup-local-register-table');
+    if (!table) {
+      if (logger) {
+        logger.appendLog('warn', '导出表格：当前无可导出数据');
+        loadLogs();
+      }
+      return;
+    }
+    var html = tableToExcelHtml(table);
+    var blob = new Blob(['\ufeff', html], {
+      type: 'application/vnd.ms-excel;charset=utf-8;'
+    });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = makeExportFilename();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 1500);
+    if (logger) {
+      logger.appendLog('log', '导出表格：已导出本地登记表');
+      loadLogs();
+    }
+  }
+
+  /** 从本地当日各 biz 中移除指定商品名（仅本地，不影响 Supabase） */
+  function deleteLocalCampaignRow(ymd, campaignName) {
+    if (!ymd || campaignName == null || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+      return;
+    }
+    var target = String(campaignName).trim();
+    if (!target) return;
+    chrome.storage.local.get([STORAGE_LOCAL], function (result) {
+      if (chrome.runtime && chrome.runtime.lastError) return;
+      var bag = result[STORAGE_LOCAL];
+      if (!bag || typeof bag !== 'object') return;
+      var day = bag[ymd];
+      if (!day || !day.byBiz || typeof day.byBiz !== 'object') return;
+      var byBiz = day.byBiz;
+      var changed = false;
+      Object.keys(byBiz).forEach(function (biz) {
+        var rows = byBiz[biz];
+        if (!Array.isArray(rows)) return;
+        var next = rows.filter(function (r) {
+          var n = r && r.campaign_name != null ? String(r.campaign_name).trim() : '';
+          return n !== target;
+        });
+        if (next.length !== rows.length) {
+          byBiz[biz] = next;
+          changed = true;
+        }
+      });
+      if (!changed) return;
+      day.byBiz = byBiz;
+      day.updated_at_local = new Date().toISOString();
+      bag[ymd] = day;
+      var o = {};
+      o[STORAGE_LOCAL] = bag;
+      chrome.storage.local.set(o, function () {
+        if (chrome.runtime && chrome.runtime.lastError) return;
+        if (logger) {
+          logger.appendLog('log', '本地推广表：已删除「' + target + '」(' + ymd + ')');
+          loadLogs();
+        }
+        loadLocalRegisterTable();
+      });
+    });
+  }
+
   function renderFindPageList(response, bizCode, selectedSet) {
     if (!findpageListEl) return;
     lastFindPageResponse = response;
@@ -202,11 +591,22 @@
           queryActiveTabId(function (tabId) {
             var pack = pickFindPageState(stored, tabId);
             var state = pack.state;
+            var globalSelectedMap = stored && stored.amcr_findPageSelectedCampaigns
+              ? stored.amcr_findPageSelectedCampaigns
+              : {};
             lastFindPageBizCode = state.findPageBizCode || '';
-            var selectedSet =
-              state.findPageSelectedCampaigns && state.findPageBizCode && state.findPageSelectedCampaigns[state.findPageBizCode]
-                ? state.findPageSelectedCampaigns[state.findPageBizCode]
-                : [];
+            var selectedSet = [];
+            if (lastFindPageBizCode) {
+              if (
+                state.findPageSelectedCampaigns &&
+                state.findPageSelectedCampaigns[lastFindPageBizCode]
+              ) {
+                selectedSet = state.findPageSelectedCampaigns[lastFindPageBizCode];
+              } else if (globalSelectedMap[lastFindPageBizCode]) {
+                // 兼容：分桶缺失时回退全局勾选态
+                selectedSet = globalSelectedMap[lastFindPageBizCode];
+              }
+            }
             renderFindPageList(state.findPageResponse || null, state.findPageBizCode || '', selectedSet);
           });
         }
@@ -246,7 +646,7 @@
         var qInHash = hashPart.indexOf('?');
         if (qInHash >= 0) parseQuery(hashPart.slice(qInHash));
       }
-    } catch (e) {}
+    } catch (e) { }
     return out;
   }
 
@@ -390,34 +790,51 @@
       }
       var selectedDisplayNames = rows.map(function (r) { return r.campaign_name; });
       var sk = getStateByTabKey();
-      if (tabId == null) {
-        chrome.storage.local.get(['amcr_findPageSelectedCampaigns'], function (s) {
-          var all = (s && s.amcr_findPageSelectedCampaigns) ? s.amcr_findPageSelectedCampaigns : {};
-          all[bizCode] = selectedDisplayNames;
-          chrome.storage.local.set({ amcr_findPageSelectedCampaigns: all }, function () {});
-        });
-      } else {
-        chrome.storage.local.get([sk], function (s) {
+      chrome.storage.local.get([sk, 'amcr_findPageSelectedCampaigns'], function (s) {
+        var globalAll = (s && s.amcr_findPageSelectedCampaigns)
+          ? s.amcr_findPageSelectedCampaigns
+          : {};
+        globalAll[bizCode] = selectedDisplayNames;
+        var out = { amcr_findPageSelectedCampaigns: globalAll };
+        if (tabId != null) {
           var byTab = (s && s[sk]) ? s[sk] : {};
           var st = byTab[String(tabId)] || {};
           var all = st.findPageSelectedCampaigns || {};
           all[bizCode] = selectedDisplayNames;
           st.findPageSelectedCampaigns = all;
           byTab[String(tabId)] = st;
-          var o = {};
-          o[sk] = byTab;
-          chrome.storage.local.set(o, function () {});
+          out[sk] = byTab;
+        }
+        chrome.storage.local.set(out, function () { });
+      });
+      var creds = typeof __AMCR_SUPABASE__ !== 'undefined' ? __AMCR_SUPABASE__ : null;
+      function afterLocalThenCloud() {
+        upsertCampaignRegisterByBiz(rows, bizCode, creds, { logger: logger }).then(function () {
+          loadLogs();
+          loadLocalRegisterTable();
         });
       }
-      var creds = typeof __AMCR_SUPABASE__ !== 'undefined' ? __AMCR_SUPABASE__ : null;
-      upsertCampaignRegisterByBiz(rows, bizCode, creds, { logger: logger }).then(function () {
-        loadLogs();
-      });
+      var localApi = typeof __AMCR_LOCAL_REGISTER__ !== 'undefined' ? __AMCR_LOCAL_REGISTER__ : null;
+      if (localApi && typeof localApi.mergeRegisterBatch === 'function') {
+        localApi.mergeRegisterBatch(
+          { report_date: batchReportDate, biz_code: bizCode, rows: rows },
+          function () {
+            if (logger) {
+              logger.appendLog('log', '推广登记：已写入本地 ' + rows.length + ' 条（' + bizCode + '）');
+              loadLogs();
+            }
+            afterLocalThenCloud();
+          }
+        );
+      } else {
+        afterLocalThenCloud();
+      }
     });
   }
 
   loadLogs();
   loadFindPageResponse();
+  loadLocalRegisterTable();
 
   chrome.storage.onChanged.addListener(function (changes, areaName) {
     if (areaName !== 'local') return;
@@ -430,9 +847,30 @@
     ) {
       loadFindPageResponse();
     }
+    if (changes[STORAGE_LOCAL]) {
+      loadLocalRegisterTable();
+    }
   });
 
   if (logsClearBtn) logsClearBtn.addEventListener('click', clearLogs);
+  if (amcrLocalClearBtn) amcrLocalClearBtn.addEventListener('click', clearLocalRegister);
+  if (amcrLocalExportBtn) amcrLocalExportBtn.addEventListener('click', exportLocalRegisterTable);
+  if (amcrLocalTableWrap) {
+    amcrLocalTableWrap.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      var btn = t.closest('.amcr-local-delete-btn');
+      if (!btn || !amcrLocalTableWrap.contains(btn)) return;
+      var raw = btn.getAttribute('data-payload');
+      if (!raw) return;
+      try {
+        var p = JSON.parse(raw);
+        if (p && p.ymd && p.name != null) {
+          deleteLocalCampaignRow(String(p.ymd), p.name);
+        }
+      } catch (err) { }
+    });
+  }
   if (openPromoRecordBtn) openPromoRecordBtn.addEventListener('click', openPromoRecord);
   if (openOnesiteRecordBtn) openOnesiteRecordBtn.addEventListener('click', openOnesiteRecord);
   if (openSearchRecordBtn) openSearchRecordBtn.addEventListener('click', openSearchRecord);
@@ -470,7 +908,11 @@
   window.addEventListener('focus', function () {
     loadLogs();
     loadFindPageResponse();
+    loadLocalRegisterTable();
   });
-  var refreshInterval = setInterval(loadLogs, 2000);
+  var refreshInterval = setInterval(function () {
+    loadLogs();
+    loadLocalRegisterTable();
+  }, 2000);
   window.addEventListener('blur', function () { clearInterval(refreshInterval); });
 })();
