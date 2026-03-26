@@ -23,13 +23,19 @@
     liveJsonCatalogByTab: 'sycm_live_json_catalog_by_tab'
   };
 
-  var LOG_MAX_ENTRIES = 100;
+  var LOG_MAX_ENTRIES = 20;
+  var LOG_MAX_TABS = 6;
+  var LIVE_JSON_MAX_TABS = 6;
+  var LIVE_JSON_MAX_ITEMS = 200;
   var PREFIX = '';
 
   var obj = {
     DEFAULTS: DEFAULTS,
     STORAGE_KEYS: STORAGE_KEYS,
     LOG_MAX_ENTRIES: LOG_MAX_ENTRIES,
+    LOG_MAX_TABS: LOG_MAX_TABS,
+    LIVE_JSON_MAX_TABS: LIVE_JSON_MAX_TABS,
+    LIVE_JSON_MAX_ITEMS: LIVE_JSON_MAX_ITEMS,
     PREFIX: PREFIX
   };
   (typeof globalThis !== 'undefined' ? globalThis : global).__SYCM_DEFAULTS__ = obj;

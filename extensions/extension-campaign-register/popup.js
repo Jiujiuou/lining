@@ -99,6 +99,25 @@
   var lastLocalScrollState = { left: 0, top: 0 };
   var currentSearchKeyword = '池';
 
+  function isQuotaError(err) {
+    if (!err) return false;
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
+  }
+
+  function safeSet(payload, onDone, onQuota) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError) && typeof onQuota === 'function') {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === 'function') onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === 'function') onDone();
+    });
+  }
+
   function bizLabel(bizCode) {
     var m = {
       onebpDisplay: '人群推广',
@@ -187,7 +206,11 @@
     searchKeywordInput.value = currentSearchKeyword;
     var o = {};
     o[STORAGE_SEARCH_KEYWORD] = currentSearchKeyword;
-    chrome.storage.local.set(o, function () {});
+    safeSet(o, function () {}, function (retry) {
+      chrome.storage.local.remove([STORAGE_SEARCH_KEYWORD], function () {
+        retry();
+      });
+    });
     if (logger) {
       logger.appendLog('log', '搜索词已应用：' + currentSearchKeyword);
       loadLogs();
@@ -756,13 +779,17 @@
       bag[ymd] = day;
       var o = {};
       o[STORAGE_LOCAL] = bag;
-      chrome.storage.local.set(o, function () {
+      safeSet(o, function () {
         if (chrome.runtime && chrome.runtime.lastError) return;
         if (logger) {
           logger.appendLog('log', '已删除本地登记项：' + target + '（' + ymd + '）');
           loadLogs();
         }
         loadLocalRegisterTable();
+      }, function (retry) {
+        chrome.storage.local.remove([STORAGE_LOCAL], function () {
+          retry();
+        });
       });
     });
   }
@@ -1100,7 +1127,14 @@
           amcr_findPageSelectedCampaigns: globalAll
         };
         out[STORAGE_SELECTION_BY_QUERY] = byQuery;
-        chrome.storage.local.set(out, function () {});
+        safeSet(out, function () {}, function (retry) {
+          byQuery = pruneSelectionStore(byQuery);
+          var out2 = {
+            amcr_findPageSelectedCampaigns: globalAll
+          };
+          out2[STORAGE_SELECTION_BY_QUERY] = byQuery;
+          safeSet(out2, retry);
+        });
       });
       var localApi = typeof __AMCR_LOCAL_REGISTER__ !== 'undefined' ? __AMCR_LOCAL_REGISTER__ : null;
       if (localApi && typeof localApi.mergeRegisterBatch === 'function') {

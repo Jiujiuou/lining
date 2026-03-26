@@ -10,13 +10,100 @@ importScripts('constants/defaults.js', 'constants/supabase.js', 'utils/time.js')
   var RUNTIME = defs.RUNTIME;
   var GET_TAB_MSG = RUNTIME.GET_TAB_ID_MESSAGE || 'SYCM_RANK_GET_TAB_ID';
   var MAX =
-    typeof defs.LOG_MAX_ENTRIES === 'number' ? defs.LOG_MAX_ENTRIES : 100;
+    typeof defs.LOG_MAX_ENTRIES === 'number' ? defs.LOG_MAX_ENTRIES : 20;
+  var MAX_LOG_TABS = typeof defs.LOG_MAX_TABS === 'number' ? defs.LOG_MAX_TABS : 6;
+  var MAX_RANK_TABS = typeof defs.RANK_MAX_TABS === 'number' ? defs.RANK_MAX_TABS : 6;
+  var MAX_RANK_ITEMS = typeof defs.RANK_MAX_ITEMS === 'number' ? defs.RANK_MAX_ITEMS : 200;
   var DEFAULT_THROTTLE =
     defs.DEFAULTS && typeof defs.DEFAULTS.THROTTLE_MINUTES === 'number'
       ? defs.DEFAULTS.THROTTLE_MINUTES
       : 20;
   var timeUtil = self.__SYCM_RANK_TIME__;
   var getSlotKey = timeUtil && timeUtil.getSlotKey ? timeUtil.getSlotKey : function () { return ''; };
+  var LOG_META_KEY = '__meta';
+  var RANK_META_KEY = '__meta';
+  var SELECTION_META_KEY = '__meta';
+
+  function pruneByMeta(byTab, maxTabs, metaKey) {
+    if (!byTab || typeof byTab !== 'object') return {};
+    var meta = byTab[metaKey] && typeof byTab[metaKey] === 'object' ? byTab[metaKey] : {};
+    var ids = Object.keys(byTab).filter(function (k) { return k !== metaKey; });
+    if (ids.length <= maxTabs) {
+      byTab[metaKey] = meta;
+      return byTab;
+    }
+    ids.sort(function (a, b) {
+      var ta = meta[a] || '';
+      var tb = meta[b] || '';
+      return String(ta).localeCompare(String(tb));
+    });
+    while (ids.length > maxTabs) {
+      var oldest = ids.shift();
+      delete byTab[oldest];
+      delete meta[oldest];
+    }
+    byTab[metaKey] = meta;
+    return byTab;
+  }
+
+  function slimRankPayload(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var srcItems = Array.isArray(raw.items) ? raw.items : [];
+    var outItems = [];
+    for (var i = 0; i < srcItems.length && outItems.length < MAX_RANK_ITEMS; i++) {
+      var it = srcItems[i];
+      if (!it || typeof it !== 'object') continue;
+      var itemId = it.itemId != null ? String(it.itemId) : '';
+      if (!itemId) continue;
+      outItems.push({
+        itemId: itemId,
+        rank: it.rank != null ? it.rank : null,
+        shopTitle: it.shopTitle != null ? String(it.shopTitle) : '',
+        itemTitle: it.itemTitle != null ? String(it.itemTitle) : ''
+      });
+    }
+    return {
+      keyWord: raw.keyWord != null ? String(raw.keyWord) : '',
+      updateTime: raw.updateTime != null ? String(raw.updateTime) : '',
+      recordedAtEast8: raw.recordedAtEast8 != null ? String(raw.recordedAtEast8) : '',
+      items: outItems,
+      lastTouchedAt: new Date().toISOString()
+    };
+  }
+
+  function isQuotaError(err) {
+    if (!err) return false;
+    var msg = String(err.message || err);
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
+  }
+
+  function safeSet(payload, onDone, onQuota) {
+    try {
+      chrome.storage.local.set(payload, function () {
+        if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
+          if (typeof onQuota === 'function') {
+            onQuota(function () {
+              chrome.storage.local.set(payload, function () {
+                if (typeof onDone === 'function') onDone();
+              });
+            });
+            return;
+          }
+        }
+        if (typeof onDone === 'function') onDone();
+      });
+    } catch (e) {
+      if (isQuotaError(e) && typeof onQuota === 'function') {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === 'function') onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === 'function') onDone();
+    }
+  }
 
   function itemRowKey(item, index) {
     if (item && item.itemId != null && String(item.itemId).trim() !== '') return String(item.itemId);
@@ -31,7 +118,7 @@ importScripts('constants/defaults.js', 'constants/supabase.js', 'utils/time.js')
         if (!Array.isArray(data.entries)) data.entries = [];
         data.entries.push(entry);
         if (data.entries.length > MAX) data.entries = data.entries.slice(-MAX);
-        chrome.storage.local.set({ [KEYS.logs]: data });
+        safeSet({ [KEYS.logs]: data });
       });
       return;
     }
@@ -42,9 +129,19 @@ importScripts('constants/defaults.js', 'constants/supabase.js', 'utils/time.js')
       bucket.entries.push(entry);
       if (bucket.entries.length > MAX) bucket.entries = bucket.entries.slice(-MAX);
       byTab[String(tabId)] = bucket;
+      var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === 'object' ? byTab[LOG_META_KEY] : {};
+      meta[String(tabId)] = new Date().toISOString();
+      byTab[LOG_META_KEY] = meta;
+      byTab = pruneByMeta(byTab, MAX_LOG_TABS, LOG_META_KEY);
       var o = {};
       o[KEYS.logsByTab] = byTab;
-      chrome.storage.local.set(o);
+      safeSet(o, null, function (retry) {
+        chrome.storage.local.get([KEYS.logsByTab], function (fresh) {
+          var byTab2 = fresh && fresh[KEYS.logsByTab] ? fresh[KEYS.logsByTab] : {};
+          byTab2 = pruneByMeta(byTab2, Math.max(1, MAX_LOG_TABS - 1), LOG_META_KEY);
+          safeSet({ [KEYS.logsByTab]: byTab2 }, retry);
+        });
+      });
     });
   }
 
@@ -145,7 +242,7 @@ importScripts('constants/defaults.js', 'constants/supabase.js', 'utils/time.js')
               if (res.ok) {
                 var o = {};
                 o[slotStorageKey] = slotKey;
-                chrome.storage.local.set(o, function () {
+                safeSet(o, function () {
                   finish(
                     'Supabase：已写入 ' +
                       rows.length +
@@ -201,7 +298,12 @@ importScripts('constants/defaults.js', 'constants/supabase.js', 'utils/time.js')
         sendResponse({ resultLine: resultLine });
       };
 
-      var payload = msg.payload;
+      var payload = slimRankPayload(msg.payload);
+      if (!payload || !Array.isArray(payload.items) || payload.items.length === 0) {
+        appendLogAny(tabId, 'warn', 'rank.json 已捕获，但无可保存的有效数据');
+        sendResponse({ resultLine: 'Supabase：未写入（无有效数据）' });
+        return true;
+      }
       var afterSave = function () {
         uploadRankToSupabase(tabId, payload, finishUpload);
       };
@@ -210,12 +312,26 @@ importScripts('constants/defaults.js', 'constants/supabase.js', 'utils/time.js')
         chrome.storage.local.get([KEYS.rankListByTab], function (r) {
           var byTab = r && r[KEYS.rankListByTab] ? r[KEYS.rankListByTab] : {};
           byTab[String(tabId)] = payload;
+          var meta = byTab[RANK_META_KEY] && typeof byTab[RANK_META_KEY] === 'object' ? byTab[RANK_META_KEY] : {};
+          meta[String(tabId)] = new Date().toISOString();
+          byTab[RANK_META_KEY] = meta;
+          byTab = pruneByMeta(byTab, MAX_RANK_TABS, RANK_META_KEY);
           var o = {};
           o[KEYS.rankListByTab] = byTab;
-          chrome.storage.local.set(o, afterSave);
+          safeSet(o, afterSave, function (retry) {
+            chrome.storage.local.get([KEYS.rankListByTab], function (fresh) {
+              var byTab2 = fresh && fresh[KEYS.rankListByTab] ? fresh[KEYS.rankListByTab] : {};
+              byTab2 = pruneByMeta(byTab2, Math.max(1, MAX_RANK_TABS - 1), RANK_META_KEY);
+              safeSet({ [KEYS.rankListByTab]: byTab2 }, retry);
+            });
+          });
         });
       } else {
-        chrome.storage.local.set({ [KEYS.rankListLatest]: payload }, afterSave);
+        safeSet({ [KEYS.rankListLatest]: payload }, afterSave, function (retry) {
+          chrome.storage.local.remove([KEYS.rankListLatest], function () {
+            retry();
+          });
+        });
       }
       return true;
     }
@@ -233,11 +349,14 @@ importScripts('constants/defaults.js', 'constants/supabase.js', 'utils/time.js')
       delete byRank[idStr];
       delete byLogs[idStr];
       delete bySel[idStr];
+      if (byLogs[LOG_META_KEY] && typeof byLogs[LOG_META_KEY] === 'object') delete byLogs[LOG_META_KEY][idStr];
+      if (byRank[RANK_META_KEY] && typeof byRank[RANK_META_KEY] === 'object') delete byRank[RANK_META_KEY][idStr];
+      if (bySel[SELECTION_META_KEY] && typeof bySel[SELECTION_META_KEY] === 'object') delete bySel[SELECTION_META_KEY][idStr];
       var o = {};
       o[KEYS.rankListByTab] = byRank;
       o[KEYS.logsByTab] = byLogs;
       o[KEYS.rankSelectionByTab] = bySel;
-      chrome.storage.local.set(o);
+      safeSet(o);
     });
   });
 })();

@@ -4,13 +4,49 @@
 (function (global) {
   var DEFS = typeof __SHOP_RECORD_DEFAULTS__ !== "undefined" ? __SHOP_RECORD_DEFAULTS__ : null;
   var KEYS = DEFS && DEFS.STORAGE_KEYS ? DEFS.STORAGE_KEYS : { logs: "shop_record_logs", logsByTab: "shop_record_logs_by_tab" };
-  var MAX = DEFS && DEFS.LOG_MAX_ENTRIES ? DEFS.LOG_MAX_ENTRIES : 100;
+  var MAX = DEFS && DEFS.LOG_MAX_ENTRIES ? DEFS.LOG_MAX_ENTRIES : 20;
+  var MAX_TABS = DEFS && DEFS.LOG_MAX_TABS ? DEFS.LOG_MAX_TABS : 6;
   var GET_TAB_MSG =
     DEFS && DEFS.RUNTIME && DEFS.RUNTIME.GET_TAB_ID_MESSAGE
       ? DEFS.RUNTIME.GET_TAB_ID_MESSAGE
       : "SR_GET_TAB_ID";
   var LOG_KEY = KEYS.logs || "shop_record_logs";
   var LOGS_BY_TAB_KEY = KEYS.logsByTab || "shop_record_logs_by_tab";
+  var LOG_META_KEY = "__meta";
+  function isQuotaError(err) {
+    if (!err) return false;
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
+  }
+  function safeSet(payload, cb) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
+        return cb && cb(true);
+      }
+      if (cb) cb(false);
+    });
+  }
+
+  function pruneByTab(byTab) {
+    if (!byTab || typeof byTab !== "object") return {};
+    var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === "object" ? byTab[LOG_META_KEY] : {};
+    var ids = Object.keys(byTab).filter(function (k) { return k !== LOG_META_KEY; });
+    if (ids.length <= MAX_TABS) {
+      byTab[LOG_META_KEY] = meta;
+      return byTab;
+    }
+    ids.sort(function (a, b) {
+      var ta = meta[a] || "";
+      var tb = meta[b] || "";
+      return String(ta).localeCompare(String(tb));
+    });
+    while (ids.length > MAX_TABS) {
+      var oldest = ids.shift();
+      delete byTab[oldest];
+      delete meta[oldest];
+    }
+    byTab[LOG_META_KEY] = meta;
+    return byTab;
+  }
 
   function resolveTabId(callback) {
     try {
@@ -35,7 +71,7 @@
           if (!data || !Array.isArray(data.entries)) data = { entries: [] };
           data.entries.push(entry);
           if (data.entries.length > MAX) data.entries = data.entries.slice(-MAX);
-          chrome.storage.local.set({ [LOG_KEY]: data }, function () {});
+          safeSet({ [LOG_KEY]: data }, function () {});
         });
         return;
       }
@@ -46,9 +82,17 @@
         bucket.entries.push(entry);
         if (bucket.entries.length > MAX) bucket.entries = bucket.entries.slice(-MAX);
         byTab[String(tabId)] = bucket;
+        var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === "object" ? byTab[LOG_META_KEY] : {};
+        meta[String(tabId)] = new Date().toISOString();
+        byTab[LOG_META_KEY] = meta;
+        byTab = pruneByTab(byTab);
         var o = {};
         o[LOGS_BY_TAB_KEY] = byTab;
-        chrome.storage.local.set(o, function () {});
+        safeSet(o, function (quotaErr) {
+          if (!quotaErr) return;
+          byTab = pruneByTab(byTab);
+          safeSet(o, function () {});
+        });
       });
     });
   }
@@ -71,15 +115,22 @@
 
   function clearLogs(callback, tabId) {
     if (tabId == null) {
-      chrome.storage.local.set({ [LOG_KEY]: { entries: [] } }, callback || function () {});
+      safeSet({ [LOG_KEY]: { entries: [] } }, function () {
+        (callback || function () {})();
+      });
       return;
     }
     chrome.storage.local.get([LOGS_BY_TAB_KEY], function (result) {
       var byTab = result[LOGS_BY_TAB_KEY] || {};
       delete byTab[String(tabId)];
+      if (byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === "object") {
+        delete byTab[LOG_META_KEY][String(tabId)];
+      }
       var o = {};
       o[LOGS_BY_TAB_KEY] = byTab;
-      chrome.storage.local.set(o, callback || function () {});
+      safeSet(o, function () {
+        (callback || function () {})();
+      });
     });
   }
 

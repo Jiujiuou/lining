@@ -14,6 +14,35 @@
           logs: 'sycm_rank_only_logs',
           logsByTab: 'sycm_rank_only_logs_by_tab'
         };
+  var MAX_RANK_TABS =
+    typeof __SYCM_RANK_DEFAULTS__ !== 'undefined' && __SYCM_RANK_DEFAULTS__.RANK_MAX_TABS
+      ? __SYCM_RANK_DEFAULTS__.RANK_MAX_TABS
+      : 6;
+  var MAX_RANK_ITEMS =
+    typeof __SYCM_RANK_DEFAULTS__ !== 'undefined' && __SYCM_RANK_DEFAULTS__.RANK_MAX_ITEMS
+      ? __SYCM_RANK_DEFAULTS__.RANK_MAX_ITEMS
+      : 200;
+  var SELECTION_META_KEY = '__meta';
+
+  function isQuotaError(err) {
+    if (!err) return false;
+    var msg = String(err.message || err);
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
+  }
+
+  function safeSet(payload, onDone, onQuota) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError) && typeof onQuota === 'function') {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === 'function') onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === 'function') onDone();
+    });
+  }
 
   var metaEl = document.getElementById('rank-meta');
   var listEl = document.getElementById('rank-list');
@@ -39,6 +68,28 @@
   function rowKey(row, index) {
     if (row && row.itemId != null && String(row.itemId).trim() !== '') return String(row.itemId);
     return 'idx-' + index;
+  }
+
+  function pruneSelectionByTab(byTab) {
+    if (!byTab || typeof byTab !== 'object') return {};
+    var meta = byTab[SELECTION_META_KEY] && typeof byTab[SELECTION_META_KEY] === 'object' ? byTab[SELECTION_META_KEY] : {};
+    var ids = Object.keys(byTab).filter(function (k) { return k !== SELECTION_META_KEY; });
+    if (ids.length <= MAX_RANK_TABS) {
+      byTab[SELECTION_META_KEY] = meta;
+      return byTab;
+    }
+    ids.sort(function (a, b) {
+      var ta = meta[a] || '';
+      var tb = meta[b] || '';
+      return String(ta).localeCompare(String(tb));
+    });
+    while (ids.length > MAX_RANK_TABS) {
+      var oldest = ids.shift();
+      delete byTab[oldest];
+      delete meta[oldest];
+    }
+    byTab[SELECTION_META_KEY] = meta;
+    return byTab;
   }
 
   function formatLogTime(isoStr) {
@@ -213,20 +264,33 @@
   }
 
   function persistSelection() {
-    var slice = getCheckedKeyIdsFromDom();
+    var slice = getCheckedKeyIdsFromDom().slice(0, MAX_RANK_ITEMS);
     getActiveTabId(function (tabId) {
       if (tabId == null) {
         var payload = {};
         payload[KEYS.rankSelection] = { itemIds: slice };
-        chrome.storage.local.set(payload, function () {});
+        safeSet(payload, function () {}, function (retry) {
+          chrome.storage.local.remove([KEYS.rankSelection], function () {
+            retry();
+          });
+        });
         return;
       }
       chrome.storage.local.get([KEYS.rankSelectionByTab], function (r) {
         var byTab = r && r[KEYS.rankSelectionByTab] ? r[KEYS.rankSelectionByTab] : {};
         byTab[String(tabId)] = { itemIds: slice };
+        var meta = byTab[SELECTION_META_KEY] && typeof byTab[SELECTION_META_KEY] === 'object' ? byTab[SELECTION_META_KEY] : {};
+        meta[String(tabId)] = new Date().toISOString();
+        byTab[SELECTION_META_KEY] = meta;
+        byTab = pruneSelectionByTab(byTab);
         var o = {};
         o[KEYS.rankSelectionByTab] = byTab;
-        chrome.storage.local.set(o, function () {});
+        safeSet(o, function () {}, function (retry) {
+          byTab = pruneSelectionByTab(byTab);
+          var o2 = {};
+          o2[KEYS.rankSelectionByTab] = byTab;
+          safeSet(o2, retry);
+        });
       });
     });
   }

@@ -8,7 +8,8 @@
     /** 按日合并的 shop_record_daily 本地快照 { [yyyy-mm-dd]: { ...columns } } */
     dailyLocalByDate: "shop_record_daily_local_by_date"
   };
-  var LOG_MAX_ENTRIES = 100;
+  var LOG_MAX_ENTRIES = 20;
+  var LOG_MAX_TABS = 6;
   var PREFIX = "[店铺记录数据]";
   /** 店铺半年内动态评分页（用户信用评价页） */
   var SHOP_RATE_PAGE_URL =
@@ -128,6 +129,7 @@
   var obj = {
     STORAGE_KEYS: STORAGE_KEYS,
     LOG_MAX_ENTRIES: LOG_MAX_ENTRIES,
+    LOG_MAX_TABS: LOG_MAX_TABS,
     PREFIX: PREFIX,
     RUNTIME: RUNTIME,
     SHOP_RATE_PAGE_URL: SHOP_RATE_PAGE_URL,

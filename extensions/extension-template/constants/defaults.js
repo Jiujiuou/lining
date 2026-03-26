@@ -7,7 +7,8 @@
     /** Record<tabIdStr, { entries }> — 多标签日志隔离 */
     logsByTab: "ext_template_logs_by_tab"
   };
-  var LOG_MAX_ENTRIES = 100;
+  var LOG_MAX_ENTRIES = 20;
+  var LOG_MAX_TABS = 6;
   var PREFIX = "[扩展模板]";
   /** background / logger 共用的 chrome.runtime 消息 type */
   var RUNTIME = {
@@ -17,6 +18,7 @@
   var obj = {
     STORAGE_KEYS: STORAGE_KEYS,
     LOG_MAX_ENTRIES: LOG_MAX_ENTRIES,
+    LOG_MAX_TABS: LOG_MAX_TABS,
     PREFIX: PREFIX,
     RUNTIME: RUNTIME
   };

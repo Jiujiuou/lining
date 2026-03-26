@@ -5,6 +5,13 @@
   var FILTER_BY_TAB = 'sycm_live_json_filter_by_tab';
   var CATALOG_BY_TAB = 'sycm_live_json_catalog_by_tab';
   var LOGS_BY_TAB = 'sycm_logs_by_tab';
+  var META_KEY = '__meta';
+  var LOG_META_KEY = '__meta';
+  function safeSet(payload, cb) {
+    chrome.storage.local.set(payload, function () {
+      if (cb) cb();
+    });
+  }
 
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (!msg || msg.type !== 'SYCM_GET_TAB_ID') return false;
@@ -29,11 +36,16 @@
       delete f[idStr];
       delete c[idStr];
       delete logs[idStr];
+      if (f[META_KEY] && typeof f[META_KEY] === 'object') delete f[META_KEY][idStr];
+      if (c[META_KEY] && typeof c[META_KEY] === 'object') delete c[META_KEY][idStr];
+      if (logs[LOG_META_KEY] && typeof logs[LOG_META_KEY] === 'object') {
+        delete logs[LOG_META_KEY][idStr];
+      }
       var payload = {};
       payload[FILTER_BY_TAB] = f;
       payload[CATALOG_BY_TAB] = c;
       payload[LOGS_BY_TAB] = logs;
-      chrome.storage.local.set(payload, function () {});
+      safeSet(payload, function () {});
     });
   });
 })();

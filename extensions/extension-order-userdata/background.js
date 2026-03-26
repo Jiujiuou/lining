@@ -4,6 +4,12 @@
 (function () {
   var LOGS_BY_TAB = 'ou_userdata_logs_by_tab';
   var FORM_BY_TAB = 'ou_userdata_form_by_tab';
+  var LOG_META_KEY = '__meta';
+  function safeSet(payload, cb) {
+    chrome.storage.local.set(payload, function () {
+      if (cb) cb();
+    });
+  }
 
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (!msg || msg.type !== 'OU_GET_TAB_ID') return false;
@@ -28,10 +34,13 @@
       }
       delete logs[idStr];
       delete forms[idStr];
+      if (logs[LOG_META_KEY] && typeof logs[LOG_META_KEY] === 'object') {
+        delete logs[LOG_META_KEY][idStr];
+      }
       var o = {};
       o[LOGS_BY_TAB] = logs;
       o[FORM_BY_TAB] = forms;
-      chrome.storage.local.set(o, function () {});
+      safeSet(o, function () {});
     });
   });
 })();

@@ -18,6 +18,23 @@
   var progressPages = document.getElementById('ou-progress-pages');
   var progressTrack = document.getElementById('ou-progress-track');
   var progressFill = document.getElementById('ou-progress-fill');
+  function isQuotaError(err) {
+    if (!err) return false;
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
+  }
+  function safeSet(payload, onDone, onQuota) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError) && typeof onQuota === 'function') {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === 'function') onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === 'function') onDone();
+    });
+  }
 
   var SOLD_PAGE_URL = 'https://qn.taobao.com/home.htm/trade-platform/tp/sold';
   var QN_OR_TRADE_REG = /^https:\/\/(qn\.taobao\.com|trade\.taobao\.com)\//;
@@ -106,7 +123,15 @@
         byTab[String(tabId)] = payload;
         var o = {};
         o[FORM_KEY] = byTab;
-        chrome.storage.local.set(o, function () {});
+        safeSet(o, function () {}, function (retry) {
+          var keys = Object.keys(byTab).sort();
+          while (keys.length > 4) {
+            delete byTab[keys.shift()];
+          }
+          var o2 = {};
+          o2[FORM_KEY] = byTab;
+          safeSet(o2, retry);
+        });
       });
     });
   }

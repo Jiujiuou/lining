@@ -10,6 +10,18 @@
   var LOG_KEY = KEYS.logs || 'amcr_logs';
   var LOGS_BY_TAB_KEY = KEYS.logsByTab || 'amcr_logs_by_tab';
   var LOG_META_KEY = '__meta';
+  function isQuotaError(err) {
+    if (!err) return false;
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
+  }
+  function safeSet(payload, cb) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
+        return cb && cb(true);
+      }
+      if (cb) cb(false);
+    });
+  }
 
   function pruneTabLogs(byTab) {
     if (!byTab || typeof byTab !== 'object') return {};
@@ -56,7 +68,7 @@
           if (!data || !Array.isArray(data.entries)) data = { entries: [] };
           data.entries.push(entry);
           if (data.entries.length > MAX) data.entries = data.entries.slice(-MAX);
-          chrome.storage.local.set({ [LOG_KEY]: data }, function () {});
+          safeSet({ [LOG_KEY]: data }, function () {});
         });
         return;
       }
@@ -73,7 +85,11 @@
         byTab = pruneTabLogs(byTab);
         var o = {};
         o[LOGS_BY_TAB_KEY] = byTab;
-        chrome.storage.local.set(o, function () {});
+        safeSet(o, function (quotaErr) {
+          if (!quotaErr) return;
+          byTab = pruneTabLogs(byTab);
+          safeSet(o, function () {});
+        });
       });
     });
   }
@@ -96,7 +112,9 @@
 
   function clearLogs(callback, tabId) {
     if (tabId == null) {
-      chrome.storage.local.set({ [LOG_KEY]: { entries: [] } }, callback || function () {});
+      safeSet({ [LOG_KEY]: { entries: [] } }, function () {
+        (callback || function () {})();
+      });
       return;
     }
     chrome.storage.local.get([LOGS_BY_TAB_KEY], function (result) {
@@ -107,7 +125,9 @@
       }
       var o = {};
       o[LOGS_BY_TAB_KEY] = byTab;
-      chrome.storage.local.set(o, callback || function () {});
+      safeSet(o, function () {
+        (callback || function () {})();
+      });
     });
   }
 

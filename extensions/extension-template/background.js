@@ -8,6 +8,12 @@ importScripts("constants/defaults.js");
   var defs = self.__EXT_TEMPLATE_DEFAULTS__;
   if (!defs || !defs.STORAGE_KEYS) return;
   var LOGS_BY_TAB = defs.STORAGE_KEYS.logsByTab || "ext_template_logs_by_tab";
+  var LOG_META_KEY = "__meta";
+  function safeSet(payload, cb) {
+    chrome.storage.local.set(payload, function () {
+      if (cb) cb();
+    });
+  }
   var GET_TAB_MSG =
     defs.RUNTIME && defs.RUNTIME.GET_TAB_ID_MESSAGE ? defs.RUNTIME.GET_TAB_ID_MESSAGE : "EXT_TEMPLATE_GET_TAB_ID";
 
@@ -30,9 +36,12 @@ importScripts("constants/defaults.js");
       var byTab = r && r[LOGS_BY_TAB] ? r[LOGS_BY_TAB] : {};
       if (!Object.prototype.hasOwnProperty.call(byTab, idStr)) return;
       delete byTab[idStr];
+      if (byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === "object") {
+        delete byTab[LOG_META_KEY][idStr];
+      }
       var o = {};
       o[LOGS_BY_TAB] = byTab;
-      chrome.storage.local.set(o, function () {});
+      safeSet(o, function () {});
     });
   });
 })();

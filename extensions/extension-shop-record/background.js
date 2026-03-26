@@ -11,11 +11,54 @@ importScripts("constants/defaults.js");
   var LOG_KEY = SR.STORAGE_KEYS.logs;
   var LOGS_BY_TAB = SR.STORAGE_KEYS.logsByTab;
   var MAX = SR.LOG_MAX_ENTRIES;
+  var MAX_TABS = SR.LOG_MAX_TABS || 6;
+  var LOG_META_KEY = "__meta";
+  function pruneByTab(byTab) {
+    if (!byTab || typeof byTab !== "object") return {};
+    var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === "object" ? byTab[LOG_META_KEY] : {};
+    var ids = Object.keys(byTab).filter(function (k) { return k !== LOG_META_KEY; });
+    if (ids.length <= MAX_TABS) {
+      byTab[LOG_META_KEY] = meta;
+      return byTab;
+    }
+    ids.sort(function (a, b) {
+      var ta = meta[a] || "";
+      var tb = meta[b] || "";
+      return String(ta).localeCompare(String(tb));
+    });
+    while (ids.length > MAX_TABS) {
+      var oldest = ids.shift();
+      delete byTab[oldest];
+      delete meta[oldest];
+    }
+    byTab[LOG_META_KEY] = meta;
+    return byTab;
+  }
+
   var GET_TAB_MSG = SR.RUNTIME.GET_TAB_ID_MESSAGE;
   var APPEND_MSG = SR.RUNTIME.CONTENT_APPEND_LOG_MESSAGE;
   var FILL_REPORT_MSG = SR.RUNTIME.FILL_REPORT_PAGE_MESSAGE;
   var CONTENT_FILL_MSG = SR.RUNTIME.CONTENT_FILL_REPORT_MESSAGE;
   var REPORT_SUBMIT_URL = SR.REPORT_SUBMIT_PAGE_URL;
+  function isQuotaError(err) {
+    if (!err) return false;
+    var msg = String(err.message || err);
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
+  }
+
+  function safeSet(payload, onDone, onQuota) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError) && typeof onQuota === "function") {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === "function") onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === "function") onDone();
+    });
+  }
 
   var logQueue = [];
   var logWriting = false;
@@ -33,7 +76,7 @@ importScripts("constants/defaults.js");
         if (!data || !Array.isArray(data.entries)) data = { entries: [] };
         data.entries.push(entry);
         if (data.entries.length > MAX) data.entries = data.entries.slice(-MAX);
-        chrome.storage.local.set({ [LOG_KEY]: data }, function () {
+        safeSet({ [LOG_KEY]: data }, function () {
           logWriting = false;
           flushLogQueue();
         });
@@ -52,11 +95,20 @@ importScripts("constants/defaults.js");
       bucket.entries.push(entry);
       if (bucket.entries.length > MAX) bucket.entries = bucket.entries.slice(-MAX);
       byTab[String(tabId)] = bucket;
+      var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === "object" ? byTab[LOG_META_KEY] : {};
+      meta[String(tabId)] = new Date().toISOString();
+      byTab[LOG_META_KEY] = meta;
+      byTab = pruneByTab(byTab);
       var o = {};
       o[LOGS_BY_TAB] = byTab;
-      chrome.storage.local.set(o, function () {
+      safeSet(o, function () {
         logWriting = false;
         flushLogQueue();
+      }, function (retry) {
+        byTab = pruneByTab(byTab);
+        var o2 = {};
+        o2[LOGS_BY_TAB] = byTab;
+        safeSet(o2, retry);
       });
     });
   }
@@ -165,9 +217,12 @@ importScripts("constants/defaults.js");
       var byTab = r && r[LOGS_BY_TAB] ? r[LOGS_BY_TAB] : {};
       if (!Object.prototype.hasOwnProperty.call(byTab, idStr)) return;
       delete byTab[idStr];
+      if (byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === "object") {
+        delete byTab[LOG_META_KEY][idStr];
+      }
       var o = {};
       o[LOGS_BY_TAB] = byTab;
-      chrome.storage.local.set(o, function () {});
+      safeSet(o, function () {});
     });
   });
 })();

@@ -15,6 +15,23 @@
           liveJsonFilterByTab: 'sycm_live_json_filter_by_tab',
           liveJsonCatalogByTab: 'sycm_live_json_catalog_by_tab'
         };
+  function isQuotaError(err) {
+    if (!err) return false;
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
+  }
+  function safeSet(payload, onDone, onQuota) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError) && typeof onQuota === 'function') {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === 'function') onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === 'function') onDone();
+    });
+  }
 
   function getThrottleMinutes(callback) {
     chrome.storage.local.get([KEYS.throttleMinutes], function (result) {
@@ -25,7 +42,11 @@
 
   function setLastSlot(eventName, slotKey, callback) {
     var key = KEYS.lastSlotPrefix + eventName;
-    chrome.storage.local.set({ [key]: slotKey }, callback || function () {});
+    safeSet({ [key]: slotKey }, callback || function () {}, function (retry) {
+      chrome.storage.local.remove([key], function () {
+        retry();
+      });
+    });
   }
 
   /**
@@ -46,7 +67,11 @@
       (callback || function () {})();
       return;
     }
-    chrome.storage.local.set(obj, callback || function () {});
+    safeSet(obj, callback || function () {}, function (retry) {
+      chrome.storage.local.remove(keys, function () {
+        retry();
+      });
+    });
   }
 
   var obj = {

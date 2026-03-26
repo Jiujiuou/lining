@@ -15,6 +15,35 @@
           liveJsonFilterByTab: 'sycm_live_json_filter_by_tab',
           liveJsonCatalogByTab: 'sycm_live_json_catalog_by_tab'
         };
+  var MAX_LIVE_JSON_TABS =
+    typeof __SYCM_DEFAULTS__ !== 'undefined' && __SYCM_DEFAULTS__.LIVE_JSON_MAX_TABS
+      ? __SYCM_DEFAULTS__.LIVE_JSON_MAX_TABS
+      : 6;
+  var MAX_LIVE_JSON_ITEMS =
+    typeof __SYCM_DEFAULTS__ !== 'undefined' && __SYCM_DEFAULTS__.LIVE_JSON_MAX_ITEMS
+      ? __SYCM_DEFAULTS__.LIVE_JSON_MAX_ITEMS
+      : 200;
+  var FILTER_META_KEY = '__meta';
+
+  function isQuotaError(err) {
+    if (!err) return false;
+    var msg = String(err.message || err);
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
+  }
+
+  function safeSet(payload, onDone, onQuota) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError) && typeof onQuota === 'function') {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === 'function') onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === 'function') onDone();
+    });
+  }
 
   var logsListEl = document.getElementById('logs-list');
   var logsClearBtn = document.getElementById('logs-clear');
@@ -138,21 +167,61 @@
 
   function persistItemIds(itemIds) {
     getActiveTabId(function (tabId) {
-      var slice = itemIds.slice();
+      var slice = itemIds.slice(0, MAX_LIVE_JSON_ITEMS);
       if (tabId == null) {
         var payload = {};
         payload[KEYS.liveJsonFilter] = { itemIds: slice };
-        chrome.storage.local.set(payload, function () {});
+        safeSet(payload, function () {}, function (retry) {
+          chrome.storage.local.remove([KEYS.liveJsonFilter], function () {
+            retry();
+          });
+        });
         return;
       }
       chrome.storage.local.get([KEYS.liveJsonFilterByTab], function (r) {
         var byTab = (r && r[KEYS.liveJsonFilterByTab]) ? r[KEYS.liveJsonFilterByTab] : {};
         byTab[String(tabId)] = { itemIds: slice };
+        var meta = byTab[FILTER_META_KEY] && typeof byTab[FILTER_META_KEY] === 'object' ? byTab[FILTER_META_KEY] : {};
+        meta[String(tabId)] = new Date().toISOString();
+        byTab[FILTER_META_KEY] = meta;
+        var ids = Object.keys(byTab).filter(function (k) { return k !== FILTER_META_KEY; });
+        ids.sort(function (a, b) {
+          var ta = meta[a] || '';
+          var tb = meta[b] || '';
+          return String(ta).localeCompare(String(tb));
+        });
+        while (ids.length > MAX_LIVE_JSON_TABS) {
+          var oldest = ids.shift();
+          delete byTab[oldest];
+          delete meta[oldest];
+        }
         var o = {};
         o[KEYS.liveJsonFilterByTab] = byTab;
-        chrome.storage.local.set(o, function () {});
+        safeSet(o, function () {}, function (retry) {
+          byTab = pruneFilterByTab(byTab, Math.max(1, MAX_LIVE_JSON_TABS - 1));
+          var o2 = {};
+          o2[KEYS.liveJsonFilterByTab] = byTab;
+          safeSet(o2, retry);
+        });
       });
     });
+  }
+
+  function pruneFilterByTab(byTab, maxTabs) {
+    var meta = byTab[FILTER_META_KEY] && typeof byTab[FILTER_META_KEY] === 'object' ? byTab[FILTER_META_KEY] : {};
+    var ids = Object.keys(byTab).filter(function (k) { return k !== FILTER_META_KEY; });
+    ids.sort(function (a, b) {
+      var ta = meta[a] || '';
+      var tb = meta[b] || '';
+      return String(ta).localeCompare(String(tb));
+    });
+    while (ids.length > maxTabs) {
+      var oldest = ids.shift();
+      delete byTab[oldest];
+      delete meta[oldest];
+    }
+    byTab[FILTER_META_KEY] = meta;
+    return byTab;
   }
 
   /** 从当前 DOM 同步会话并写入 storage（勾选、全选、全不选） */

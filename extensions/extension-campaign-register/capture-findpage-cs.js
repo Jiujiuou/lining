@@ -15,6 +15,18 @@
     typeof __AMCR_DEFAULTS__ !== 'undefined' && __AMCR_DEFAULTS__.FIND_PAGE_MAX_TABS
       ? __AMCR_DEFAULTS__.FIND_PAGE_MAX_TABS
       : 6;
+  function isQuotaError(err) {
+    if (!err) return false;
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
+  }
+  function safeSet(payload, cb) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
+        return cb && cb(true);
+      }
+      if (cb) cb(false);
+    });
+  }
 
   var tabIdCache = '__pending__';
   var tabIdWaiters = [];
@@ -166,15 +178,15 @@
         var pageUrl = event.data.pageUrl || '';
         var slimPayload = slimFindPagePayload(payload);
         if (tabId == null) {
-          chrome.storage.local.set(
+          safeSet(
             {
               amcr_findPageResponse: slimPayload,
               amcr_findPageRequestUrl: requestUrl,
               amcr_findPagePageUrl: pageUrl,
               amcr_findPageBizCode: biz
             },
-            function () {
-              if (chrome.runtime.lastError) {
+            function (quotaErr) {
+              if (quotaErr || chrome.runtime.lastError) {
                 sendCaptureLog(null, '已捕获列表，但缓存保存失败（稍后重试）');
               } else {
                 sendCaptureLog(
@@ -199,8 +211,8 @@
           byTab = pruneFindPageByTab(byTab);
           var o = {};
           o[STATE_BY_TAB] = byTab;
-          chrome.storage.local.set(o, function () {
-            if (chrome.runtime.lastError) {
+          safeSet(o, function (quotaErr) {
+            if (quotaErr || chrome.runtime.lastError) {
               sendCaptureLog(tabId, '已捕获列表，但缓存保存失败（稍后重试）');
             } else {
               sendCaptureLog(

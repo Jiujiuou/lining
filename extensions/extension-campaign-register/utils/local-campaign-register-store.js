@@ -3,6 +3,18 @@
  */
 (function (global) {
   var MAX_DAYS = 1;
+  function isQuotaError(err) {
+    if (!err) return false;
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
+  }
+  function safeSet(payload, cb) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
+        return cb && cb(true);
+      }
+      if (cb) cb(false);
+    });
+  }
 
   function getStorageKey() {
     var d = typeof __AMCR_DEFAULTS__ !== 'undefined' ? __AMCR_DEFAULTS__ : null;
@@ -60,7 +72,16 @@
       }
       var o = {};
       o[storageKey] = bag;
-      chrome.storage.local.set(o, function () {
+      safeSet(o, function (quotaErr) {
+        if (quotaErr) {
+          while (finalDates.length > 0) {
+            delete bag[finalDates.shift()];
+          }
+          o[storageKey] = bag;
+          return safeSet(o, function () {
+            if (typeof done === 'function') done();
+          });
+        }
         if (typeof done === 'function') done();
       });
     });

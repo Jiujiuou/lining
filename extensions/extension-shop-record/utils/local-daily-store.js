@@ -2,6 +2,27 @@
  * 将各来源采集到的每日字段合并写入 chrome.storage.local（按 report_at 分桶）
  */
 (function (global) {
+  var MAX_DAYS = 3;
+  function isQuotaError(err) {
+    if (!err) return false;
+    var msg = String(err.message || err);
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
+  }
+
+  function safeSet(payload, onDone, onQuota) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError) && typeof onQuota === "function") {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === "function") onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === "function") onDone();
+    });
+  }
+
   function getStorageKey() {
     var d =
       typeof __SHOP_RECORD_DEFAULTS__ !== "undefined" ? __SHOP_RECORD_DEFAULTS__ : null;
@@ -51,10 +72,21 @@
       }
       next.updated_at_local = new Date().toISOString();
       bag[date] = next;
+      var dates = Object.keys(bag).filter(function (k) {
+        return /^\d{4}-\d{2}-\d{2}$/.test(k);
+      }).sort();
+      while (dates.length > MAX_DAYS) {
+        delete bag[dates.shift()];
+      }
       var o = {};
       o[storageKey] = bag;
-      chrome.storage.local.set(o, function () {
+      safeSet(o, function () {
         if (typeof done === "function") done();
+      }, function (retry) {
+        while (dates.length > 1) {
+          delete bag[dates.shift()];
+        }
+        safeSet(o, retry);
       });
     });
   }

@@ -8,10 +8,12 @@
     /** Record<tabIdStr, { unionSearch, buyerNick, orderStatus }> — 筛选条件按标签隔离 */
     formByTab: 'ou_userdata_form_by_tab'
   };
-  var LOG_MAX_ENTRIES = 100;
+  var LOG_MAX_ENTRIES = 20;
+  var LOG_MAX_TABS = 6;
   var obj = {
     STORAGE_KEYS: STORAGE_KEYS,
     LOG_MAX_ENTRIES: LOG_MAX_ENTRIES,
+    LOG_MAX_TABS: LOG_MAX_TABS,
     PREFIX: '[订单用户数据]'
   };
   (typeof globalThis !== 'undefined' ? globalThis : global).__OU_USERDATA_DEFAULTS__ = obj;

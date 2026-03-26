@@ -8,6 +8,18 @@
   var MAX_LOG_ENTRIES = 20;
   var MAX_LOG_TABS = 6;
   var LOG_META_KEY = '__meta';
+  function isQuotaError(err) {
+    if (!err) return false;
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
+  }
+  function safeSet(payload, cb) {
+    chrome.storage.local.set(payload, function () {
+      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
+        return cb && cb(true);
+      }
+      if (cb) cb(false);
+    });
+  }
 
   function pruneTabMapByMeta(byTab, maxTabs, metaKey) {
     if (!byTab || typeof byTab !== 'object') return {};
@@ -41,7 +53,7 @@
         if (data.entries.length > MAX_LOG_ENTRIES) data.entries = data.entries.slice(-MAX_LOG_ENTRIES);
         var o = {};
         o[LOG_KEY] = data;
-        chrome.storage.local.set(o, function () {});
+        safeSet(o, function () {});
       });
       return;
     }
@@ -58,7 +70,12 @@
       byTab = pruneTabMapByMeta(byTab, MAX_LOG_TABS, LOG_META_KEY);
       var o = {};
       o[LOGS_BY_TAB] = byTab;
-      chrome.storage.local.set(o, function () {});
+      safeSet(o, function (quotaErr) {
+        if (!quotaErr) return;
+        byTab = pruneTabMapByMeta(byTab, Math.max(1, MAX_LOG_TABS - 1), LOG_META_KEY);
+        o[LOGS_BY_TAB] = byTab;
+        safeSet(o, function () {});
+      });
     });
   }
 
@@ -95,7 +112,7 @@
       var o = {};
       o[STATE_BY_TAB] = byTab;
       o[LOGS_BY_TAB] = logs;
-      chrome.storage.local.set(o, function () {});
+      safeSet(o, function () {});
     });
   });
 })();

@@ -34,6 +34,49 @@
   var setLastSlot = storageUtil.setLastSlot;
   var setLastSlotsForEventItems = storageUtil.setLastSlotsForEventItems;
   var STORAGE_KEYS = storageUtil.STORAGE_KEYS;
+  var MAX_LIVE_JSON_ITEMS =
+    typeof __SYCM_DEFAULTS__ !== 'undefined' && __SYCM_DEFAULTS__.LIVE_JSON_MAX_ITEMS
+      ? __SYCM_DEFAULTS__.LIVE_JSON_MAX_ITEMS
+      : 200;
+  var MAX_LIVE_JSON_TABS =
+    typeof __SYCM_DEFAULTS__ !== 'undefined' && __SYCM_DEFAULTS__.LIVE_JSON_MAX_TABS
+      ? __SYCM_DEFAULTS__.LIVE_JSON_MAX_TABS
+      : 6;
+  var CATALOG_META_KEY = '__meta';
+
+  function isQuotaError(err) {
+    if (!err) return false;
+    var msg = String(err.message || err);
+    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
+  }
+
+  function safeSet(payload, onDone, onQuota) {
+    try {
+      chrome.storage.local.set(payload, function () {
+        if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
+          if (typeof onQuota === 'function') {
+            onQuota(function () {
+              chrome.storage.local.set(payload, function () {
+                if (typeof onDone === 'function') onDone();
+              });
+            });
+            return;
+          }
+        }
+        if (typeof onDone === 'function') onDone();
+      });
+    } catch (e) {
+      if (isQuotaError(e) && typeof onQuota === 'function') {
+        onQuota(function () {
+          chrome.storage.local.set(payload, function () {
+            if (typeof onDone === 'function') onDone();
+          });
+        });
+        return;
+      }
+      if (typeof onDone === 'function') onDone();
+    }
+  }
   var LIVE_JSON_EVENT = 'sycm-goods-live';
 
   /** 解析当前标签 id（content 无 tabs API，经 background 回复；结果缓存） */
@@ -174,7 +217,7 @@
   function saveLiveJsonCatalog(rawItems) {
     if (!Array.isArray(rawItems) || rawItems.length === 0) return;
     var list = [];
-    for (var i = 0; i < rawItems.length; i++) {
+    for (var i = 0; i < rawItems.length && list.length < MAX_LIVE_JSON_ITEMS; i++) {
       var it = rawItems[i];
       if (!it || it.item_id == null) continue;
       list.push({ item_id: String(it.item_id), item_name: it.item_name ? String(it.item_name) : '' });
@@ -185,19 +228,57 @@
       resolveTabId(function (tabId) {
         if (tabId == null) {
           try {
-            chrome.storage.local.set({ [STORAGE_KEYS.liveJsonCatalog]: payload }, function () {});
+            safeSet({ [STORAGE_KEYS.liveJsonCatalog]: payload }, function () {}, function (retry) {
+              chrome.storage.local.remove([STORAGE_KEYS.liveJsonCatalog], function () {
+                retry();
+              });
+            });
           } catch (e2) {}
           return;
         }
         chrome.storage.local.get([STORAGE_KEYS.liveJsonCatalogByTab], function (r) {
           var byTab = (r && r[STORAGE_KEYS.liveJsonCatalogByTab]) ? r[STORAGE_KEYS.liveJsonCatalogByTab] : {};
           byTab[String(tabId)] = payload;
+          var meta = byTab[CATALOG_META_KEY] && typeof byTab[CATALOG_META_KEY] === 'object' ? byTab[CATALOG_META_KEY] : {};
+          meta[String(tabId)] = new Date().toISOString();
+          byTab[CATALOG_META_KEY] = meta;
+          var ids = Object.keys(byTab).filter(function (k) { return k !== CATALOG_META_KEY; });
+          ids.sort(function (a, b) {
+            var ta = meta[a] || '';
+            var tb = meta[b] || '';
+            return String(ta).localeCompare(String(tb));
+          });
+          while (ids.length > MAX_LIVE_JSON_TABS) {
+            var oldest = ids.shift();
+            delete byTab[oldest];
+            delete meta[oldest];
+          }
           var obj = {};
           obj[STORAGE_KEYS.liveJsonCatalogByTab] = byTab;
-          chrome.storage.local.set(obj, function () {});
+          safeSet(obj, function () {}, function (retry) {
+            byTab = pruneByTabCatalog(byTab, Math.max(1, MAX_LIVE_JSON_TABS - 1));
+            safeSet(obj, retry);
+          });
         });
       });
     } catch (e) { }
+  }
+
+  function pruneByTabCatalog(byTab, maxTabs) {
+    var meta = byTab[CATALOG_META_KEY] && typeof byTab[CATALOG_META_KEY] === 'object' ? byTab[CATALOG_META_KEY] : {};
+    var ids = Object.keys(byTab).filter(function (k) { return k !== CATALOG_META_KEY; });
+    ids.sort(function (a, b) {
+      var ta = meta[a] || '';
+      var tb = meta[b] || '';
+      return String(ta).localeCompare(String(tb));
+    });
+    while (ids.length > maxTabs) {
+      var oldest = ids.shift();
+      delete byTab[oldest];
+      delete meta[oldest];
+    }
+    byTab[CATALOG_META_KEY] = meta;
+    return byTab;
   }
 
   function handleEvent(sink, d, throttleMinutes) {
