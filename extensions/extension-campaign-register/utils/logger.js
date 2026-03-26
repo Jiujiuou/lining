@@ -83,9 +83,6 @@
   (typeof globalThis !== 'undefined' ? globalThis : global).__AMCR_LOGGER__ = {
     appendLog: appendLog,
     getLogs: getLogs,
-    clearLogs: clearLogs,
-    log: function (msg) { appendLog('log', msg); },
-    warn: function (msg) { appendLog('warn', msg); },
-    error: function (msg) { appendLog('error', msg); }
+    clearLogs: clearLogs
   };
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : self);

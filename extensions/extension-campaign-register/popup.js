@@ -66,14 +66,7 @@
     };
   }
 
-  function queryActiveTab(callback) {
-    chrome.tabs.query(ACTIVE_TAB_QUERY, function (tabs) {
-      var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
-      callback(tabId);
-    });
-  }
-
-  function getActiveTabId(callback) {
+  function queryActiveTabId(callback) {
     try {
       chrome.tabs.query(ACTIVE_TAB_QUERY, function (tabs) {
         var id = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
@@ -151,14 +144,14 @@
 
   function loadLogs() {
     if (!logger) return;
-    getActiveTabId(function (tabId) {
+    queryActiveTabId(function (tabId) {
       logger.getLogs(renderLogs, tabId);
     });
   }
 
   function clearLogs() {
     if (!logger || !logsClearBtn) return;
-    getActiveTabId(function (tabId) {
+    queryActiveTabId(function (tabId) {
       logger.clearLogs(function () {
         loadLogs();
       }, tabId);
@@ -206,7 +199,7 @@
           'amcr_findPageSelectedCampaigns'
         ],
         function (stored) {
-          queryActiveTab(function (tabId) {
+          queryActiveTabId(function (tabId) {
             var pack = pickFindPageState(stored, tabId);
             var state = pack.state;
             lastFindPageBizCode = state.findPageBizCode || '';
@@ -333,6 +326,7 @@
     }
     chrome.tabs.query(ACTIVE_TAB_QUERY, function (tabs) {
       var t = tabs && tabs[0];
+      var tabId = t && t.id != null ? t.id : null;
       var pageUrl = t && t.url && t.url.indexOf('one.alimama.com') !== -1 ? t.url : '';
       var dateRange = getDateRangeFromUrl(pageUrl);
       if (logger) logger.appendLog('log', '推广登记 startTime=' + (dateRange.startDate || '') + ' endTime=' + (dateRange.endDate || '') + ' pageUrl=' + (pageUrl ? pageUrl.slice(0, 100) + (pageUrl.length > 100 ? '...' : '') : ''));
@@ -396,16 +390,13 @@
       }
       var selectedDisplayNames = rows.map(function (r) { return r.campaign_name; });
       var sk = getStateByTabKey();
-      chrome.tabs.query(ACTIVE_TAB_QUERY, function (tabs) {
-        var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
-        if (tabId == null) {
-          chrome.storage.local.get(['amcr_findPageSelectedCampaigns'], function (s) {
-            var all = (s && s.amcr_findPageSelectedCampaigns) ? s.amcr_findPageSelectedCampaigns : {};
-            all[bizCode] = selectedDisplayNames;
-            chrome.storage.local.set({ amcr_findPageSelectedCampaigns: all }, function () {});
-          });
-          return;
-        }
+      if (tabId == null) {
+        chrome.storage.local.get(['amcr_findPageSelectedCampaigns'], function (s) {
+          var all = (s && s.amcr_findPageSelectedCampaigns) ? s.amcr_findPageSelectedCampaigns : {};
+          all[bizCode] = selectedDisplayNames;
+          chrome.storage.local.set({ amcr_findPageSelectedCampaigns: all }, function () {});
+        });
+      } else {
         chrome.storage.local.get([sk], function (s) {
           var byTab = (s && s[sk]) ? s[sk] : {};
           var st = byTab[String(tabId)] || {};
@@ -417,7 +408,7 @@
           o[sk] = byTab;
           chrome.storage.local.set(o, function () {});
         });
-      });
+      }
       var creds = typeof __AMCR_SUPABASE__ !== 'undefined' ? __AMCR_SUPABASE__ : null;
       upsertCampaignRegisterByBiz(rows, bizCode, creds, { logger: logger }).then(function () {
         loadLogs();
@@ -462,7 +453,7 @@
           'amcr_findPageSelectedCampaigns'
         ],
         function (s) {
-          queryActiveTab(function (tabId) {
+          queryActiveTabId(function (tabId) {
             var pack = pickFindPageState(s, tabId);
             var n = listLenFromFindPage(pack.state.findPageResponse);
             logger.appendLog(
