@@ -11,6 +11,9 @@
 
   function logResponse(data, requestUrl) {
     try {
+      if (typeof window !== 'undefined' && window !== window.top) {
+        return;
+      }
       window.postMessage({
         type: 'FIND_PAGE_CAPTURED',
         payload: data,

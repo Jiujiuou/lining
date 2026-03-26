@@ -5,7 +5,7 @@
       logs: 'amcr_logs',
       /** Record<tabIdStr, { entries }> — 按标签页隔离扩展日志 */
       logsByTab: 'amcr_logs_by_tab',
-      /** Record<tabIdStr, AmcrTabState> — 多开推广页互不覆盖 */
+      /** Record<tabIdStr, AmcrTabState> — 多开推广页互不覆盖（弹窗只读当前活动 tab） */
       findPageStateByTab: 'amcr_findPageStateByTab'
     },
     LOG_MAX_ENTRIES: 100

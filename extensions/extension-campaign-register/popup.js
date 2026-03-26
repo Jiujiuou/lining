@@ -4,6 +4,11 @@
 (function () {
   var logger = typeof __AMCR_LOGGER__ !== 'undefined' ? __AMCR_LOGGER__ : null;
 
+  /** 弹窗脚本里 currentWindow 会指向弹窗自身，拿不到背后网页标签；应用 lastFocusedWindow 取刚点图标前的活动标签 */
+  var ACTIVE_TAB_QUERY = { active: true, lastFocusedWindow: true };
+
+  var VALID_BIZ = { onebpDisplay: 1, onebpSite: 1, onebpSearch: 1, onebpShortVideo: 1 };
+
   var logsListEl = document.getElementById('logs-list');
   var logsClearBtn = document.getElementById('logs-clear');
   var openPromoRecordBtn = document.getElementById('open-promo-record');
@@ -25,32 +30,52 @@
       : 'amcr_findPageStateByTab';
   }
 
-  /** 当前标签分桶优先，否则回落旧版全局 amcr_* */
-  function pickTabFindPageState(stored, tabId) {
+  function listLenFromFindPage(resp) {
+    if (!resp || !resp.data || !Array.isArray(resp.data.list)) return 0;
+    return resp.data.list.length;
+  }
+
+  /**
+   * 仅当前活动 tab 的分桶；无分桶时回落全局（捕获时 tabId 未解析等）。
+   */
+  function pickFindPageState(stored, tabId) {
     var sk = getStateByTabKey();
     var byTab = stored[sk] || {};
     var bucket = tabId != null ? byTab[String(tabId)] : null;
     if (bucket && bucket.findPageResponse) {
       return {
-        findPageResponse: bucket.findPageResponse,
-        findPageRequestUrl: bucket.findPageRequestUrl,
-        findPagePageUrl: bucket.findPagePageUrl,
-        findPageBizCode: bucket.findPageBizCode,
-        findPageSelectedCampaigns: bucket.findPageSelectedCampaigns || {}
+        pickSource: sk + ':' + String(tabId),
+        state: {
+          findPageResponse: bucket.findPageResponse,
+          findPageRequestUrl: bucket.findPageRequestUrl,
+          findPagePageUrl: bucket.findPagePageUrl,
+          findPageBizCode: bucket.findPageBizCode,
+          findPageSelectedCampaigns: bucket.findPageSelectedCampaigns || {}
+        }
       };
     }
     return {
-      findPageResponse: stored.amcr_findPageResponse,
-      findPageRequestUrl: stored.amcr_findPageRequestUrl,
-      findPagePageUrl: stored.amcr_findPagePageUrl,
-      findPageBizCode: stored.amcr_findPageBizCode,
-      findPageSelectedCampaigns: stored.amcr_findPageSelectedCampaigns || {}
+      pickSource: 'amcr_findPageResponse(全局)',
+      state: {
+        findPageResponse: stored.amcr_findPageResponse,
+        findPageRequestUrl: stored.amcr_findPageRequestUrl,
+        findPagePageUrl: stored.amcr_findPagePageUrl,
+        findPageBizCode: stored.amcr_findPageBizCode,
+        findPageSelectedCampaigns: stored.amcr_findPageSelectedCampaigns || {}
+      }
     };
+  }
+
+  function queryActiveTab(callback) {
+    chrome.tabs.query(ACTIVE_TAB_QUERY, function (tabs) {
+      var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+      callback(tabId);
+    });
   }
 
   function getActiveTabId(callback) {
     try {
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      chrome.tabs.query(ACTIVE_TAB_QUERY, function (tabs) {
         var id = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
         callback(id);
       });
@@ -181,9 +206,9 @@
           'amcr_findPageSelectedCampaigns'
         ],
         function (stored) {
-          chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
-            var state = pickTabFindPageState(stored, tabId);
+          queryActiveTab(function (tabId) {
+            var pack = pickFindPageState(stored, tabId);
+            var state = pack.state;
             lastFindPageBizCode = state.findPageBizCode || '';
             var selectedSet =
               state.findPageSelectedCampaigns && state.findPageBizCode && state.findPageSelectedCampaigns[state.findPageBizCode]
@@ -243,8 +268,11 @@
     if (bizCode === 'onebpSite') {
       return (item && item.campaignName != null) ? String(item.campaignName) : '';
     }
+    if (item && item.campaignName != null && String(item.campaignName).trim() !== '') {
+      return String(item.campaignName);
+    }
     if (report && report.campaignName != null) return String(report.campaignName);
-    return (item && item.campaignName != null) ? String(item.campaignName) : '';
+    return '';
   }
 
   function getReportDate(item) {
@@ -262,8 +290,7 @@
       return Promise.resolve({ ok: false });
     }
     if (!Array.isArray(rows) || rows.length === 0) return Promise.resolve({ ok: true });
-    var validBiz = { onebpDisplay: 1, onebpSite: 1, onebpSearch: 1, onebpShortVideo: 1 };
-    if (!bizCode || !validBiz[bizCode]) {
+    if (!bizCode || !VALID_BIZ[bizCode]) {
       if (log) log.appendLog('warn', '推广登记：未知来源 bizCode=' + bizCode);
       return Promise.resolve({ ok: false });
     }
@@ -304,8 +331,9 @@
       loadLogs();
       return;
     }
-    chrome.tabs.query({ url: 'https://one.alimama.com/*' }, function (tabs) {
-      var pageUrl = (tabs && tabs.length > 0) ? tabs[0].url : '';
+    chrome.tabs.query(ACTIVE_TAB_QUERY, function (tabs) {
+      var t = tabs && tabs[0];
+      var pageUrl = t && t.url && t.url.indexOf('one.alimama.com') !== -1 ? t.url : '';
       var dateRange = getDateRangeFromUrl(pageUrl);
       if (logger) logger.appendLog('log', '推广登记 startTime=' + (dateRange.startDate || '') + ' endTime=' + (dateRange.endDate || '') + ' pageUrl=' + (pageUrl ? pageUrl.slice(0, 100) + (pageUrl.length > 100 ? '...' : '') : ''));
       if (dateRange.startDate && dateRange.endDate && dateRange.startDate !== dateRange.endDate) {
@@ -361,15 +389,14 @@
         loadLogs();
         return;
       }
-      var validBiz = { onebpDisplay: 1, onebpSite: 1, onebpSearch: 1, onebpShortVideo: 1 };
-      if (!bizCode || !validBiz[bizCode]) {
+      if (!bizCode || !VALID_BIZ[bizCode]) {
         if (logger) logger.appendLog('warn', '推广登记：未识别来源，请先在对应推广记录页打开列表后再登记');
         loadLogs();
         return;
       }
       var selectedDisplayNames = rows.map(function (r) { return r.campaign_name; });
       var sk = getStateByTabKey();
-      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      chrome.tabs.query(ACTIVE_TAB_QUERY, function (tabs) {
         var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
         if (tabId == null) {
           chrome.storage.local.get(['amcr_findPageSelectedCampaigns'], function (s) {
@@ -423,21 +450,29 @@
   if (findpageRefreshBtn) {
     findpageRefreshBtn.addEventListener('click', function () {
       loadFindPageResponse();
-      if (logger) {
-        var sk = getStateByTabKey();
-        chrome.storage.local.get([sk, 'amcr_findPageResponse', 'amcr_findPageBizCode'], function (s) {
-          chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-            var tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
-            var state = pickTabFindPageState(s, tabId);
-            var n =
-              state.findPageResponse && state.findPageResponse.data && Array.isArray(state.findPageResponse.data.list)
-                ? state.findPageResponse.data.list.length
-                : 0;
-            logger.appendLog('log', '[刷新列表] 共 ' + n + ' 条, bizCode=' + (state.findPageBizCode || '无'));
+      if (!logger) return;
+      var sk = getStateByTabKey();
+      chrome.storage.local.get(
+        [
+          sk,
+          'amcr_findPageResponse',
+          'amcr_findPageRequestUrl',
+          'amcr_findPagePageUrl',
+          'amcr_findPageBizCode',
+          'amcr_findPageSelectedCampaigns'
+        ],
+        function (s) {
+          queryActiveTab(function (tabId) {
+            var pack = pickFindPageState(s, tabId);
+            var n = listLenFromFindPage(pack.state.findPageResponse);
+            logger.appendLog(
+              'log',
+              '[刷新列表] 共 ' + n + ' 条 pick=' + pack.pickSource + ' biz=' + (pack.state.findPageBizCode || '无')
+            );
             loadLogs();
           });
-        });
-      }
+        }
+      );
     });
   }
 

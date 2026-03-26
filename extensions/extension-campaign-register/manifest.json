@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "theme_color": "#0d9488",
   "name": "万相台推广登记",
-  "version": "1.1.1",
+  "version": "1.1.8",
   "description": "万相台推广列表捕获与手动登记至 Supabase（可与「生意参谋详情数据」扩展并行安装）",
   "permissions": ["storage", "tabs"],
   "background": {

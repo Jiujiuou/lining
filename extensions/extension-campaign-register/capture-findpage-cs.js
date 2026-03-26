@@ -1,5 +1,5 @@
 /**
- * 隔离世界：接收主世界 FIND_PAGE_CAPTURED，写入本扩展 storage（按 tab 分桶）
+ * 隔离世界：接收主世界 FIND_PAGE_CAPTURED，写入本扩展 storage（仅按 tab 分桶 + 无 tabId 时全局兜底）
  */
 (function () {
   try {
@@ -45,6 +45,68 @@
     }
   }
 
+  function sendCaptureLog(tabId, msg) {
+    try {
+      chrome.runtime.sendMessage({ type: 'AMCR_CAPTURE_LOG', tabId: tabId != null ? tabId : null, msg: msg }, function () {});
+    } catch (e) {}
+  }
+
+  /**
+   * 仅保留弹窗列表与登记 RPC 所需字段，避免整包 findPage 撑爆 storage 配额。
+   */
+  function slimReportRow(r) {
+    if (!r || typeof r !== 'object') return null;
+    var cond = r.condition && typeof r.condition === 'object' ? r.condition : null;
+    return {
+      campaignName: r.campaignName,
+      charge: r.charge,
+      alipayInshopAmt: r.alipayInshopAmt,
+      condition: cond
+        ? {
+            startTime: cond.startTime,
+            endTime: cond.endTime
+          }
+        : null
+    };
+  }
+
+  function slimCampaignItem(item) {
+    if (!item || typeof item !== 'object') return item;
+    var reports = item.reportInfoList;
+    var slimReports = null;
+    if (Array.isArray(reports) && reports.length > 0) {
+      var r0 = slimReportRow(reports[0]);
+      slimReports = r0 ? [r0] : null;
+    }
+    return {
+      campaignId: item.campaignId,
+      campaignName: item.campaignName,
+      onlineStatus: item.onlineStatus,
+      displayStatus: item.displayStatus,
+      reportInfoList: slimReports
+    };
+  }
+
+  function slimFindPagePayload(payload) {
+    if (!payload || typeof payload !== 'object' || !payload.data || !Array.isArray(payload.data.list)) {
+      return payload;
+    }
+    try {
+      var slimList = [];
+      for (var i = 0; i < payload.data.list.length; i++) {
+        slimList.push(slimCampaignItem(payload.data.list[i]));
+      }
+      return {
+        data: {
+          count: payload.data.count,
+          list: slimList
+        }
+      };
+    } catch (e) {
+      return payload;
+    }
+  }
+
   function parseBizCodeFromUrl(url) {
     if (!url || typeof url !== 'string') return '';
     try {
@@ -61,6 +123,9 @@
 
   function onMessage(event) {
     if (event.source !== window || !event.data || event.data.type !== 'FIND_PAGE_CAPTURED') return;
+    if (window !== window.top) {
+      return;
+    }
     var payload = event.data.payload;
     if (!payload) return;
     var list = payload.data && Array.isArray(payload.data.list) ? payload.data.list : [];
@@ -69,13 +134,31 @@
     try {
       var biz = parseBizCodeFromUrl(requestUrl);
       resolveTabId(function (tabId) {
+        var pageUrl = event.data.pageUrl || '';
+        var slimPayload = slimFindPagePayload(payload);
+        var slimKb = '';
+        try {
+          slimKb = (JSON.stringify(slimPayload).length / 1024).toFixed(1);
+        } catch (e) {}
         if (tabId == null) {
-          chrome.storage.local.set({
-            amcr_findPageResponse: payload,
-            amcr_findPageRequestUrl: requestUrl,
-            amcr_findPagePageUrl: event.data.pageUrl || '',
-            amcr_findPageBizCode: biz
-          }, function () {});
+          chrome.storage.local.set(
+            {
+              amcr_findPageResponse: slimPayload,
+              amcr_findPageRequestUrl: requestUrl,
+              amcr_findPagePageUrl: pageUrl,
+              amcr_findPageBizCode: biz
+            },
+            function () {
+              if (chrome.runtime.lastError) {
+                sendCaptureLog(null, '[findPage捕获] storage 失败(tabId空): ' + chrome.runtime.lastError.message);
+              } else {
+                sendCaptureLog(
+                  null,
+                  '[findPage捕获] 已写入 listLen=' + list.length + ' biz=' + (biz || '') + ' slim≈' + slimKb + 'KB (无tabId)'
+                );
+              }
+            }
+          );
           return;
         }
         chrome.storage.local.get([STATE_BY_TAB], function (r) {
@@ -83,15 +166,32 @@
           var prev = byTab[String(tabId)] || {};
           var sel = prev.findPageSelectedCampaigns || {};
           byTab[String(tabId)] = {
-            findPageResponse: payload,
+            findPageResponse: slimPayload,
             findPageRequestUrl: requestUrl,
-            findPagePageUrl: event.data.pageUrl || '',
+            findPagePageUrl: pageUrl,
             findPageBizCode: biz,
             findPageSelectedCampaigns: sel
           };
           var o = {};
           o[STATE_BY_TAB] = byTab;
-          chrome.storage.local.set(o, function () {});
+          chrome.storage.local.set(o, function () {
+            if (chrome.runtime.lastError) {
+              sendCaptureLog(tabId, '[findPage捕获] storage 失败: ' + chrome.runtime.lastError.message);
+            } else {
+              sendCaptureLog(
+                tabId,
+                '[findPage捕获] 已写入 listLen=' +
+                  list.length +
+                  ' biz=' +
+                  (biz || '') +
+                  ' tabId=' +
+                  tabId +
+                  ' slim≈' +
+                  slimKb +
+                  'KB'
+              );
+            }
+          });
         });
       });
     } catch (e) {}
