@@ -31,6 +31,7 @@ import ExportTableModal from "./components/ExportTableModal";
 import ChartCell from "./components/ChartCell";
 import DashboardSingleDatePicker from "./components/DashboardSingleDatePicker";
 import DashboardMultiDatePicker from "./components/DashboardMultiDatePicker";
+import DashboardYearMonthPicker from "./components/DashboardYearMonthPicker";
 import NoteModal from "./components/NoteModal";
 import GoodsSelect from "./components/GoodsSelect";
 import "./App.css";
@@ -42,9 +43,7 @@ import "./App.css";
 function resolveBestItemNameFromCandidates(candidates, itemId) {
   const id = String(itemId);
   const uniq = [
-    ...new Set(
-      candidates.map((c) => String(c ?? "").trim()).filter(Boolean),
-    ),
+    ...new Set(candidates.map((c) => String(c ?? "").trim()).filter(Boolean)),
   ];
   if (uniq.length === 0) return id;
   const notSameAsId = uniq.filter((n) => n !== id);
@@ -94,9 +93,7 @@ async function fetchDistinctGoodsFromSlotLog(supabaseClient, dayEndIso) {
     }
     out.push({ item_id, item_name: picked });
   }
-  return out.sort((a, b) =>
-    a.item_name.localeCompare(b.item_name, "zh-CN"),
-  );
+  return out.sort((a, b) => a.item_name.localeCompare(b.item_name, "zh-CN"));
 }
 
 const SERIES_ORDER_LIMIT = 9;
@@ -119,7 +116,12 @@ const CAMPAIGN_NAME_ORDER = [
 ];
 
 /** 汇总1：在「池_小贝壳」下展示，加和以下四项 */
-const CAMPAIGN_SUMMARY_GROUP1 = ["池_2万小方块", "池_2万小云宝", "池_鹅卵石", "池_小贝壳"];
+const CAMPAIGN_SUMMARY_GROUP1 = [
+  "池_2万小方块",
+  "池_2万小云宝",
+  "池_鹅卵石",
+  "池_小贝壳",
+];
 /** 汇总2：在「池_大云团」下展示，加和以下两项 */
 const CAMPAIGN_SUMMARY_GROUP2 = ["池_小云团", "池_大云团"];
 
@@ -187,7 +189,15 @@ function App() {
   const [campaignRegisterLoading, setCampaignRegisterLoading] = useState(false);
   /** 删除推广数据二次确认：{ report_date, campaign_name } | null */
   const [deleteConfirmRow, setDeleteConfirmRow] = useState(null);
-  const [campaignRegisterDeleting, setCampaignRegisterDeleting] = useState(false);
+  const [campaignRegisterDeleting, setCampaignRegisterDeleting] =
+    useState(false);
+  const [monthDeleteOpen, setMonthDeleteOpen] = useState(false);
+  const [monthDeleteConfirmOpen, setMonthDeleteConfirmOpen] = useState(false);
+  const [monthDeleteMonth, setMonthDeleteMonth] = useState(() =>
+    getTodayEast8().slice(0, 7),
+  );
+  const [monthDeleteInput, setMonthDeleteInput] = useState("");
+  const [monthDeleteSubmitting, setMonthDeleteSubmitting] = useState(false);
   /** 推广数据：是否展示汇总行（池_小贝壳下、池_大云团下各一行加和） */
   const [showCampaignSummary, setShowCampaignSummary] = useState(false);
   /** 当前商品在「选中日期所在自然月」内有 slot 的日期（补全月历圆点，不依赖 load 窗口上界） */
@@ -226,9 +236,7 @@ function App() {
       /* ignore */
     }
     setSelectedItemId((prev) =>
-      !prev || prev === CAMPAIGN_REGISTER_ITEM_ID
-        ? MARKET_RANK_ITEM_ID
-        : prev,
+      !prev || prev === CAMPAIGN_REGISTER_ITEM_ID ? MARKET_RANK_ITEM_ID : prev,
     );
   }, [pathname]);
 
@@ -502,7 +510,8 @@ function App() {
     if (!supabase || !row) return;
     setCampaignRegisterDeleting(true);
     setError(null);
-    const reportDate = row.report_date != null ? String(row.report_date).slice(0, 10) : "";
+    const reportDate =
+      row.report_date != null ? String(row.report_date).slice(0, 10) : "";
     const campaignName = String(row.campaign_name ?? "").trim();
     const { data: deletedRows, error: deleteError } = await supabase
       .from("campaign_register")
@@ -513,11 +522,17 @@ function App() {
     setCampaignRegisterDeleting(false);
     setDeleteConfirmRow(null);
     if (deleteError) {
-      setError("删除失败：" + (deleteError.message || String(deleteError)) + "。请确认 Supabase 已为 campaign_register 表添加 delete 策略（运行 supabase_campaign_register_delete_policy.sql）");
+      setError(
+        "删除失败：" +
+          (deleteError.message || String(deleteError)) +
+          "。请确认 Supabase 已为 campaign_register 表添加 delete 策略（运行 supabase_campaign_register_delete_policy.sql）",
+      );
       return;
     }
     if (!deletedRows || deletedRows.length === 0) {
-      setError("未从 Supabase 删除任何数据（可能无 delete 权限或条件未匹配）。请运行 extensions/extension-campaign-register/sql/supabase_campaign_register_delete_policy.sql 后重试。");
+      setError(
+        "未从 Supabase 删除任何数据（可能无 delete 权限或条件未匹配）。请运行 extensions/extension-campaign-register/sql/supabase_campaign_register_delete_policy.sql 后重试。",
+      );
       return;
     }
     setCampaignRegisterRows((prev) =>
@@ -530,6 +545,66 @@ function App() {
       ),
     );
   }, [deleteConfirmRow]);
+
+  const monthDeleteConfirmText = useMemo(() => {
+    if (!/^\d{4}-\d{2}$/.test(monthDeleteMonth)) return "";
+    const y = monthDeleteMonth.slice(0, 4);
+    const m = String(Number(monthDeleteMonth.slice(5, 7)));
+    return `确认删除${y}年${m}月数据`;
+  }, [monthDeleteMonth]);
+
+  const handleMonthDeleteSubmit = useCallback(async () => {
+    if (!supabase || !/^\d{4}-\d{2}$/.test(monthDeleteMonth)) return;
+    if (monthDeleteInput !== monthDeleteConfirmText) return;
+    const y = Number(monthDeleteMonth.slice(0, 4));
+    const m = Number(monthDeleteMonth.slice(5, 7));
+    const lastDay = new Date(y, m, 0).getDate();
+    const mm = String(m).padStart(2, "0");
+    const start = `${y}-${mm}-01T00:00:00+08:00`;
+    const end = `${y}-${mm}-${String(lastDay).padStart(2, "0")}T23:59:59.999+08:00`;
+
+    setMonthDeleteSubmitting(true);
+    setError(null);
+    try {
+      const { error: goodsDeleteError } = await supabase
+        .from("goods_detail_slot_log")
+        .delete()
+        .gte("slot_ts", start)
+        .lte("slot_ts", end);
+      if (goodsDeleteError) {
+        setError(
+          "删除失败：" + (goodsDeleteError.message || String(goodsDeleteError)),
+        );
+        return;
+      }
+      const { error: rankDeleteError } = await supabase
+        .from("sycm_market_rank_log")
+        .delete()
+        .gte("created_at", start)
+        .lte("created_at", end);
+      if (rankDeleteError) {
+        setError(
+          "删除失败：" + (rankDeleteError.message || String(rankDeleteError)),
+        );
+        return;
+      }
+      setMonthDeleteConfirmOpen(false);
+      setMonthDeleteOpen(false);
+      setMonthDeleteInput("");
+      await loadFromSupabase(selectedDate);
+    } catch (err) {
+      setError("删除失败：" + (err.message || String(err)));
+    } finally {
+      setMonthDeleteSubmitting(false);
+    }
+  }, [
+    supabase,
+    monthDeleteMonth,
+    monthDeleteInput,
+    monthDeleteConfirmText,
+    loadFromSupabase,
+    selectedDate,
+  ]);
 
   /** 推广数据：有数据的日期列表（从已加载数据中取，降序） */
   const campaignRegisterDates = useMemo(() => {
@@ -594,7 +669,8 @@ function App() {
 
   /** 下拉/月历「有数据」日期：图表解析结果 ∪ 当月按商品查询的 slot 日（避免仅 load 到选中日当天导致后续日无点） */
   const datesForSelection = useMemo(() => {
-    if (selectedItemId === CAMPAIGN_REGISTER_ITEM_ID) return campaignRegisterDates;
+    if (selectedItemId === CAMPAIGN_REGISTER_ITEM_ID)
+      return campaignRegisterDates;
     if (selectedItemId === MARKET_RANK_ITEM_ID) return rankDatesSorted;
     const fromChart = parsedData?.dates ?? [];
     const merged = new Set([...fromChart, ...itemMonthSlotDates]);
@@ -645,8 +721,12 @@ function App() {
     return [...filtered].sort((a, b) => {
       const nameA = String(a.campaign_name ?? "").trim();
       const nameB = String(b.campaign_name ?? "").trim();
-      const iA = orderMap.has(nameA) ? orderMap.get(nameA) : CAMPAIGN_NAME_ORDER.length;
-      const iB = orderMap.has(nameB) ? orderMap.get(nameB) : CAMPAIGN_NAME_ORDER.length;
+      const iA = orderMap.has(nameA)
+        ? orderMap.get(nameA)
+        : CAMPAIGN_NAME_ORDER.length;
+      const iB = orderMap.has(nameB)
+        ? orderMap.get(nameB)
+        : CAMPAIGN_NAME_ORDER.length;
       if (iA !== iB) return iA - iB;
       return nameA.localeCompare(nameB);
     });
@@ -665,7 +745,8 @@ function App() {
 
   /** 推广数据：在 池_小贝壳 下、池_大云团 下插入汇总行（开关打开时） */
   const displayedCampaignRowsWithSummary = useMemo(() => {
-    if (!showCampaignSummary || displayedCampaignRows.length === 0) return displayedCampaignRows;
+    if (!showCampaignSummary || displayedCampaignRows.length === 0)
+      return displayedCampaignRows;
     const set1 = new Set(CAMPAIGN_SUMMARY_GROUP1);
     const set2 = new Set(CAMPAIGN_SUMMARY_GROUP2);
     const byDate = new Map();
@@ -676,10 +757,15 @@ function App() {
     }
     const out = [];
     const sumRows = (rows) => {
-      const row = { report_date: rows[0]?.report_date ?? null, campaign_name: "", isSummaryRow: true };
+      const row = {
+        report_date: rows[0]?.report_date ?? null,
+        campaign_name: "",
+        isSummaryRow: true,
+      };
       for (const k of CAMPAIGN_NUMERIC_KEYS) row[k] = 0;
       for (const r of rows) {
-        for (const k of CAMPAIGN_NUMERIC_KEYS) row[k] = (Number(r[k]) || 0) + (row[k] ?? 0);
+        for (const k of CAMPAIGN_NUMERIC_KEYS)
+          row[k] = (Number(r[k]) || 0) + (row[k] ?? 0);
       }
       return row;
     };
@@ -690,14 +776,18 @@ function App() {
         out.push(r);
         const name = String(r.campaign_name ?? "").trim();
         if (name === "池_小贝壳") {
-          const group1Rows = rows.filter((row) => set1.has(String(row.campaign_name ?? "").trim()));
+          const group1Rows = rows.filter((row) =>
+            set1.has(String(row.campaign_name ?? "").trim()),
+          );
           if (group1Rows.length > 0) {
             const sum = sumRows(group1Rows);
             sum.campaign_name = "汇总";
             out.push(sum);
           }
         } else if (name === "池_大云团") {
-          const group2Rows = rows.filter((row) => set2.has(String(row.campaign_name ?? "").trim()));
+          const group2Rows = rows.filter((row) =>
+            set2.has(String(row.campaign_name ?? "").trim()),
+          );
           if (group2Rows.length > 0) {
             const sum = sumRows(group2Rows);
             sum.campaign_name = "汇总";
@@ -835,8 +925,7 @@ function App() {
     const isMarketRankView = selectedItemId === MARKET_RANK_ITEM_ID;
     const isCampaignRegisterView = selectedItemId === CAMPAIGN_REGISTER_ITEM_ID;
     /** 当前为某一商品（非店铺排名/推广表）：备注走商品表 goods_detail_item_point_notes */
-    const useGoodsScopedNotes =
-      !isMarketRankView && !isCampaignRegisterView;
+    const useGoodsScopedNotes = !isMarketRankView && !isCampaignRegisterView;
     const { dates, byDate } = parsedData || { dates: [], byDate: {} };
 
     const selectedDates = getDashboardSelectedDates({
@@ -1145,18 +1234,137 @@ function App() {
               !isCampaignRegisterView &&
               (rawGoodsDetailRows.length > 0 ||
                 rawMarketRankRows.length > 0) ? (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setExportModalOpen(true)}
-                disabled={exporting}
-              >
-                {exporting ? "导出中…" : "导出表格"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn btn-ghost dashboard-delete-month-btn"
+                  onClick={() => {
+                    const fallbackMonth =
+                      selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
+                        ? selectedDate.slice(0, 7)
+                        : getTodayEast8().slice(0, 7);
+                    setMonthDeleteMonth(fallbackMonth);
+                    setMonthDeleteInput("");
+                    setMonthDeleteConfirmOpen(false);
+                    setMonthDeleteOpen(true);
+                  }}
+                  disabled={exporting || monthDeleteSubmitting}
+                >
+                  删除数据
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setExportModalOpen(true)}
+                  disabled={exporting || monthDeleteSubmitting}
+                >
+                  {exporting ? "导出中…" : "导出表格"}
+                </button>
+              </>
             ) : null}
             {error && <span className="dashboard-header-error">{error}</span>}
           </div>
         </header>
+
+        {monthDeleteOpen && !monthDeleteConfirmOpen && (
+          <div
+            className="note-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="month-delete-title"
+            onClick={(e) =>
+              e.target === e.currentTarget && setMonthDeleteOpen(false)
+            }
+          >
+            <div
+              className="note-modal-panel"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="month-delete-title" className="delete-confirm-title">
+                选择要删除的月份
+              </h2>
+              <div className="month-delete-picker-wrap">
+                <DashboardYearMonthPicker
+                  label="年月"
+                  value={monthDeleteMonth}
+                  onChange={setMonthDeleteMonth}
+                  getTodayYmd={getTodayEast8}
+                />
+              </div>
+              <div className="delete-confirm-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setMonthDeleteOpen(false)}
+                  disabled={monthDeleteSubmitting}
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setMonthDeleteConfirmOpen(true)}
+                  disabled={monthDeleteSubmitting}
+                >
+                  下一步
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {monthDeleteOpen && monthDeleteConfirmOpen && (
+          <div
+            className="note-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="month-delete-confirm-title"
+            onClick={(e) =>
+              e.target === e.currentTarget &&
+              !monthDeleteSubmitting &&
+              setMonthDeleteConfirmOpen(false)
+            }
+          >
+            <div
+              className="note-modal-panel"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="delete-confirm-desc">
+                请输入下方内容以确认删除：
+                <strong>{monthDeleteConfirmText}</strong>
+              </p>
+              <input
+                type="text"
+                className="month-delete-input"
+                placeholder={monthDeleteConfirmText}
+                value={monthDeleteInput}
+                onChange={(e) => setMonthDeleteInput(e.target.value)}
+                disabled={monthDeleteSubmitting}
+              />
+              <div className="delete-confirm-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setMonthDeleteConfirmOpen(false)}
+                  disabled={monthDeleteSubmitting}
+                >
+                  返回
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleMonthDeleteSubmit}
+                  disabled={
+                    monthDeleteSubmitting ||
+                    monthDeleteInput !== monthDeleteConfirmText
+                  }
+                >
+                  {monthDeleteSubmitting ? "删除中…" : "确认开始删除"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {deleteConfirmRow != null && (
           <div
@@ -1164,14 +1372,20 @@ function App() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-confirm-title"
-            onClick={(e) => e.target === e.currentTarget && setDeleteConfirmRow(null)}
+            onClick={(e) =>
+              e.target === e.currentTarget && setDeleteConfirmRow(null)
+            }
           >
-            <div className="note-modal-panel" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="note-modal-panel"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h2 id="delete-confirm-title" className="delete-confirm-title">
                 确定删除该条推广数据？
               </h2>
               <p className="delete-confirm-desc">
-                {formatReportDate(deleteConfirmRow.report_date)} · {deleteConfirmRow.campaign_name ?? ""}
+                {formatReportDate(deleteConfirmRow.report_date)} ·{" "}
+                {deleteConfirmRow.campaign_name ?? ""}
               </p>
               <div className="delete-confirm-actions">
                 <button
@@ -1286,8 +1500,16 @@ function App() {
                   <tbody>
                     {displayedCampaignRowsWithSummary.map((row, i) => (
                       <tr
-                        key={row.isSummaryRow ? `summary-${row.report_date}-${row.campaign_name}-${i}` : `${row.report_date}-${row.campaign_name ?? ""}-${i}`}
-                        className={row.isSummaryRow ? "campaign-register-row--summary" : undefined}
+                        key={
+                          row.isSummaryRow
+                            ? `summary-${row.report_date}-${row.campaign_name}-${i}`
+                            : `${row.report_date}-${row.campaign_name ?? ""}-${i}`
+                        }
+                        className={
+                          row.isSummaryRow
+                            ? "campaign-register-row--summary"
+                            : undefined
+                        }
                       >
                         <td>{formatReportDate(row.report_date)}</td>
                         <td title={row.campaign_name ?? ""}>
@@ -1300,7 +1522,10 @@ function App() {
                           {formatMoney(row.alipay_inshop_amt_onebpsearch)}
                         </td>
                         <td className="campaign-register-num campaign-register-roi">
-                          {formatRoi(row.charge_onebpsearch, row.alipay_inshop_amt_onebpsearch)}
+                          {formatRoi(
+                            row.charge_onebpsearch,
+                            row.alipay_inshop_amt_onebpsearch,
+                          )}
                         </td>
                         <td className="campaign-register-num">
                           {formatMoney(row.charge_onebpdisplay)}
@@ -1309,7 +1534,10 @@ function App() {
                           {formatMoney(row.alipay_inshop_amt_onebpdisplay)}
                         </td>
                         <td className="campaign-register-num campaign-register-roi">
-                          {formatRoi(row.charge_onebpdisplay, row.alipay_inshop_amt_onebpdisplay)}
+                          {formatRoi(
+                            row.charge_onebpdisplay,
+                            row.alipay_inshop_amt_onebpdisplay,
+                          )}
                         </td>
                         <td className="campaign-register-num">
                           {formatMoney(row.charge_onebpsite)}
@@ -1318,7 +1546,10 @@ function App() {
                           {formatMoney(row.alipay_inshop_amt_onebpsite)}
                         </td>
                         <td className="campaign-register-num campaign-register-roi">
-                          {formatRoi(row.charge_onebpsite, row.alipay_inshop_amt_onebpsite)}
+                          {formatRoi(
+                            row.charge_onebpsite,
+                            row.alipay_inshop_amt_onebpsite,
+                          )}
                         </td>
                         <td className="campaign-register-num">
                           {formatMoney(row.charge_onebpshortvideo)}
@@ -1327,7 +1558,10 @@ function App() {
                           {formatMoney(row.alipay_inshop_amt_onebpshortvideo)}
                         </td>
                         <td className="campaign-register-num campaign-register-roi">
-                          {formatRoi(row.charge_onebpshortvideo, row.alipay_inshop_amt_onebpshortvideo)}
+                          {formatRoi(
+                            row.charge_onebpshortvideo,
+                            row.alipay_inshop_amt_onebpshortvideo,
+                          )}
                         </td>
                         <td className="campaign-register-action">
                           {row.isSummaryRow ? (
@@ -1336,7 +1570,12 @@ function App() {
                             <button
                               type="button"
                               className="campaign-register-delete-btn"
-                              onClick={() => setDeleteConfirmRow({ report_date: row.report_date, campaign_name: row.campaign_name })}
+                              onClick={() =>
+                                setDeleteConfirmRow({
+                                  report_date: row.report_date,
+                                  campaign_name: row.campaign_name,
+                                })
+                              }
                               aria-label={`删除 ${row.campaign_name ?? ""}`}
                             >
                               删除
@@ -1365,7 +1604,7 @@ function App() {
                     notesMap={
                       useGoodsScopedNotes
                         ? goodsItemNotes
-                        : chartNotes[cell.key] ?? {}
+                        : (chartNotes[cell.key] ?? {})
                     }
                     detailPoints20m={
                       dataSource === "supabase" &&
@@ -1426,7 +1665,7 @@ function App() {
                   notesMap={
                     useGoodsScopedNotes
                       ? goodsItemNotes
-                      : chartNotes[seriesGridItems[enlargedIndex].key] ?? {}
+                      : (chartNotes[seriesGridItems[enlargedIndex].key] ?? {})
                   }
                   detailPoints20m={
                     dataSource === "supabase" &&

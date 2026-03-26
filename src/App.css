@@ -166,6 +166,16 @@
   text-overflow: ellipsis;
 }
 
+.dashboard-delete-month-btn {
+  border-color: color-mix(in srgb, var(--error) 28%, var(--border));
+  color: var(--error);
+}
+
+.dashboard-delete-month-btn:hover {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, var(--surface));
+}
+
 .dashboard-controls {
   display: flex;
   align-items: center;
@@ -611,6 +621,28 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.month-delete-picker-wrap {
+  margin-bottom: 14px;
+}
+
+.month-delete-input {
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: var(--font);
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.month-delete-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* 主内容区可滚动：店铺排名等卡片多行时纵向滚动，避免被裁切 */
