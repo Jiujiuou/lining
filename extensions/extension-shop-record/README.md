@@ -1,11 +1,12 @@
 # 店铺记录数据
 
-基于 `extension-template` 创建：MV3 + 与 `extension-campaign-register` 相同的左右布局（左上控制区、左下主内容区暂空白，右侧日志）+ 内容脚本占位。
+基于 `extension-template` 创建：MV3 + 左右布局（左侧控制与主内容，右侧日志）。
 
 ## 当前状态
 
-- 默认在 **千牛**（`qn.taobao.com`）与 **已卖出订单**（`trade.taobao.com`）注入 `content.js`，仅写一条启动日志，便于确认扩展已加载。
-- **采集与上报逻辑待实现**：在 `content.js`（或新增脚本并在 `manifest.json` 中注册）中编写；通过 `__SHOP_RECORD_LOGGER__.log/warn/error` 输出到右侧日志区。
+- 已移除登录/注册与账号权限拦截，打开弹窗后直接进入主功能界面。
+- 支持打开店铺分、淘宝联盟、万象台、生意参谋、上报页等入口，并可触发自动填充流程。
+- 采集脚本在各目标站点运行后，会将快照写入本地存储并在弹窗主区域展示；运行信息通过 `__SHOP_RECORD_LOGGER__.log/warn/error` 输出到右侧日志区。
 
 ## 加载
 

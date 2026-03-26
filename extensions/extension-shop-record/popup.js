@@ -89,13 +89,6 @@
     ];
   }
 
-  var authApi = typeof __SHOP_RECORD_AUTH__ !== "undefined" ? __SHOP_RECORD_AUTH__ : null;
-  var AUTH_STORAGE_KEY =
-    defaults && defaults.STORAGE_KEYS && defaults.STORAGE_KEYS.authSession
-      ? defaults.STORAGE_KEYS.authSession
-      : "shop_record_auth_session";
-  var appMainEl = document.getElementById("app-main");
-  var authGateEl = document.getElementById("auth-gate");
   var shopRecordMainInited = false;
 
   function initShopRecordMain() {
@@ -265,49 +258,10 @@
     });
   }
 
-  var profileApi =
-    typeof __SHOP_RECORD_USER_PROFILE__ !== "undefined" ? __SHOP_RECORD_USER_PROFILE__ : null;
-
-  function getAuthAccessToken(callback) {
-    if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) {
-      callback(null);
-      return;
-    }
-    chrome.storage.local.get([AUTH_STORAGE_KEY], function (result) {
-      if (chrome.runtime && chrome.runtime.lastError) {
-        callback(null);
-        return;
-      }
-      var s = result[AUTH_STORAGE_KEY];
-      callback(s && s.access_token ? s.access_token : null);
-    });
-  }
-
   if (openAllPagesBtn && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
     openAllPagesBtn.addEventListener("click", function () {
-      function runOpenAll() {
-        getAllPageUrls().forEach(function (url) {
-          chrome.tabs.create({ url: url });
-        });
-      }
-      if (!profileApi || typeof profileApi.checkFeaturePermission !== "function") {
-        if (logger) {
-          logger.warn(PREFIX + " 无法校验权限（user-profile 未加载），已阻止「一键打开所有页面」");
-        }
-        loadLogs();
-        return;
-      }
-      getAuthAccessToken(function (token) {
-        profileApi.checkFeaturePermission(token, "open_all_pages", function (ok, msg) {
-          if (!ok) {
-            if (logger) {
-              logger.warn(PREFIX + " " + (msg || "无权限使用「一键打开所有页面」"));
-            }
-            loadLogs();
-            return;
-          }
-          runOpenAll();
-        });
+      getAllPageUrls().forEach(function (url) {
+        chrome.tabs.create({ url: url });
       });
     });
   }
@@ -353,25 +307,7 @@
   }
   if (reportSubmitFillBtn && typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
     reportSubmitFillBtn.addEventListener("click", function () {
-      if (!profileApi || typeof profileApi.checkFeaturePermission !== "function") {
-        if (logger) {
-          logger.warn(PREFIX + " 无法校验权限（user-profile 未加载），已阻止自动填充");
-        }
-        loadLogs();
-        return;
-      }
-      getAuthAccessToken(function (token) {
-        profileApi.checkFeaturePermission(token, "auto_fill", function (ok, msg) {
-          if (!ok) {
-            if (logger) {
-              logger.warn(PREFIX + " " + (msg || "无权限使用「自动填充数据」"));
-            }
-            loadLogs();
-            return;
-          }
-          runReportSubmitFillAfterPermission();
-        });
-      });
+      runReportSubmitFillAfterPermission();
     });
   }
 
@@ -573,219 +509,5 @@
   }
 
 
-  /**
-   * @param {"auth"|"app"} mode — 仅登录区 或 仅主界面
-   */
-  function setPopupMode(mode) {
-    var b = document.body;
-    if (b) {
-      b.classList.remove("popup-mode--auth", "popup-mode--app");
-      b.classList.add(mode === "app" ? "popup-mode--app" : "popup-mode--auth");
-    }
-    if (authGateEl) {
-      authGateEl.hidden = mode === "app";
-    }
-    if (appMainEl) {
-      appMainEl.hidden = mode !== "app";
-    }
-  }
-
-  function showAuthView(view) {
-    var login = document.getElementById("auth-view-login");
-    var reg = document.getElementById("auth-view-register");
-    if (login) login.hidden = view !== "login";
-    if (reg) reg.hidden = view !== "register";
-  }
-
-  function setAuthMsg(id, text) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    if (text) {
-      el.hidden = false;
-      el.textContent = text;
-    } else {
-      el.hidden = true;
-      el.textContent = "";
-    }
-  }
-
-  function userBarLabel(user) {
-    if (!user || typeof user !== "object") return "";
-    var meta = user.user_metadata;
-    var dn = meta && meta.display_name != null ? String(meta.display_name).trim() : "";
-    var em = user.email != null ? String(user.email) : "";
-    if (dn && em) return dn + " · " + em;
-    if (dn) return dn;
-    return em;
-  }
-
-  function showAuthenticated(session) {
-    setPopupMode("app");
-    var emailEl = document.getElementById("user-email-display");
-    if (emailEl) {
-      emailEl.textContent = userBarLabel(session && session.user ? session.user : null);
-    }
-    var alreadyInited = shopRecordMainInited;
-    initShopRecordMain();
-    if (alreadyInited && typeof window.__SHOP_RECORD_POPUP_REFRESH__ === "function") {
-      window.__SHOP_RECORD_POPUP_REFRESH__();
-    }
-  }
-
-  function showUnauthenticated() {
-    setPopupMode("auth");
-    showAuthView("login");
-    setAuthMsg("login-error", "");
-    setAuthMsg("register-error", "");
-  }
-
-  function saveAuthSession(session, cb) {
-    if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) {
-      if (cb) cb();
-      return;
-    }
-    chrome.storage.local.set({ [AUTH_STORAGE_KEY]: session }, cb);
-  }
-
-  function wireAuthForms() {
-    var goReg = document.getElementById("go-register");
-    var goLogin = document.getElementById("go-login");
-    var formLogin = document.getElementById("form-login");
-    var formRegister = document.getElementById("form-register");
-    var logoutBtn = document.getElementById("auth-logout");
-
-    if (goReg) {
-      goReg.addEventListener("click", function () {
-        setAuthMsg("login-error", "");
-        setAuthMsg("register-error", "");
-        showAuthView("register");
-      });
-    }
-    if (goLogin) {
-      goLogin.addEventListener("click", function () {
-        setAuthMsg("login-error", "");
-        setAuthMsg("register-error", "");
-        showAuthView("login");
-      });
-    }
-
-    if (formLogin && authApi) {
-      formLogin.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var email = document.getElementById("login-email");
-        var pwd = document.getElementById("login-password");
-        var btn = document.getElementById("login-submit");
-        if (!email || !pwd) return;
-        setAuthMsg("login-error", "");
-        if (btn) btn.disabled = true;
-        authApi.signInWithPassword(email.value, pwd.value).then(function (r) {
-          if (btn) btn.disabled = false;
-          if (r.error) {
-            setAuthMsg("login-error", r.error);
-            return;
-          }
-          var norm = authApi.normalizeSession(r.session, null);
-          saveAuthSession(norm, function () {
-            showAuthenticated(norm);
-          });
-        });
-      });
-    }
-
-    if (formRegister && authApi) {
-      formRegister.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var username = document.getElementById("register-username");
-        var email = document.getElementById("register-email");
-        var pwd = document.getElementById("register-password");
-        var btn = document.getElementById("register-submit");
-        if (!email || !pwd || !username) return;
-        var displayName = String(username.value || "").trim();
-        if (!displayName) {
-          setAuthMsg("register-error", "请填写用户名");
-          return;
-        }
-        setAuthMsg("register-error", "");
-        if (btn) btn.disabled = true;
-        authApi.signUp(email.value, pwd.value, displayName).then(function (r) {
-          if (r.error) {
-            if (btn) btn.disabled = false;
-            setAuthMsg("register-error", r.error);
-            return;
-          }
-          function finishWithSession(sess, prevUser) {
-            var norm = authApi.normalizeSession(sess, prevUser != null ? prevUser : null);
-            saveAuthSession(norm, function () {
-              if (btn) btn.disabled = false;
-              showAuthenticated(norm);
-            });
-          }
-          if (r.session && r.session.access_token) {
-            finishWithSession(r.session, r.user);
-            return;
-          }
-          authApi.signInWithPassword(email.value, pwd.value).then(function (r2) {
-            if (r2.error) {
-              if (btn) btn.disabled = false;
-              setAuthMsg(
-                "register-error",
-                "账号可能已创建，请使用「去登录」或稍后重试（" + r2.error + "）"
-              );
-              return;
-            }
-            finishWithSession(r2.session, null);
-          });
-        });
-      });
-    }
-
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", function () {
-        if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) {
-          showUnauthenticated();
-          return;
-        }
-        chrome.storage.local.remove(AUTH_STORAGE_KEY, function () {
-          showUnauthenticated();
-        });
-      });
-    }
-  }
-
-  function bootstrapAuth() {
-    wireAuthForms();
-    if (!authApi) {
-      setPopupMode("auth");
-      showAuthView("login");
-      setAuthMsg("login-error", "无法加载认证模块（supabase-auth）");
-      return;
-    }
-    if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) {
-      setPopupMode("auth");
-      showAuthView("login");
-      setAuthMsg("login-error", "扩展无法访问本地存储");
-      return;
-    }
-    chrome.storage.local.get([AUTH_STORAGE_KEY], function (result) {
-      if (chrome.runtime && chrome.runtime.lastError) {
-        showUnauthenticated();
-        setAuthMsg("login-error", String(chrome.runtime.lastError.message));
-        return;
-      }
-      var stored = result[AUTH_STORAGE_KEY];
-      authApi.restoreSession(stored).then(function (r) {
-        if (r.ok && r.session) {
-          saveAuthSession(r.session, function () {
-            showAuthenticated(r.session);
-          });
-        } else {
-          chrome.storage.local.remove(AUTH_STORAGE_KEY, function () {
-            showUnauthenticated();
-          });
-        }
-      });
-    });
-  }
-
-  bootstrapAuth();
+  initShopRecordMain();
 })();

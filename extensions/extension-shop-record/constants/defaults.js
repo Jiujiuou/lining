@@ -6,9 +6,7 @@
     logs: "shop_record_logs",
     logsByTab: "shop_record_logs_by_tab",
     /** 按日合并的 shop_record_daily 本地快照 { [yyyy-mm-dd]: { ...columns } } */
-    dailyLocalByDate: "shop_record_daily_local_by_date",
-    /** popup Supabase 会话：access_token / refresh_token / expires_at / user */
-    authSession: "shop_record_auth_session"
+    dailyLocalByDate: "shop_record_daily_local_by_date"
   };
   var LOG_MAX_ENTRIES = 100;
   var PREFIX = "[店铺记录数据]";
