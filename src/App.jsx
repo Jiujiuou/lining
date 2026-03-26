@@ -22,6 +22,12 @@ import {
   goodsDetailRowsToTableRows,
   downloadTableXlsx,
 } from "./utils/exportGoodsDetailTable";
+import {
+  getDashboardSelectedDates,
+  resolveExportPlan,
+  safeExportFileSuffix,
+} from "./utils/exportRangeResolve";
+import ExportTableModal from "./components/ExportTableModal";
 import ChartCell from "./components/ChartCell";
 import DashboardSingleDatePicker from "./components/DashboardSingleDatePicker";
 import DashboardMultiDatePicker from "./components/DashboardMultiDatePicker";
@@ -169,6 +175,7 @@ function App() {
   const chartGridRef = useRef(null);
   const enlargedRef = useRef(null);
   const [exporting, setExporting] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [error, setError] = useState(null);
   const [supabaseLoading, setSupabaseLoading] = useState(false);
   const [noteModal, setNoteModal] = useState(null);
@@ -831,35 +838,14 @@ function App() {
     const useGoodsScopedNotes =
       !isMarketRankView && !isCampaignRegisterView;
     const { dates, byDate } = parsedData || { dates: [], byDate: {} };
-    const firstDate = datesForSelection[0];
 
-    let selectedDates = [];
-    if (viewMode === "single") {
-      selectedDates = selectedDate
-        ? [selectedDate]
-        : firstDate
-          ? [firstDate]
-          : [];
-    } else if (viewMode === "multiRange") {
-      const base =
-        selectedDate ?? datesForSelection[datesForSelection.length - 1];
-      if (base) {
-        const i = datesForSelection.indexOf(base);
-        if (i >= 0) {
-          const start = Math.max(0, i - rangeDays + 1);
-          selectedDates = datesForSelection.slice(start, i + 1);
-        } else {
-          selectedDates = datesForSelection.slice(-rangeDays);
-        }
-      }
-    } else if (viewMode === "multiPick") {
-      selectedDates =
-        selectedDatesPick.length > 0
-          ? [...selectedDatesPick].sort()
-          : firstDate
-            ? [firstDate]
-            : [];
-    }
+    const selectedDates = getDashboardSelectedDates({
+      viewMode,
+      selectedDate,
+      selectedDatesPick,
+      rangeDays,
+      datesForSelection,
+    });
 
     const seenKeys = new Set();
     const template = [];
@@ -876,46 +862,56 @@ function App() {
       ? []
       : template.slice(0, SERIES_ORDER_LIMIT);
 
-    const handleExportTable = async () => {
+    const runExportFromRaw = async (raw) => {
       if (!supabase) {
         setError("未配置 Supabase，无法导出表格");
+        return;
+      }
+      const plan = resolveExportPlan(raw, {
+        getTodayEast8,
+        selectedDate,
+        datesForSelection,
+        viewMode,
+        selectedDatesPick,
+        rangeDays,
+      });
+      if (!plan.ok) {
+        setError(plan.error);
         return;
       }
       setExporting(true);
       setError(null);
       try {
-        const day =
-          selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)
-            ? selectedDate
-            : getTodayEast8();
-        const dayEnd = `${day}T23:59:59.999+08:00`;
-        const rangeStart = new Date(day);
-        rangeStart.setDate(rangeStart.getDate() - 14);
-        const rangeStartStr =
-          rangeStart.toISOString().slice(0, 10) + "T00:00:00+08:00";
-
         const allRows = await fetchAllRowsByPage((from, to) =>
           supabase
             .from("goods_detail_slot_log")
             .select(
               "item_id, item_name, slot_ts, item_cart_cnt, search_uv, search_pay_rate, cart_uv, cart_pay_rate",
             )
-            .gte("slot_ts", rangeStartStr)
-            .lte("slot_ts", dayEnd)
+            .gte("slot_ts", plan.rangeStartStr)
+            .lte("slot_ts", plan.rangeEndStr)
             .order("slot_ts", { ascending: true })
             .range(from, to),
         );
-        if (allRows.length === 0) {
+        let rows = allRows;
+        if (plan.filterDates && plan.filterDates.size > 0) {
+          rows = allRows.filter((r) => {
+            const d = slotTsToEast8DateString(r.slot_ts);
+            return d && plan.filterDates.has(d);
+          });
+        }
+        if (rows.length === 0) {
           setError("该日期范围内无商品数据，无法导出");
           return;
         }
         console.log(
           "[导出表格] Supabase 原始行样例（前 5 条，用于核对 item_id/item_name）：",
-          JSON.stringify(allRows.slice(0, 5), null, 2),
+          JSON.stringify(rows.slice(0, 5), null, 2),
         );
-        const tableRows = goodsDetailRowsToTableRows(allRows);
-        const name = `小贝壳作战-表格-${day}.xlsx`;
+        const tableRows = goodsDetailRowsToTableRows(rows);
+        const name = `小贝壳作战-表格-${safeExportFileSuffix(plan.fileSuffix)}.xlsx`;
         downloadTableXlsx(tableRows, name);
+        setExportModalOpen(false);
       } catch (err) {
         console.error("导出表格失败", err);
         setError("导出表格失败：" + (err.message || String(err)));
@@ -1152,7 +1148,7 @@ function App() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={handleExportTable}
+                onClick={() => setExportModalOpen(true)}
                 disabled={exporting}
               >
                 {exporting ? "导出中…" : "导出表格"}
@@ -1461,6 +1457,21 @@ function App() {
             </button>
           </div>
         )}
+
+        <ExportTableModal
+          isOpen={exportModalOpen}
+          onClose={() => {
+            if (!exporting) setExportModalOpen(false);
+          }}
+          exporting={exporting}
+          onConfirm={runExportFromRaw}
+          getTodayEast8={getTodayEast8}
+          viewMode={viewMode}
+          rangeDays={rangeDays}
+          selectedDate={selectedDate}
+          selectedDatesPick={selectedDatesPick}
+          datesForSelection={datesForSelection}
+        />
       </div>
     );
   }

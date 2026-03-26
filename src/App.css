@@ -414,6 +414,51 @@
   color: var(--text-muted);
 }
 
+/* ---------- 仅选年月（DashboardYearMonthPicker） ---------- */
+.dashboard-year-month-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dashboard-cal-popover--year-month {
+  min-width: 300px;
+}
+
+.dashboard-cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.dashboard-cal-month-cell {
+  padding: 10px 6px;
+  font-size: 0.8rem;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.dashboard-cal-month-cell:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dashboard-cal-month-cell--selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+  color: var(--accent);
+}
+
 .dashboard-main {
   flex: 1;
   min-height: 0;
