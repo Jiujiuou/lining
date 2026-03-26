@@ -676,41 +676,6 @@
     return getTodayEast8();
   }
 
-  function upsertCampaignRegisterByBiz(rows, bizCode, credentials, opts) {
-    var log = opts && opts.logger;
-    if (!credentials || !credentials.url || !credentials.anonKey) {
-      if (log) log.appendLog('warn', '推广登记：未配置 SUPABASE，跳过');
-      return Promise.resolve({ ok: false });
-    }
-    if (!Array.isArray(rows) || rows.length === 0) return Promise.resolve({ ok: true });
-    if (!bizCode || !VALID_BIZ[bizCode]) {
-      if (log) log.appendLog('warn', '推广登记：未知来源 bizCode=' + bizCode);
-      return Promise.resolve({ ok: false });
-    }
-    var url = credentials.url.replace(/\/$/, '') + '/rest/v1/rpc/campaign_register_upsert_by_biz';
-    return fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': credentials.anonKey,
-        'Authorization': 'Bearer ' + credentials.anonKey
-      },
-      body: JSON.stringify({ p_rows: rows, p_biz_code: bizCode })
-    }).then(function (res) {
-      if (res.ok) {
-        if (log) log.appendLog('log', '推广登记：已上报 ' + rows.length + ' 条（' + bizCode + '）');
-        return { ok: true };
-      }
-      return res.text().then(function (t) {
-        if (log) log.appendLog('warn', '推广登记 失败 ' + res.status + ' ' + t);
-        return { ok: false };
-      });
-    }).catch(function (err) {
-      if (log) log.appendLog('warn', '推广登记 请求异常 ' + String(err));
-      return { ok: false };
-    });
-  }
-
   function onFindPageAction() {
     if (!findpageListEl || !lastFindPageResponse) return;
     var list = lastFindPageResponse.data && lastFindPageResponse.data.list ? lastFindPageResponse.data.list : [];
@@ -807,13 +772,6 @@
         }
         chrome.storage.local.set(out, function () { });
       });
-      var creds = typeof __AMCR_SUPABASE__ !== 'undefined' ? __AMCR_SUPABASE__ : null;
-      function afterLocalThenCloud() {
-        upsertCampaignRegisterByBiz(rows, bizCode, creds, { logger: logger }).then(function () {
-          loadLogs();
-          loadLocalRegisterTable();
-        });
-      }
       var localApi = typeof __AMCR_LOCAL_REGISTER__ !== 'undefined' ? __AMCR_LOCAL_REGISTER__ : null;
       if (localApi && typeof localApi.mergeRegisterBatch === 'function') {
         localApi.mergeRegisterBatch(
@@ -823,11 +781,11 @@
               logger.appendLog('log', '推广登记：已写入本地 ' + rows.length + ' 条（' + bizCode + '）');
               loadLogs();
             }
-            afterLocalThenCloud();
+            loadLocalRegisterTable();
           }
         );
       } else {
-        afterLocalThenCloud();
+        loadLocalRegisterTable();
       }
     });
   }
