@@ -5,9 +5,33 @@
   var KEYS = typeof __AMCR_DEFAULTS__ !== 'undefined' && __AMCR_DEFAULTS__.STORAGE_KEYS
     ? __AMCR_DEFAULTS__.STORAGE_KEYS
     : { logs: 'amcr_logs', logsByTab: 'amcr_logs_by_tab' };
-  var MAX = (typeof __AMCR_DEFAULTS__ !== 'undefined' && __AMCR_DEFAULTS__.LOG_MAX_ENTRIES) ? __AMCR_DEFAULTS__.LOG_MAX_ENTRIES : 100;
+  var MAX = (typeof __AMCR_DEFAULTS__ !== 'undefined' && __AMCR_DEFAULTS__.LOG_MAX_ENTRIES) ? __AMCR_DEFAULTS__.LOG_MAX_ENTRIES : 20;
+  var MAX_TABS = (typeof __AMCR_DEFAULTS__ !== 'undefined' && __AMCR_DEFAULTS__.LOG_MAX_TABS) ? __AMCR_DEFAULTS__.LOG_MAX_TABS : 6;
   var LOG_KEY = KEYS.logs || 'amcr_logs';
   var LOGS_BY_TAB_KEY = KEYS.logsByTab || 'amcr_logs_by_tab';
+  var LOG_META_KEY = '__meta';
+
+  function pruneTabLogs(byTab) {
+    if (!byTab || typeof byTab !== 'object') return {};
+    var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === 'object' ? byTab[LOG_META_KEY] : {};
+    var tabIds = Object.keys(byTab).filter(function (k) { return k !== LOG_META_KEY; });
+    if (tabIds.length <= MAX_TABS) {
+      byTab[LOG_META_KEY] = meta;
+      return byTab;
+    }
+    tabIds.sort(function (a, b) {
+      var ta = meta[a] || '';
+      var tb = meta[b] || '';
+      return String(ta).localeCompare(String(tb));
+    });
+    while (tabIds.length > MAX_TABS) {
+      var oldest = tabIds.shift();
+      delete byTab[oldest];
+      delete meta[oldest];
+    }
+    byTab[LOG_META_KEY] = meta;
+    return byTab;
+  }
 
   function resolveTabId(callback) {
     try {
@@ -43,6 +67,10 @@
         bucket.entries.push(entry);
         if (bucket.entries.length > MAX) bucket.entries = bucket.entries.slice(-MAX);
         byTab[String(tabId)] = bucket;
+        var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === 'object' ? byTab[LOG_META_KEY] : {};
+        meta[String(tabId)] = new Date().toISOString();
+        byTab[LOG_META_KEY] = meta;
+        byTab = pruneTabLogs(byTab);
         var o = {};
         o[LOGS_BY_TAB_KEY] = byTab;
         chrome.storage.local.set(o, function () {});
@@ -74,6 +102,9 @@
     chrome.storage.local.get([LOGS_BY_TAB_KEY], function (result) {
       var byTab = result[LOGS_BY_TAB_KEY] || {};
       delete byTab[String(tabId)];
+      if (byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === 'object') {
+        delete byTab[LOG_META_KEY][String(tabId)];
+      }
       var o = {};
       o[LOGS_BY_TAB_KEY] = byTab;
       chrome.storage.local.set(o, callback || function () {});

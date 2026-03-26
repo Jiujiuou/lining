@@ -2,6 +2,8 @@
  * 将推广登记行按 report_date 分桶写入 chrome.storage.local（按 biz 覆盖该次登记行，与云端上报成败无关）
  */
 (function (global) {
+  var MAX_DAYS = 1;
+
   function getStorageKey() {
     var d = typeof __AMCR_DEFAULTS__ !== 'undefined' ? __AMCR_DEFAULTS__ : null;
     if (d && d.STORAGE_KEYS && d.STORAGE_KEYS.localRegisterByDate) {
@@ -32,6 +34,13 @@
       var bag = result[storageKey];
       if (!bag || typeof bag !== 'object') bag = {};
       var date = String(batch.report_date);
+      var keys = Object.keys(bag).filter(function (k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); });
+      if (keys.length > 0) {
+        // 仅保留 1 天，写入新日期时清空旧日期，避免长期累积。
+        for (var i = 0; i < keys.length; i++) {
+          if (keys[i] !== date) delete bag[keys[i]];
+        }
+      }
       var cur = bag[date];
       if (!cur || typeof cur !== 'object') cur = {};
       if (!cur.byBiz || typeof cur.byBiz !== 'object') cur.byBiz = {};
@@ -45,6 +54,10 @@
       cur.byBiz[batch.biz_code] = cloned;
       cur.updated_at_local = new Date().toISOString();
       bag[date] = cur;
+      var finalDates = Object.keys(bag).filter(function (k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); }).sort();
+      while (finalDates.length > MAX_DAYS) {
+        delete bag[finalDates.shift()];
+      }
       var o = {};
       o[storageKey] = bag;
       chrome.storage.local.set(o, function () {

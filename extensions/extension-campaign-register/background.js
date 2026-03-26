@@ -5,7 +5,31 @@
   var STATE_BY_TAB = 'amcr_findPageStateByTab';
   var LOGS_BY_TAB = 'amcr_logs_by_tab';
   var LOG_KEY = 'amcr_logs';
-  var MAX_LOG_ENTRIES = 100;
+  var MAX_LOG_ENTRIES = 20;
+  var MAX_LOG_TABS = 6;
+  var LOG_META_KEY = '__meta';
+
+  function pruneTabMapByMeta(byTab, maxTabs, metaKey) {
+    if (!byTab || typeof byTab !== 'object') return {};
+    var meta = byTab[metaKey] && typeof byTab[metaKey] === 'object' ? byTab[metaKey] : {};
+    var tabIds = Object.keys(byTab).filter(function (k) { return k !== metaKey; });
+    if (tabIds.length <= maxTabs) {
+      byTab[metaKey] = meta;
+      return byTab;
+    }
+    tabIds.sort(function (a, b) {
+      var ta = meta[a] || '';
+      var tb = meta[b] || '';
+      return String(ta).localeCompare(String(tb));
+    });
+    while (tabIds.length > maxTabs) {
+      var oldest = tabIds.shift();
+      delete byTab[oldest];
+      delete meta[oldest];
+    }
+    byTab[metaKey] = meta;
+    return byTab;
+  }
 
   function appendCaptureLogEntry(tabId, msg) {
     var entry = { t: new Date().toISOString(), level: 'log', msg: String(msg) };
@@ -28,6 +52,10 @@
       bucket.entries.push(entry);
       if (bucket.entries.length > MAX_LOG_ENTRIES) bucket.entries = bucket.entries.slice(-MAX_LOG_ENTRIES);
       byTab[String(tabId)] = bucket;
+      var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === 'object' ? byTab[LOG_META_KEY] : {};
+      meta[String(tabId)] = new Date().toISOString();
+      byTab[LOG_META_KEY] = meta;
+      byTab = pruneTabMapByMeta(byTab, MAX_LOG_TABS, LOG_META_KEY);
       var o = {};
       o[LOGS_BY_TAB] = byTab;
       chrome.storage.local.set(o, function () {});
@@ -61,6 +89,9 @@
       if (!hasState && !hasLogs) return;
       delete byTab[String(tabId)];
       delete logs[String(tabId)];
+      if (logs[LOG_META_KEY] && typeof logs[LOG_META_KEY] === 'object') {
+        delete logs[LOG_META_KEY][String(tabId)];
+      }
       var o = {};
       o[STATE_BY_TAB] = byTab;
       o[LOGS_BY_TAB] = logs;

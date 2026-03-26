@@ -15,6 +15,23 @@
   <body>
     <div class="popup">
       <div class="popup-col popup-col--left">
+        <section class="popup-section popup-section--quick-open">
+          <div class="popup-quick-open-row" role="group" aria-label="推广页与搜索词">
+            <input
+              type="text"
+              id="search-keyword-input"
+              class="popup-search-keyword-input"
+              placeholder="搜索词"
+              value="池"
+              aria-label="推广搜索词"
+            />
+            <button type="button" id="search-keyword-apply" class="popup-search-keyword-apply">应用</button>
+            <button type="button" id="open-onesite-record" class="popup-open-sites">货品全站推广</button>
+            <button type="button" id="open-search-record" class="popup-open-sites">关键词推广</button>
+            <button type="button" id="open-promo-record" class="popup-open-sites">人群推广</button>
+            <button type="button" id="open-content-record" class="popup-open-sites">内容营销</button>
+          </div>
+        </section>
         <section
           class="popup-section popup-section--local-register"
           id="amcr-local-register-section"
@@ -31,85 +48,66 @@
           class="popup-section popup-section--findpage"
           id="findpage-section"
         >
-          <div id="findpage-list" class="popup-findpage-list" role="list"></div>
+          <div class="popup-findpage-layout">
+            <div id="findpage-list" class="popup-findpage-list" role="list"></div>
+            <aside class="popup-findpage-actions" role="toolbar" aria-label="列表操作">
+              <button
+                type="button"
+                id="findpage-action"
+                class="popup-action-btn"
+              >
+                登记
+              </button>
+              <button
+                type="button"
+                id="findpage-refresh"
+                class="popup-action-btn"
+                aria-label="刷新列表"
+              >
+                刷新列表
+              </button>
+              <button
+                type="button"
+                id="amcr-local-export"
+                class="popup-action-btn"
+                aria-label="导出表格"
+              >
+                导出表格
+              </button>
+              <button
+                type="button"
+                id="amcr-local-clear"
+                class="popup-action-btn"
+                title="清除本地已保存的推广登记快照（不影响云端）"
+              >
+                清空本地数据
+              </button>
+            </aside>
+          </div>
         </section>
       </div>
 
       <div class="popup-col popup-col--right">
-        <section class="popup-section popup-section--open-links">
-          <div
-            class="popup-open-links-grid"
-            role="group"
-            aria-label="打开推广记录页"
-          >
+        <section class="popup-section popup-section--storage">
+          <header class="popup-storage-header">
+            <div class="popup-storage-progress-row">
+              <div class="popup-storage-progress" aria-hidden="true">
+                <div id="storage-usage-bar" class="popup-storage-progress-bar"></div>
+              </div>
+              <span id="storage-usage-percent" class="popup-storage-percent">0.0%</span>
+            </div>
             <button
               type="button"
-              id="open-onesite-record"
-              class="popup-open-sites"
+              id="storage-cache-clear"
+              class="popup-storage-clear"
+              aria-label="清理缓存"
+              title="清理列表缓存和日志缓存，不清空本地登记表"
             >
-              货品全站推广
+              清理缓存
             </button>
-            <button
-              type="button"
-              id="open-search-record"
-              class="popup-open-sites"
-            >
-              关键词推广
-            </button>
-            <button
-              type="button"
-              id="open-promo-record"
-              class="popup-open-sites"
-            >
-              人群推广
-            </button>
-            <button
-              type="button"
-              id="open-content-record"
-              class="popup-open-sites"
-            >
-              内容营销
-            </button>
-          </div>
-          <div
-            class="popup-open-links-toolbar"
-            role="toolbar"
-            aria-label="本地与列表操作"
-          >
-            <button
-              type="button"
-              id="amcr-local-clear"
-              class="popup-daily-clear popup-open-links-toolbar-btn"
-              title="清除本地已保存的推广登记快照（不影响云端）"
-            >
-              清空本地数据
-            </button>
-            <button
-              type="button"
-              id="findpage-action"
-              class="popup-findpage-refresh popup-open-links-toolbar-btn"
-            >
-              登记
-            </button>
-            <button
-              type="button"
-              id="findpage-refresh"
-              class="popup-findpage-refresh popup-open-links-toolbar-btn"
-              aria-label="刷新列表"
-            >
-              刷新列表
-            </button>
-            <button
-              type="button"
-              id="amcr-local-export"
-              class="popup-findpage-refresh popup-open-links-toolbar-btn"
-              aria-label="导出表格"
-            >
-              导出表格
-            </button>
-          </div>
+          </header>
+          <div id="storage-usage" class="popup-storage-usage">加载中...</div>
         </section>
-
         <section class="popup-section popup-section--logs">
           <header class="popup-logs-header">
             <h2 class="popup-logs-title">日志</h2>
@@ -119,7 +117,7 @@
               class="popup-logs-clear"
               aria-label="清空日志"
             >
-              清空
+              清空日志
             </button>
           </header>
           <div
