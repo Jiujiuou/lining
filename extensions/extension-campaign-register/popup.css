@@ -105,22 +105,6 @@ body {
   background: #f8fbfa;
 }
 
-/* ---------- 区块标题（左栏表格 / 列表） ---------- */
-.popup-section-title {
-  flex-shrink: 0;
-  margin: 0 0 6px;
-  font-size: var(--popup-font-size-title);
-  font-weight: 600;
-  color: var(--popup-text);
-  letter-spacing: 0.01em;
-}
-
-.popup-section-title--compact {
-  font-size: 0.75rem;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-
 /* ---------- 本地登记表格（参考 extension-shop-record 077f111） ---------- */
 .popup-section--local-register {
   gap: 6px;
@@ -191,19 +175,6 @@ body {
 .popup-local-table-scroll::-webkit-scrollbar-thumb {
   background: var(--popup-border);
   border-radius: 3px;
-}
-
-.popup-local-meta {
-  flex-shrink: 0;
-  padding: 0 2px 4px;
-  font-size: 0.625rem;
-  color: var(--popup-text-muted);
-  line-height: 1.25;
-}
-
-.popup-local-meta strong {
-  color: var(--popup-text);
-  font-weight: 600;
 }
 
 .popup-local-register-table {
@@ -546,12 +517,6 @@ body {
   min-height: 0;
 }
 
-.popup-findpage-header {
-  display: flex;
-  align-items: center;
-  gap: var(--popup-space-sm);
-}
-
 .popup-findpage-refresh {
   flex-shrink: 0;
   min-width: 88px;
@@ -580,15 +545,6 @@ body {
   outline: none;
   border-color: var(--popup-accent);
   box-shadow: 0 0 0 2px var(--popup-accent-soft);
-}
-
-.popup-findpage-title {
-  font-size: var(--popup-font-size-title);
-  font-weight: 600;
-  color: var(--popup-text);
-  margin: 0;
-  margin-right: auto;
-  letter-spacing: 0.01em;
 }
 
 .popup-findpage-list {
@@ -677,27 +633,3 @@ body {
   padding: 20px 12px;
 }
 
-.popup-findpage-btn {
-  width: 100%;
-  padding: 10px var(--popup-space);
-  font-family: var(--popup-font);
-  font-size: var(--popup-font-size);
-  font-weight: 500;
-  color: var(--popup-surface);
-  background: var(--popup-accent);
-  border: none;
-  border-radius: var(--popup-radius-sm);
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.popup-findpage-btn:hover {
-  background: var(--popup-accent-hover);
-}
-
-.popup-findpage-btn:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--popup-accent-soft);
-}

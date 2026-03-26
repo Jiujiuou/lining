@@ -1,5 +1,5 @@
 /**
- * 万相台推广登记：打开记录页、列表展示、登记 RPC、日志（storage 键 amcr_*）
+ * 万相台推广登记：打开记录页、列表展示、本地登记、日志（storage 键 amcr_*）
  */
 (function () {
   var logger = typeof __AMCR_LOGGER__ !== 'undefined' ? __AMCR_LOGGER__ : null;
@@ -503,7 +503,7 @@
     }
   }
 
-  /** 从本地当日各 biz 中移除指定商品名（仅本地，不影响 Supabase） */
+  /** 从本地当日各 biz 中移除指定商品名（仅本地） */
   function deleteLocalCampaignRow(ymd, campaignName) {
     if (!ymd || campaignName == null || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
       return;
@@ -867,10 +867,24 @@
     loadLogs();
     loadFindPageResponse();
     loadLocalRegisterTable();
+    startAutoRefresh();
   });
-  var refreshInterval = setInterval(function () {
-    loadLogs();
-    loadLocalRegisterTable();
-  }, 2000);
-  window.addEventListener('blur', function () { clearInterval(refreshInterval); });
+
+  var refreshInterval = null;
+  function startAutoRefresh() {
+    if (refreshInterval != null) return;
+    refreshInterval = setInterval(function () {
+      loadLogs();
+      loadLocalRegisterTable();
+    }, 2000);
+  }
+  function stopAutoRefresh() {
+    if (refreshInterval == null) return;
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+
+  startAutoRefresh();
+  window.addEventListener('blur', stopAutoRefresh);
+  window.addEventListener('beforeunload', stopAutoRefresh);
 })();
