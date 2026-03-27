@@ -19,6 +19,13 @@
   --popup-space-sm: 10px;
   --popup-font-size: 0.8125rem;
   --popup-font-size-title: 0.875rem;
+  /* 弹窗内区块统一：灰底、边线、内边距（空间紧张，保持紧凑） */
+  --popup-section-tint: #f8fbfa;
+  --popup-section-border: #dbe9e6;
+  --popup-section-padding: 6px;
+  --popup-control-height: 36px;
+  /* 顶栏次要按钮（日志/存储）：略矮以省垂直空间 */
+  --popup-control-height-sm: 32px;
 }
 
 * {
@@ -75,7 +82,12 @@ body {
 
 .popup-col--left {
   grid-template-rows: auto minmax(0, 5fr) minmax(0, 5fr);
-  gap: 8px;
+  gap: 6px;
+}
+
+.popup-col--left > .popup-findpage-split {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .popup-col--right {
@@ -84,50 +96,44 @@ body {
   gap: 6px;
 }
 
-/* ---------- 区块通用 ---------- */
+/* ---------- 区块通用（全部使用统一灰底与边线，节省空间用同一套 padding） ---------- */
 .popup-section {
   display: flex;
   flex-direction: column;
-  background: var(--popup-surface);
-  border: 1px solid var(--popup-border);
+  background: var(--popup-section-tint);
+  border: 1px solid var(--popup-section-border);
   border-radius: var(--popup-radius-sm);
-  padding: 6px;
+  padding: var(--popup-section-padding);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
-.popup-section--local-register {
-  background: #f8fbfa;
-  border-color: #dbe9e6;
-  padding: 8px;
-}
-
-.popup-section--findpage {
-  background: #f9fcfb;
-  border-color: #dbe9e6;
-  padding: 8px;
-}
-
-.popup-section--open-links {
-  background: #f7fbfa;
-}
-
 .popup-section--quick-open {
-  padding: 6px;
-  background: #f7fbfa;
   /* 日期月历 dashboard-cal-popover 为 absolute 撑在区块外，父级勿裁切 */
   overflow: visible;
   position: relative;
   z-index: 5;
 }
 
-.popup-section--logs {
-  background: #f8fbfa;
+/* findpage：左右两列各自为 section，由 .popup-findpage-split 承载网格 */
+.popup-section--findpage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.popup-section--findpage-toolbar {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 140px;
+  min-width: 140px;
 }
 
 .popup-section--storage {
-  background: #f8fbfa;
   gap: 6px;
   flex: 0 0 auto;
 }
@@ -140,7 +146,8 @@ body {
 .popup-daily-clear {
   flex-shrink: 0;
   margin-left: auto;
-  height: 34px;
+  height: var(--popup-control-height);
+  min-height: var(--popup-control-height);
   padding: 0 10px;
   font-family: var(--popup-font);
   font-size: 0.75rem;
@@ -213,28 +220,26 @@ body {
   writing-mode: horizontal-tb;
 }
 
-/* 列分隔线：表头更明显，表体更轻 */
+/* 列分隔线：表头在深色底上用浅色竖线，表体更轻 */
 .popup-local-register-table thead th + th {
-  border-left: 1px solid rgba(13, 148, 136, 0.22);
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .popup-local-register-table tbody td + td {
   border-left: 1px solid rgba(226, 232, 230, 0.7);
 }
 
+/* 与主操作按钮同色（--popup-accent），保证表头与「登记」等按钮视觉一致 */
 .popup-local-register-table th {
-  background: color-mix(
-    in srgb,
-    var(--popup-accent-soft) 55%,
-    var(--popup-accent)
-  );
-  color: var(--popup-text);
-  font-weight: 700;
+  background: var(--popup-accent);
+  border-color: var(--popup-accent);
+  color: var(--popup-surface);
+  font-weight: 600;
   white-space: nowrap;
   position: sticky;
   top: 0;
   z-index: 2;
-  box-shadow: 0 1px 0 var(--popup-border);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
 }
 
 .popup-local-register-table th:nth-child(1),
@@ -387,7 +392,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 10px;
+  padding: 12px 8px;
   text-align: center;
   color: var(--popup-text-muted);
   font-size: var(--popup-font-size);
@@ -412,7 +417,8 @@ body {
 }
 
 .dashboard-date-select.dashboard-cal-trigger {
-  height: 34px;
+  height: var(--popup-control-height);
+  min-height: var(--popup-control-height);
   padding: 0 10px;
   /* min-width: 7.5rem; */
   text-align: left;
@@ -582,7 +588,8 @@ body {
 .popup-search-keyword-input {
   flex: 1;
   min-width: 0;
-  height: 34px;
+  height: var(--popup-control-height);
+  min-height: var(--popup-control-height);
   padding: 0 10px;
   border: 1px solid var(--popup-border);
   border-radius: var(--popup-radius-sm);
@@ -603,7 +610,8 @@ body {
   width: auto;
   white-space: nowrap;
   min-width: 0;
-  height: 34px;
+  height: var(--popup-control-height);
+  min-height: var(--popup-control-height);
   padding: 0 10px;
   font-family: var(--popup-font);
   font-size: 0.75rem;
@@ -634,32 +642,36 @@ body {
   box-shadow: 0 0 0 2px var(--popup-accent-soft);
 }
 
-/* ---------- 列表右侧：操作按钮 ---------- */
-.popup-findpage-layout {
-  display: flex;
-  gap: 8px;
+/* ---------- 推广列表 + 操作：左右分栏（两独立 section） ---------- */
+.popup-findpage-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
   min-height: 0;
-  flex: 1;
+  align-items: stretch;
 }
 
 .popup-findpage-actions {
-  width: 128px;
-  min-width: 128px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
   gap: 6px;
-  padding: 8px;
-  border-radius: var(--popup-radius-sm);
-  background: var(--popup-surface);
-  border: 1px solid #e6efed;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
-.popup-action-btn,
-.popup-logs-clear {
+.popup-action-btn {
   width: 100%;
   white-space: nowrap;
   min-width: 0;
-  height: 34px;
+  height: var(--popup-control-height);
+  min-height: var(--popup-control-height);
   padding: 0 8px;
   font-family: var(--popup-font);
   font-size: 0.75rem;
@@ -695,7 +707,7 @@ body {
 
 /* ---------- 扩展日志区块（右侧列） ---------- */
 .popup-section--logs {
-  gap: var(--popup-space-sm);
+  gap: 6px;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -707,8 +719,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--popup-space-sm);
-  min-height: 30px;
+  gap: 6px;
+  min-height: var(--popup-control-height-sm);
 }
 
 .popup-logs-title {
@@ -725,22 +737,38 @@ body {
   width: auto;
   min-width: 72px;
   padding: 0 10px;
-  height: 30px;
+  height: var(--popup-control-height-sm);
+  min-height: var(--popup-control-height-sm);
   font-size: 0.72rem;
+  font-family: var(--popup-font);
+  font-weight: 500;
+  color: var(--popup-surface);
+  background: var(--popup-accent);
+  border: 1px solid var(--popup-accent);
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .popup-storage-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--popup-space-sm);
+  gap: 6px;
 }
 
 .popup-storage-clear {
   width: auto;
   min-width: 72px;
   padding: 0 10px;
-  height: 30px;
+  height: var(--popup-control-height-sm);
+  min-height: var(--popup-control-height-sm);
   font-family: var(--popup-font);
   font-size: 0.72rem;
   font-weight: 500;
@@ -752,6 +780,10 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .popup-storage-clear:hover {
@@ -765,7 +797,7 @@ body {
 }
 
 .popup-storage-usage {
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-radius: var(--popup-radius-sm);
   background: var(--popup-bg);
   color: var(--popup-text);
@@ -773,7 +805,7 @@ body {
   line-height: 1.45;
   font-variant-numeric: tabular-nums;
   border: 1px solid #e6efed;
-  min-height: 52px;
+  min-height: 48px;
 }
 
 .popup-storage-line {
@@ -841,7 +873,7 @@ body {
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--popup-space-sm);
+  padding: 6px;
   background: var(--popup-bg);
 
   border-radius: var(--popup-radius-sm);
@@ -850,13 +882,13 @@ body {
   font-variant-numeric: tabular-nums;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   align-content: flex-start;
 }
 
 /* ---------- 单条日志卡片 ---------- */
 .popup-log-card {
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: var(--popup-surface);
   border-radius: var(--popup-radius-sm);
   box-shadow: var(--popup-shadow-sm);
@@ -906,13 +938,6 @@ body {
 }
 
 /* ---------- 推广列表（findPage 捕获） ---------- */
-.popup-section--findpage {
-  gap: var(--popup-space-sm);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
 .popup-findpage-refresh {
   flex-shrink: 0;
   min-width: 88px;
@@ -949,35 +974,35 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   overflow-y: auto;
-  padding: 8px;
-  background: var(--popup-surface);
-  border-radius: var(--popup-radius-sm);
-  border: 1px solid #e6efed;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .popup-findpage-item {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 9px 10px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  min-height: 32px;
+  margin: 0;
   width: 100%;
   box-sizing: border-box;
   flex: 0 0 auto;
   min-height: 0;
-  background: var(--popup-surface);
-  border-radius: var(--popup-radius-sm);
+  background: transparent;
   border: none;
-  box-shadow: inset 0 0 0 1px #eaf1ef;
-  transition:
-    background 0.15s ease,
-    box-shadow 0.15s ease;
+  border-radius: 0;
+  box-shadow: none;
+  transition: background 0.15s ease;
 }
 
 .popup-findpage-item:hover {
-  background: var(--popup-surface-hover);
-  box-shadow: inset 0 0 0 1px #cbe8e2;
+  background: color-mix(in srgb, var(--popup-accent) 6%, transparent);
 }
 
 .popup-findpage-item input[type="checkbox"] {
@@ -1018,5 +1043,5 @@ body {
   justify-content: center;
   color: var(--popup-text-muted);
   font-size: var(--popup-font-size);
-  padding: 20px 12px;
+  padding: 8px 6px;
 }

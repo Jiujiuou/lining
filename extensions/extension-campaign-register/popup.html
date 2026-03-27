@@ -63,12 +63,17 @@
           ></div>
         </section>
 
-        <section
-          class="popup-section popup-section--findpage"
-          id="findpage-section"
-        >
-          <div class="popup-findpage-layout">
+        <div class="popup-findpage-split">
+          <section
+            class="popup-section popup-section--findpage-list"
+            aria-label="推广捕获列表"
+          >
             <div id="findpage-list" class="popup-findpage-list" role="list"></div>
+          </section>
+          <section
+            class="popup-section popup-section--findpage-toolbar"
+            aria-label="列表操作"
+          >
             <aside class="popup-findpage-actions" role="toolbar" aria-label="列表操作">
               <button
                 type="button"
@@ -102,8 +107,8 @@
                 清空本地数据
               </button>
             </aside>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
 
       <div class="popup-col popup-col--right">
