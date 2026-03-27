@@ -116,6 +116,10 @@ body {
 .popup-section--quick-open {
   padding: 6px;
   background: #f7fbfa;
+  /* 日期月历 dashboard-cal-popover 为 absolute 撑在区块外，父级勿裁切 */
+  overflow: visible;
+  position: relative;
+  z-index: 5;
 }
 
 .popup-section--logs {
@@ -247,8 +251,72 @@ body {
   overflow-wrap: anywhere;
 }
 
-/* 指标列：第 3 列起（消耗/成交/ROI） */
-.popup-local-register-table th:nth-child(n + 3),
+/* 比例 + 数据单元格：与指标列一致 */
+.popup-local-register-table th.popup-local-ratio,
+.popup-local-register-table td.popup-local-cell-total-amt,
+.popup-local-register-table td.popup-local-ratio {
+  min-width: 3.25rem;
+  box-sizing: border-box;
+}
+
+/*
+ * 「总成交金额」表头：与「总推广成交」等指标 th 一致（nowrap、继承字号），
+ * 勿单独 max-width / 换行 / 缩小字 —— 否则列宽由 th 撑开，文字后会出现一大块空白。
+ * width:0.01% 与下方 td 同列收缩，列宽取表头与数据中的较紧一侧。
+ */
+.popup-local-register-table th.popup-local-th-manual-total {
+  width: 0.01%;
+  white-space: nowrap;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: center;
+}
+
+.popup-local-register-table td.popup-local-cell-total-amt {
+  text-align: center;
+  width: 0.01%;
+  max-width: 12ch;
+}
+
+.popup-local-cell-edit {
+  cursor: text;
+  padding: 0 !important;
+  vertical-align: middle;
+}
+
+.popup-local-cell-total-amt .popup-local-total-amt-input {
+  text-align: center;
+  box-sizing: border-box;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 按字符宽显示；居中后光标与数字在格内居中 */
+.popup-local-total-amt-input {
+  box-sizing: border-box;
+  width: auto;
+  max-width: 12ch;
+  min-width: 5ch;
+  height: 100%;
+  min-height: 32px;
+  margin: 0;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.popup-local-total-amt-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: inset 0 0 0 1px var(--popup-accent-soft);
+}
+
 .popup-local-register-table td.popup-local-num {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -326,7 +394,184 @@ body {
   line-height: 1.5;
 }
 
-/* ---------- 左上：搜索词 + 打开 4 页 ---------- */
+/* ---------- 左上：搜索词 + 日期（dashboard-cal-popover）+ 打开 4 页 ---------- */
+.popup-nav-cal-wrap {
+  flex-shrink: 0;
+}
+
+/* 复用 src/App.css 看板月历结构，变量映射到弹窗主题 */
+.dashboard-cal-inline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dashboard-cal-anchor {
+  position: relative;
+}
+
+.dashboard-date-select.dashboard-cal-trigger {
+  height: 34px;
+  padding: 0 10px;
+  /* min-width: 7.5rem; */
+  text-align: left;
+  font-family: var(--popup-font);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--popup-text);
+  background: #fff;
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+}
+
+.dashboard-date-select.dashboard-cal-trigger:hover {
+  border-color: var(--popup-accent);
+}
+
+.dashboard-date-select.dashboard-cal-trigger:focus {
+  outline: none;
+  border-color: var(--popup-accent);
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+.dashboard-cal-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  padding: 12px;
+  min-width: 260px;
+  background: var(--popup-surface);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  box-shadow: var(--popup-shadow-hover);
+}
+
+.dashboard-cal-popover[hidden] {
+  display: none !important;
+}
+
+.dashboard-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.dashboard-cal-nav {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--popup-text);
+  background: #fff;
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  font-family: var(--popup-font);
+}
+
+.dashboard-cal-nav:hover {
+  border-color: var(--popup-accent);
+  background: var(--popup-accent-soft);
+}
+
+.dashboard-cal-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--popup-text);
+  font-family: var(--popup-font);
+}
+
+.dashboard-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.dashboard-cal-wd {
+  font-size: 0.6rem;
+  color: var(--popup-text-muted);
+  text-align: center;
+  font-family: var(--popup-font);
+}
+
+.dashboard-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.dashboard-cal-cell {
+  position: relative;
+  min-height: 32px;
+  padding: 2px;
+  font-size: 0.72rem;
+  color: var(--popup-text);
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: var(--popup-radius-sm);
+  cursor: pointer;
+  font-family: var(--popup-font);
+  transition:
+    background 0.1s ease,
+    border-color 0.1s ease;
+}
+
+.dashboard-cal-cell:hover {
+  border-color: var(--popup-border);
+  background: var(--popup-surface-hover);
+}
+
+.dashboard-cal-cell--empty {
+  cursor: default;
+  background: transparent;
+  border: none;
+  min-height: 6px;
+}
+
+.dashboard-cal-cell--selected {
+  border-color: var(--popup-accent);
+  background: var(--popup-accent-soft);
+  font-weight: 600;
+}
+
+.dashboard-cal-cell--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.dashboard-cal-cell--has-data .dashboard-cal-cell-num {
+  color: var(--popup-text);
+}
+
+.dashboard-cal-cell-num {
+  display: block;
+  text-align: center;
+}
+
+.dashboard-cal-cell-dot {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--popup-accent);
+}
+
+.dashboard-cal-hint {
+  margin: 8px 0 0;
+  font-size: 0.65rem;
+  color: var(--popup-text-muted);
+  font-family: var(--popup-font);
+}
+
 .popup-quick-open-row {
   display: flex;
   align-items: center;
@@ -775,4 +1020,3 @@ body {
   font-size: var(--popup-font-size);
   padding: 20px 12px;
 }
-

@@ -16,7 +16,26 @@
     <div class="popup">
       <div class="popup-col popup-col--left">
         <section class="popup-section popup-section--quick-open">
-          <div class="popup-quick-open-row" role="group" aria-label="推广页与搜索词">
+          <div class="popup-quick-open-row" role="group" aria-label="搜索词、日期与推广页">
+            <div class="popup-nav-cal-wrap dashboard-cal-inline">
+              <div class="dashboard-cal-anchor" id="popup-nav-cal-anchor">
+                <button
+                  type="button"
+                  id="popup-nav-date-trigger"
+                  class="dashboard-date-select dashboard-cal-trigger"
+                  aria-expanded="false"
+                  aria-haspopup="dialog"
+                  aria-label="选择打开推广页的日期"
+                ></button>
+                <div
+                  id="popup-nav-cal-popover"
+                  class="dashboard-cal-popover"
+                  hidden
+                  role="dialog"
+                  aria-label="选择日期"
+                ></div>
+              </div>
+            </div>
             <input
               type="text"
               id="search-keyword-input"
@@ -26,9 +45,9 @@
               aria-label="推广搜索词"
             />
             <button type="button" id="search-keyword-apply" class="popup-search-keyword-apply">应用</button>
-            <button type="button" id="open-onesite-record" class="popup-open-sites">货品全站推广</button>
-            <button type="button" id="open-search-record" class="popup-open-sites">关键词推广</button>
-            <button type="button" id="open-promo-record" class="popup-open-sites">人群推广</button>
+            <button type="button" id="open-onesite-record" class="popup-open-sites">货品全站</button>
+            <button type="button" id="open-search-record" class="popup-open-sites">关键词</button>
+            <button type="button" id="open-promo-record" class="popup-open-sites">人群</button>
             <button type="button" id="open-content-record" class="popup-open-sites">内容营销</button>
           </div>
         </section>

@@ -69,9 +69,9 @@
 
   function bizLabel(bizCode) {
     var m = {
-      onebpDisplay: '人群推广',
-      onebpSite: '货品全站推广',
-      onebpSearch: '关键词推广',
+      onebpDisplay: '人群',
+      onebpSite: '货品全站',
+      onebpSearch: '关键词',
       onebpShortVideo: '内容营销'
     };
     return m[bizCode] || '未知来源';

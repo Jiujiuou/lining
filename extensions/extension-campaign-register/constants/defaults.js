@@ -10,7 +10,9 @@
       /** Record<queryKey, { selected: string[], bizCode, pageType, lastTouchedAt }> */
       findPageSelectionByQuery: 'amcr_findPageSelectionByQuery',
       /** Record<dateStr, { byBiz, updated_at_local }> — 本地推广登记快照（按日、按来源） */
-      localRegisterByDate: 'amcr_local_register_by_date'
+      localRegisterByDate: 'amcr_local_register_by_date',
+      /** 弹窗内打开推广页时 URL 使用的日期（yyyy-MM-dd），默认昨日 */
+      popupNavDate: 'amcr_popup_nav_date'
     },
     LOG_MAX_ENTRIES: 20,
     LOG_MAX_TABS: 6,

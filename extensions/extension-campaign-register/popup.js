@@ -27,6 +27,14 @@
   var storageUsageBarEl = document.getElementById('storage-usage-bar');
   var storageUsagePercentEl = document.getElementById('storage-usage-percent');
   var storageCacheClearBtn = document.getElementById('storage-cache-clear');
+  var popupNavDateTrigger = document.getElementById('popup-nav-date-trigger');
+  var popupNavCalPopover = document.getElementById('popup-nav-cal-popover');
+  var popupNavCalAnchor = document.getElementById('popup-nav-cal-anchor');
+  var navCalView = { y: 2025, m0: 0 };
+  var navCalOpen = false;
+  var navCalOutsideHandler = null;
+  var navCalDatesWithData = new Set();
+  var currentNavDateYmd = '';
 
   var STORAGE_LOCAL =
     typeof __AMCR_DEFAULTS__ !== 'undefined' &&
@@ -60,6 +68,12 @@
     'amcr_findPageSelectedCampaigns'
   ];
   var STORAGE_SEARCH_KEYWORD = 'amcr_search_keyword';
+  var STORAGE_NAV_DATE =
+    typeof __AMCR_DEFAULTS__ !== 'undefined' &&
+      __AMCR_DEFAULTS__.STORAGE_KEYS &&
+      __AMCR_DEFAULTS__.STORAGE_KEYS.popupNavDate
+      ? __AMCR_DEFAULTS__.STORAGE_KEYS.popupNavDate
+      : 'amcr_popup_nav_date';
   var SELECTION_MAX_QUERIES =
     typeof __AMCR_DEFAULTS__ !== 'undefined' && __AMCR_DEFAULTS__.FIND_PAGE_SELECTION_MAX_QUERIES
       ? __AMCR_DEFAULTS__.FIND_PAGE_SELECTION_MAX_QUERIES
@@ -120,9 +134,9 @@
 
   function bizLabel(bizCode) {
     var m = {
-      onebpDisplay: '人群推广',
-      onebpSite: '货品全站推广',
-      onebpSearch: '关键词推广',
+      onebpDisplay: '人群',
+      onebpSite: '货品全站',
+      onebpSearch: '关键词',
       onebpShortVideo: '内容营销'
     };
     return m[bizCode] || '未知来源';
@@ -190,6 +204,225 @@
     return d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' });
   }
 
+  function getNavDateYmd() {
+    var d = currentNavDateYmd;
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    return getYesterdayEast8();
+  }
+
+  function syncNavCalendarTriggerLabel() {
+    if (!popupNavDateTrigger) return;
+    var ymd = getNavDateYmd();
+    popupNavDateTrigger.textContent = ymd.replace(/-/g, '/');
+  }
+
+  /** 与 src/lib/dashboardCalendarUtils.js 一致（单日） */
+  function ymdPartsNav(ymd) {
+    var parts = String(ymd).split('-');
+    return { y: Number(parts[0]), m0: Number(parts[1]) - 1, d: Number(parts[2]) };
+  }
+
+  function weekdayFirstOfMonthNav(y, m0) {
+    return new Date(y, m0, 1).getDay();
+  }
+
+  function daysInMonthNav(y, m0) {
+    return new Date(y, m0 + 1, 0).getDate();
+  }
+
+  function buildNavCalendarCells(calView, dataSet, selection) {
+    var calYear = calView.y;
+    var calMonth0 = calView.m0;
+    var firstWd = weekdayFirstOfMonthNav(calYear, calMonth0);
+    var dim = daysInMonthNav(calYear, calMonth0);
+    var pad = (firstWd + 6) % 7;
+    var cells = [];
+    var i;
+    for (i = 0; i < pad; i++) cells.push({ type: 'pad' });
+    for (var d = 1; d <= dim; d++) {
+      var mm = String(calMonth0 + 1);
+      if (mm.length < 2) mm = '0' + mm;
+      var dd = String(d);
+      if (dd.length < 2) dd = '0' + dd;
+      var ymdStr = calYear + '-' + mm + '-' + dd;
+      var isSelected = selection.value === ymdStr;
+      var hasData = dataSet && typeof dataSet.has === 'function' && dataSet.has(ymdStr);
+      cells.push({
+        type: 'day',
+        ymd: ymdStr,
+        hasData: hasData,
+        isSelected: isSelected,
+        disabled: false
+      });
+    }
+    return cells;
+  }
+
+  function goNavMonth(delta) {
+    var m0 = navCalView.m0 + delta;
+    var y = navCalView.y;
+    while (m0 < 0) {
+      m0 += 12;
+      y -= 1;
+    }
+    while (m0 > 11) {
+      m0 -= 12;
+      y += 1;
+    }
+    navCalView = { y: y, m0: m0 };
+    if (popupNavCalPopover && !popupNavCalPopover.hidden) {
+      popupNavCalPopover.innerHTML = renderNavCalendarPopoverInnerHTML();
+    }
+  }
+
+  function renderNavCalendarPopoverInnerHTML() {
+    var cells = buildNavCalendarCells(navCalView, navCalDatesWithData, {
+      mode: 'single',
+      value: getNavDateYmd()
+    });
+    var parts = [];
+    parts.push('<div class="dashboard-cal-head">');
+    parts.push(
+      '<button type="button" class="dashboard-cal-nav" data-nav-month="-1" aria-label="上一月">‹</button>'
+    );
+    parts.push(
+      '<span class="dashboard-cal-title">' +
+      navCalView.y +
+      ' 年 ' +
+      (navCalView.m0 + 1) +
+      ' 月</span>'
+    );
+    parts.push(
+      '<button type="button" class="dashboard-cal-nav" data-nav-month="1" aria-label="下一月">›</button>'
+    );
+    parts.push('</div>');
+    parts.push('<div class="dashboard-cal-weekdays">');
+    var wds = ['一', '二', '三', '四', '五', '六', '日'];
+    wds.forEach(function (w) {
+      parts.push('<span class="dashboard-cal-wd">' + w + '</span>');
+    });
+    parts.push('</div>');
+    parts.push('<div class="dashboard-cal-grid">');
+    cells.forEach(function (cell, idx) {
+      if (cell.type === 'pad') {
+        parts.push('<span class="dashboard-cal-cell dashboard-cal-cell--empty"></span>');
+        return;
+      }
+      var c = cell;
+      var cls = 'dashboard-cal-cell';
+      if (c.isSelected) cls += ' dashboard-cal-cell--selected';
+      if (c.hasData) cls += ' dashboard-cal-cell--has-data';
+      if (c.disabled) cls += ' dashboard-cal-cell--disabled';
+      var dayNum = Number(String(c.ymd).slice(8));
+      parts.push(
+        '<button type="button" class="' +
+        cls +
+        '" data-nav-cal-day="' +
+        escAttr(c.ymd) +
+        '"' +
+        (c.disabled ? ' disabled' : '') +
+        '>' +
+        '<span class="dashboard-cal-cell-num">' +
+        dayNum +
+        '</span>' +
+        (c.hasData ? '<span class="dashboard-cal-cell-dot" aria-hidden="true"></span>' : '') +
+        '</button>'
+      );
+    });
+    parts.push('</div>');
+
+    return parts.join('');
+  }
+
+  function refreshNavCalDatesWithData(callback) {
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+      navCalDatesWithData = new Set();
+      if (callback) callback();
+      return;
+    }
+    chrome.storage.local.get([STORAGE_LOCAL], function (r) {
+      if (chrome.runtime && chrome.runtime.lastError) {
+        navCalDatesWithData = new Set();
+        if (callback) callback();
+        return;
+      }
+      var s = new Set();
+      var bag = r && r[STORAGE_LOCAL];
+      if (bag && typeof bag === 'object') {
+        Object.keys(bag).forEach(function (k) {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(k)) s.add(k);
+        });
+      }
+      navCalDatesWithData = s;
+      if (callback) callback();
+    });
+  }
+
+  function loadNavDate() {
+    if (!popupNavDateTrigger || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+      if (popupNavDateTrigger && !currentNavDateYmd) {
+        currentNavDateYmd = getYesterdayEast8();
+        syncNavCalendarTriggerLabel();
+      }
+      return;
+    }
+    chrome.storage.local.get([STORAGE_NAV_DATE], function (s) {
+      if (chrome.runtime && chrome.runtime.lastError) return;
+      var v = s && s[STORAGE_NAV_DATE] != null ? String(s[STORAGE_NAV_DATE]).trim() : '';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) v = getYesterdayEast8();
+      currentNavDateYmd = v;
+      syncNavCalendarTriggerLabel();
+    });
+  }
+
+  function persistNavDate(ymd) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return;
+    currentNavDateYmd = ymd;
+    syncNavCalendarTriggerLabel();
+    var o = {};
+    o[STORAGE_NAV_DATE] = ymd;
+    safeSet(o, function () { }, function (retry) {
+      chrome.storage.local.remove([STORAGE_NAV_DATE], function () {
+        retry();
+      });
+    });
+  }
+
+  function closeNavCalendar() {
+    if (!popupNavCalPopover || !popupNavDateTrigger) return;
+    navCalOpen = false;
+    popupNavCalPopover.hidden = true;
+    popupNavCalPopover.setAttribute('hidden', '');
+    popupNavDateTrigger.setAttribute('aria-expanded', 'false');
+    if (navCalOutsideHandler) {
+      document.removeEventListener('mousedown', navCalOutsideHandler, true);
+      navCalOutsideHandler = null;
+    }
+  }
+
+  function openNavCalendar() {
+    if (!popupNavCalPopover || !popupNavDateTrigger) return;
+    var ymd = getNavDateYmd();
+    var pv = ymdPartsNav(ymd);
+    navCalView = { y: pv.y, m0: pv.m0 };
+    refreshNavCalDatesWithData(function () {
+      popupNavCalPopover.innerHTML = renderNavCalendarPopoverInnerHTML();
+      navCalOpen = true;
+      popupNavCalPopover.hidden = false;
+      popupNavCalPopover.removeAttribute('hidden');
+      popupNavDateTrigger.setAttribute('aria-expanded', 'true');
+      if (navCalOutsideHandler) {
+        document.removeEventListener('mousedown', navCalOutsideHandler, true);
+      }
+      navCalOutsideHandler = function (e) {
+        if (!popupNavCalAnchor || !popupNavCalPopover) return;
+        if (popupNavCalAnchor.contains(e.target)) return;
+        closeNavCalendar();
+      };
+      document.addEventListener('mousedown', navCalOutsideHandler, true);
+    });
+  }
+
   function getSearchKeyword() {
     var s = (currentSearchKeyword == null ? '' : String(currentSearchKeyword)).trim();
     return s || '池';
@@ -204,15 +437,22 @@
     var next = String(searchKeywordInput.value || '').trim();
     currentSearchKeyword = next || '池';
     searchKeywordInput.value = currentSearchKeyword;
+    var navYmd = getNavDateYmd();
+    currentNavDateYmd = navYmd;
+    syncNavCalendarTriggerLabel();
     var o = {};
     o[STORAGE_SEARCH_KEYWORD] = currentSearchKeyword;
-    safeSet(o, function () {}, function (retry) {
-      chrome.storage.local.remove([STORAGE_SEARCH_KEYWORD], function () {
+    o[STORAGE_NAV_DATE] = navYmd;
+    safeSet(o, function () { }, function (retry) {
+      chrome.storage.local.remove([STORAGE_SEARCH_KEYWORD, STORAGE_NAV_DATE], function () {
         retry();
       });
     });
     if (logger) {
-      logger.appendLog('log', '搜索词已应用：' + currentSearchKeyword);
+      logger.appendLog(
+        'log',
+        '已应用：搜索词「' + currentSearchKeyword + '」；打开推广页日期 ' + navYmd.replace(/-/g, '/')
+      );
       loadLogs();
     }
   }
@@ -227,32 +467,32 @@
   }
 
   function buildPromoRecordUrl() {
-    var d = getYesterdayEast8();
+    var d = getNavDateYmd();
     return 'https://one.alimama.com/index.html#!/manage/display?mx_bizCode=onebpDisplay&bizCode=onebpDisplay&tab=campaign&startTime=' + d + '&endTime=' + d + '&offset=0&pageSize=100&searchKey=campaignNameLike&searchValue=' + getEncodedSearchKeyword();
   }
   function buildOnesiteRecordUrl() {
-    var d = getYesterdayEast8();
+    var d = getNavDateYmd();
     return 'https://one.alimama.com/index.html#!/manage/onesite?mx_bizCode=onebpSite&bizCode=onebpSite&tab=campaign&startTime=' + d + '&endTime=' + d + '&effectEqual=15&unifyType=last_click_by_effect_time&offset=0&searchKey=campaignNameLike&searchValue=' + getEncodedSearchKeyword() + '&pageSize=100';
   }
   function buildSearchRecordUrl() {
-    var d = getYesterdayEast8();
+    var d = getNavDateYmd();
     return 'https://one.alimama.com/index.html#!/manage/search?mx_bizCode=onebpSearch&bizCode=onebpSearch&tab=campaign&startTime=' + d + '&endTime=' + d + '&offset=0&pageSize=100&searchKey=campaignNameLike&searchValue=' + getEncodedSearchKeyword();
   }
   function buildContentRecordUrl() {
-    var d = getYesterdayEast8();
+    var d = getNavDateYmd();
     return 'https://one.alimama.com/index.html#!/manage/content?mx_bizCode=onebpShortVideo&bizCode=onebpShortVideo&tab=campaign&startTime=' + d + '&endTime=' + d + '&unifyType=video_kuan&offset=0&pageSize=100&searchKey=campaignNameLike&searchValue=' + getEncodedSearchKeyword();
   }
 
   function openPromoRecord() {
-    if (logger) logger.appendLog('log', '已打开「人群推广」页面（搜索词：' + getSearchKeyword() + '）');
+    if (logger) logger.appendLog('log', '已打开「人群」页面（搜索词：' + getSearchKeyword() + '）');
     chrome.tabs.create({ url: buildPromoRecordUrl() });
   }
   function openOnesiteRecord() {
-    if (logger) logger.appendLog('log', '已打开「货品全站推广」页面（搜索词：' + getSearchKeyword() + '）');
+    if (logger) logger.appendLog('log', '已打开「货品全站」页面（搜索词：' + getSearchKeyword() + '）');
     chrome.tabs.create({ url: buildOnesiteRecordUrl() });
   }
   function openSearchRecord() {
-    if (logger) logger.appendLog('log', '已打开「关键词推广」页面（搜索词：' + getSearchKeyword() + '）');
+    if (logger) logger.appendLog('log', '已打开「关键词」页面（搜索词：' + getSearchKeyword() + '）');
     chrome.tabs.create({ url: buildSearchRecordUrl() });
   }
   function openContentRecord() {
@@ -322,7 +562,7 @@
       if (chrome && chrome.storage && chrome.storage.local && typeof chrome.storage.local.QUOTA_BYTES === 'number') {
         return chrome.storage.local.QUOTA_BYTES;
       }
-    } catch (e) {}
+    } catch (e) { }
     return 10 * 1024 * 1024;
   }
 
@@ -432,6 +672,29 @@
     return roi === 0 ? '' : roi.toFixed(2);
   }
 
+  /** 比例 = 总消耗 / 总成交金额 → 展示为百分比（0.1 → 10%） */
+  function displayRatioChargeManual(totalCharge, manualAmt) {
+    if (manualAmt == null || manualAmt === '') return '';
+    var m = Number(manualAmt);
+    if (isNaN(m) || m <= 0) return '';
+    var c = totalCharge != null ? Number(totalCharge) : NaN;
+    if (isNaN(c) || c === 0) return '';
+    var r = c / m;
+    if (isNaN(r)) return '';
+    var pct = r * 100;
+    return pct.toFixed(2).replace(/\.?0+$/, '') + '%';
+  }
+
+  function stableManualSig(manual) {
+    if (!manual || typeof manual !== 'object') return '';
+    var keys = Object.keys(manual).sort();
+    var parts = [];
+    keys.forEach(function (k) {
+      parts.push(k + '=' + String(manual[k]));
+    });
+    return parts.join('|');
+  }
+
   function formatReportDateSlash(ymd) {
     if (!ymd) return '';
     return String(ymd).slice(0, 10).replace(/-/g, '/');
@@ -515,7 +778,7 @@
     if (!ymd || !day || !day.byBiz || typeof day.byBiz !== 'object') return 'EMPTY';
     var byBiz = day.byBiz;
     var keys = Object.keys(byBiz).sort();
-    var parts = [String(ymd), String(day.updated_at_local || '')];
+    var parts = [String(ymd), String(day.updated_at_local || ''), stableManualSig(day.manual_total_amt_by_name)];
     keys.forEach(function (biz) {
       var rows = byBiz[biz];
       if (!Array.isArray(rows)) return;
@@ -564,6 +827,10 @@
       return;
     }
     var wideRows = pivotLocalDayToWideRows(day);
+    var manualMap =
+      day.manual_total_amt_by_name && typeof day.manual_total_amt_by_name === 'object'
+        ? day.manual_total_amt_by_name
+        : {};
     var parts = [];
 
     if (wideRows.length === 0) {
@@ -590,7 +857,9 @@
       '<th scope="col">内容成交</th>' +
       '<th scope="col" class="popup-local-roi">内容ROI</th>' +
       '<th scope="col">总消耗</th>' +
-      '<th scope="col">总成交</th>' +
+      '<th scope="col">总推广成交</th>' +
+      '<th scope="col" class="popup-local-th-manual-total">总成交金额</th>' +
+      '<th scope="col" class="popup-local-ratio">比例</th>' +
       '<th scope="col" class="popup-local-action">操作</th>' +
       '</tr></thead><tbody>'
     );
@@ -603,6 +872,12 @@
     function toNum(v) {
       var n = v != null ? Number(v) : 0;
       return isNaN(n) ? 0 : n;
+    }
+    function manualToInputValue(stored) {
+      if (stored == null || stored === '') return '';
+      var n = Number(stored);
+      if (isNaN(n)) return '';
+      return String(n);
     }
     wideRows.forEach(function (wr) {
       var m = wr.metrics;
@@ -618,6 +893,8 @@
         toNum(m.alipay_inshop_amt_onebpdisplay) +
         toNum(m.alipay_inshop_amt_onebpsite) +
         toNum(m.alipay_inshop_amt_onebpshortvideo);
+      var manualStored = manualMap[name];
+      var ratioText = displayRatioChargeManual(totalCharge, manualStored);
       parts.push(
         '<tr>' +
         '<td class="popup-local-date">' +
@@ -642,6 +919,18 @@
         cellRoi(m.charge_onebpshortvideo, m.alipay_inshop_amt_onebpshortvideo) +
         cellMoney(totalCharge) +
         cellMoney(totalAmt) +
+        '<td class="popup-local-num popup-local-cell-edit popup-local-cell-total-amt">' +
+        '<input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" size="10" class="popup-local-total-amt-input" data-ymd="' +
+        escAttr(ymd) +
+        '" data-name="' +
+        escAttr(name) +
+        '" value="' +
+        escAttr(manualToInputValue(manualStored)) +
+        '" />' +
+        '</td>' +
+        '<td class="popup-local-num popup-local-ratio">' +
+        escHtml(ratioText) +
+        '</td>' +
         '<td class="popup-local-action">' +
         '<button type="button" class="amcr-local-delete-btn" data-payload="' +
         payload +
@@ -699,6 +988,12 @@
 
   function tableToExcelHtml(tableEl) {
     var clone = tableEl.cloneNode(true);
+    clone.querySelectorAll('.popup-local-total-amt-input').forEach(function (inp) {
+      var td = inp.parentElement;
+      if (!td) return;
+      var v = inp.value != null ? String(inp.value).trim() : '';
+      td.textContent = v;
+    });
     var rows = clone.querySelectorAll('tr');
     rows.forEach(function (tr) {
       var cells = tr.querySelectorAll('th,td');
@@ -746,6 +1041,48 @@
     }
   }
 
+  /** 保存用户填写的「总成交金额」到当日 manual_total_amt_by_name */
+  function saveManualTotalAmt(ymd, campaignName, raw) {
+    if (!ymd || campaignName == null || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+      return;
+    }
+    var target = String(campaignName).trim();
+    if (!target) return;
+    var trimmed = raw == null ? '' : String(raw).trim();
+    chrome.storage.local.get([STORAGE_LOCAL], function (result) {
+      if (chrome.runtime && chrome.runtime.lastError) return;
+      var bag = result[STORAGE_LOCAL];
+      if (!bag || typeof bag !== 'object') return;
+      var day = bag[ymd];
+      if (!day || !day.byBiz || typeof day.byBiz !== 'object') return;
+      if (!day.manual_total_amt_by_name || typeof day.manual_total_amt_by_name !== 'object') {
+        day.manual_total_amt_by_name = {};
+      }
+      var manual = day.manual_total_amt_by_name;
+      if (trimmed === '') {
+        delete manual[target];
+        if (Object.keys(manual).length === 0) delete day.manual_total_amt_by_name;
+      } else {
+        var n = Number(trimmed);
+        if (isNaN(n) || n < 0) {
+          delete manual[target];
+          if (Object.keys(manual).length === 0) delete day.manual_total_amt_by_name;
+        } else {
+          manual[target] = roundMoney(n);
+        }
+      }
+      day.updated_at_local = new Date().toISOString();
+      bag[ymd] = day;
+      var o = {};
+      o[STORAGE_LOCAL] = bag;
+      safeSet(o, function () { }, function (retry) {
+        chrome.storage.local.remove([STORAGE_LOCAL], function () {
+          retry();
+        });
+      });
+    });
+  }
+
   /** 从本地当日各 biz 中移除指定商品名（仅本地） */
   function deleteLocalCampaignRow(ymd, campaignName) {
     if (!ymd || campaignName == null || typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
@@ -775,6 +1112,12 @@
       });
       if (!changed) return;
       day.byBiz = byBiz;
+      if (day.manual_total_amt_by_name && typeof day.manual_total_amt_by_name === 'object') {
+        delete day.manual_total_amt_by_name[target];
+        if (Object.keys(day.manual_total_amt_by_name).length === 0) {
+          delete day.manual_total_amt_by_name;
+        }
+      }
       day.updated_at_local = new Date().toISOString();
       bag[ymd] = day;
       var o = {};
@@ -923,7 +1266,7 @@
         params.forEach(function (v, k) {
           out[String(k)] = String(v);
         });
-      } catch (e) {}
+      } catch (e) { }
     }
     var q = url.indexOf('?');
     if (q >= 0) parseQuery(url.slice(q));
@@ -1127,7 +1470,7 @@
           amcr_findPageSelectedCampaigns: globalAll
         };
         out[STORAGE_SELECTION_BY_QUERY] = byQuery;
-        safeSet(out, function () {}, function (retry) {
+        safeSet(out, function () { }, function (retry) {
           byQuery = pruneSelectionStore(byQuery);
           var out2 = {
             amcr_findPageSelectedCampaigns: globalAll
@@ -1156,6 +1499,7 @@
 
   loadLogs();
   loadSearchKeyword();
+  loadNavDate();
   loadFindPageResponse();
   loadLocalRegisterTable();
   loadStorageUsage();
@@ -1197,6 +1541,12 @@
     amcrLocalTableWrap.addEventListener('click', function (e) {
       var t = e.target;
       if (!t || !t.closest) return;
+      var editTd = t.closest('td.popup-local-cell-edit');
+      if (editTd && amcrLocalTableWrap.contains(editTd) && !t.closest('.popup-local-total-amt-input')) {
+        var focusInp = editTd.querySelector('.popup-local-total-amt-input');
+        if (focusInp) focusInp.focus();
+        return;
+      }
       var btn = t.closest('.amcr-local-delete-btn');
       if (!btn || !amcrLocalTableWrap.contains(btn)) return;
       var raw = btn.getAttribute('data-payload');
@@ -1207,6 +1557,48 @@
           deleteLocalCampaignRow(String(p.ymd), p.name);
         }
       } catch (err) { }
+    });
+    amcrLocalTableWrap.addEventListener(
+      'blur',
+      function (e) {
+        var inp = e.target;
+        if (!inp || !inp.classList || !inp.classList.contains('popup-local-total-amt-input')) return;
+        if (!amcrLocalTableWrap.contains(inp)) return;
+        var ymd = inp.getAttribute('data-ymd');
+        var name = inp.getAttribute('data-name');
+        if (!ymd || name == null) return;
+        saveManualTotalAmt(ymd, name, inp.value);
+      },
+      true
+    );
+  }
+  if (popupNavDateTrigger) {
+    popupNavDateTrigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (popupNavCalPopover && !popupNavCalPopover.hidden) {
+        closeNavCalendar();
+      } else {
+        openNavCalendar();
+      }
+    });
+  }
+  if (popupNavCalPopover) {
+    popupNavCalPopover.addEventListener('click', function (e) {
+      var navBtn = e.target.closest('[data-nav-month]');
+      if (navBtn) {
+        var delta = parseInt(navBtn.getAttribute('data-nav-month'), 10);
+        if (!isNaN(delta)) goNavMonth(delta);
+        e.preventDefault();
+        return;
+      }
+      var dayBtn = e.target.closest('[data-nav-cal-day]');
+      if (dayBtn && !dayBtn.disabled) {
+        var ymd = dayBtn.getAttribute('data-nav-cal-day');
+        if (ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+          persistNavDate(ymd);
+          closeNavCalendar();
+        }
+      }
     });
   }
   if (openPromoRecordBtn) openPromoRecordBtn.addEventListener('click', openPromoRecord);
@@ -1259,6 +1651,7 @@
 
   window.addEventListener('focus', function () {
     loadLogs();
+    loadNavDate();
     loadFindPageResponse();
     loadLocalRegisterTable();
     loadStorageUsage();
