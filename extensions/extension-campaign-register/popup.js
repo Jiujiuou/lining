@@ -675,7 +675,10 @@
   /** 比例 = 总消耗 / 总成交金额 → 展示为百分比（0.1 → 10%） */
   function displayRatioChargeManual(totalCharge, manualAmt) {
     if (manualAmt == null || manualAmt === '') return '';
-    var m = Number(manualAmt);
+    var m =
+      typeof manualAmt === 'number' && !isNaN(manualAmt)
+        ? manualAmt
+        : parseManualTotalInput(String(manualAmt));
     if (isNaN(m) || m <= 0) return '';
     var c = totalCharge != null ? Number(totalCharge) : NaN;
     if (isNaN(c) || c === 0) return '';
@@ -1063,7 +1066,7 @@
         delete manual[target];
         if (Object.keys(manual).length === 0) delete day.manual_total_amt_by_name;
       } else {
-        var n = Number(trimmed);
+        var n = parseManualTotalInput(trimmed);
         if (isNaN(n) || n < 0) {
           delete manual[target];
           if (Object.keys(manual).length === 0) delete day.manual_total_amt_by_name;
@@ -1212,6 +1215,30 @@
       lastFindPageBizCode = '';
       renderFindPageList(null, '');
     }
+  }
+
+  /**
+   * 解析「总成交金额」输入：支持千分位（如 1,358.21）、全角逗号，以及欧式 1.358,21。
+   */
+  function parseManualTotalInput(raw) {
+    if (raw == null) return NaN;
+    var s = String(raw)
+      .trim()
+      .replace(/[\s\u00a0\u202f]/g, '')
+      .replace(/，/g, ',');
+    if (s === '') return NaN;
+    var lastComma = s.lastIndexOf(',');
+    var lastDot = s.lastIndexOf('.');
+    if (lastComma >= 0 && lastDot >= 0) {
+      if (lastDot > lastComma) {
+        s = s.replace(/,/g, '');
+      } else {
+        s = s.replace(/\./g, '').replace(/,/g, '.');
+      }
+    } else {
+      s = s.replace(/,/g, '');
+    }
+    return Number(s);
   }
 
   function roundMoney(val) {
