@@ -20,7 +20,11 @@
     /** Record<tabIdStr, { itemIds }> — 按标签页隔离勾选，避免多开互相覆盖 */
     liveJsonFilterByTab: 'sycm_live_json_filter_by_tab',
     /** Record<tabIdStr, { updatedAt, items }> — 按标签页隔离商品列表 */
-    liveJsonCatalogByTab: 'sycm_live_json_catalog_by_tab'
+    liveJsonCatalogByTab: 'sycm_live_json_catalog_by_tab',
+    /** Record<tabIdStr, { url, capturedAt }> — 详情 flow-source 请求模板（用于列表页批量重放） */
+    flowSourceTemplateByTab: 'sycm_flow_source_template_by_tab',
+    /** Record<tabIdStr, { intervalSec, enabled }> — 轮询设置（仅 UI/控制用） */
+    flowPollSettingsByTab: 'sycm_flow_poll_settings_by_tab'
   };
 
   var LOG_MAX_ENTRIES = 20;

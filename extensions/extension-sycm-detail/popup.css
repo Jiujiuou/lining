@@ -110,6 +110,107 @@ body {
   min-height: 1.2em;
 }
 
+.popup-poll-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--popup-bg);
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+}
+
+.popup-poll-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.popup-poll-interval {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.popup-poll-label {
+  flex: 0 0 auto;
+  color: var(--popup-text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.popup-poll-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  padding: 6px 10px;
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  background: var(--popup-surface);
+  color: var(--popup-text);
+  font-family: var(--popup-font);
+  font-size: 0.78rem;
+}
+
+.popup-poll-select {
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 6px 10px;
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  background: var(--popup-surface);
+  color: var(--popup-text);
+  font-family: var(--popup-font);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.popup-poll-select:focus {
+  outline: none;
+  border-color: var(--popup-accent);
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+.popup-poll-input:focus {
+  outline: none;
+  border-color: var(--popup-accent);
+  box-shadow: 0 0 0 2px var(--popup-accent-soft);
+}
+
+.popup-poll-readonly {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--popup-border);
+  border-radius: var(--popup-radius-sm);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--popup-text-muted);
+  font-family: var(--popup-font);
+  font-size: 0.78rem;
+}
+
+.popup-poll-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.popup-poll-actions .popup-open-sites {
+  padding: 8px 12px;
+  font-size: 0.75rem;
+}
+
+.popup-poll-actions .popup-findpage-refresh {
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+}
+
 /* 主操作按钮（与 campaign 顶部一致） */
 .popup-open-sites {
   flex-shrink: 0;
@@ -293,6 +394,10 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: var(--popup-space-sm);
+}
+
+.popup-logs-header .popup-logs-title {
+  margin-right: auto;
 }
 
 .popup-logs-title {

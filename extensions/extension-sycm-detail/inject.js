@@ -78,6 +78,24 @@
     } catch (e) { return null; }
   }
 
+  function getItemIdFromUrl(url) {
+    if (!url || typeof url !== 'string') return null;
+    try {
+      var u = new URL(url, window.location.origin);
+      var id = u.searchParams.get('itemId');
+      return id ? String(id) : null;
+    } catch (e) {
+      // fallback：轻量解析
+      try {
+        var m = url.split('?')[1] || '';
+        var kv = m.split('&').filter(function (p) { return p.indexOf('itemId=') === 0; })[0];
+        return kv ? decodeURIComponent(kv.split('=')[1] || '') : null;
+      } catch (e2) {
+        return null;
+      }
+    }
+  }
+
   function handleResponse(url, data) {
     var timeStr = getEast8TimeStr();
     for (var i = 0; i < SOURCES.length; i++) {
@@ -85,6 +103,12 @@
       if (!urlMatches(url, src.urlContains)) continue;
       if (src.urlFilter && !src.urlFilter(url)) continue;
       try {
+        // 详情 flow-source：把最近一次“成功命中的请求 URL”抛给 content，用于后续模板重放
+        if (src.eventName === 'sycm-flow-source') {
+          try {
+            document.dispatchEvent(new CustomEvent('sycm-flow-source-template', { detail: { url: url, t: Date.now() } }));
+          } catch (e2) {}
+        }
         var value = src.extractValue(data);
         if (value === undefined) {
           var inner = data && data.data && data.data.data;
@@ -93,7 +117,8 @@
           emitLog('warn', PREFIX + '[' + src.eventName + '] 解析无数据 code=' + (data && data.code) + ' 条数=' + listLen);
           return;
         }
-        var itemId = src.mergeGoodsDetail ? getItemIdFromLocation() : null;
+        // 对详情类接口：优先从请求 URL 取 itemId（列表页轮询也适用），再回落 location
+        var itemId = src.mergeGoodsDetail ? (getItemIdFromUrl(url) || getItemIdFromLocation()) : null;
         if (src.multiValue && value && typeof value === 'object') {
           document.dispatchEvent(new CustomEvent(src.eventName, {
             detail: { payload: value, recordedAt: timeStr, itemId: itemId || undefined }

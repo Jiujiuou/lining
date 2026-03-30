@@ -43,40 +43,47 @@
       ? __SYCM_DEFAULTS__.LIVE_JSON_MAX_TABS
       : 6;
   var CATALOG_META_KEY = '__meta';
+  var common = typeof __SYCM_COMMON__ !== 'undefined' ? __SYCM_COMMON__ : null;
 
-  function isQuotaError(err) {
-    if (!err) return false;
-    var msg = String(err.message || err);
-    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
-  }
-
-  function safeSet(payload, onDone, onQuota) {
-    try {
-      chrome.storage.local.set(payload, function () {
-        if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
-          if (typeof onQuota === 'function') {
-            onQuota(function () {
-              chrome.storage.local.set(payload, function () {
-                if (typeof onDone === 'function') onDone();
-              });
-            });
-            return;
+  var safeSet =
+    common && typeof common.safeSet === 'function'
+      ? common.safeSet
+      : function (payload, onDone, onQuota) {
+          // 兜底：common.js 没加载时保持原行为
+          function isQuotaError(err) {
+            if (!err) return false;
+            var msg = String(err.message || err);
+            return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
           }
-        }
-        if (typeof onDone === 'function') onDone();
-      });
-    } catch (e) {
-      if (isQuotaError(e) && typeof onQuota === 'function') {
-        onQuota(function () {
-          chrome.storage.local.set(payload, function () {
+          try {
+            chrome.storage.local.set(payload, function () {
+              if (
+                chrome.runtime &&
+                chrome.runtime.lastError &&
+                isQuotaError(chrome.runtime.lastError) &&
+                typeof onQuota === 'function'
+              ) {
+                onQuota(function () {
+                  chrome.storage.local.set(payload, function () {
+                    if (typeof onDone === 'function') onDone();
+                  });
+                });
+                return;
+              }
+              if (typeof onDone === 'function') onDone();
+            });
+          } catch (e) {
+            if (isQuotaError(e) && typeof onQuota === 'function') {
+              onQuota(function () {
+                chrome.storage.local.set(payload, function () {
+                  if (typeof onDone === 'function') onDone();
+                });
+              });
+              return;
+            }
             if (typeof onDone === 'function') onDone();
-          });
-        });
-        return;
-      }
-      if (typeof onDone === 'function') onDone();
-    }
-  }
+          }
+        };
   var LIVE_JSON_EVENT = 'sycm-goods-live';
 
   /** 解析当前标签 id（content 无 tabs API，经 background 回复；结果缓存） */
@@ -256,29 +263,15 @@
           var obj = {};
           obj[STORAGE_KEYS.liveJsonCatalogByTab] = byTab;
           safeSet(obj, function () {}, function (retry) {
-            byTab = pruneByTabCatalog(byTab, Math.max(1, MAX_LIVE_JSON_TABS - 1));
+            byTab =
+              common && typeof common.pruneByTabWithMeta === 'function'
+                ? common.pruneByTabWithMeta(byTab, CATALOG_META_KEY, Math.max(1, MAX_LIVE_JSON_TABS - 1))
+                : byTab;
             safeSet(obj, retry);
           });
         });
       });
     } catch (e) { }
-  }
-
-  function pruneByTabCatalog(byTab, maxTabs) {
-    var meta = byTab[CATALOG_META_KEY] && typeof byTab[CATALOG_META_KEY] === 'object' ? byTab[CATALOG_META_KEY] : {};
-    var ids = Object.keys(byTab).filter(function (k) { return k !== CATALOG_META_KEY; });
-    ids.sort(function (a, b) {
-      var ta = meta[a] || '';
-      var tb = meta[b] || '';
-      return String(ta).localeCompare(String(tb));
-    });
-    while (ids.length > maxTabs) {
-      var oldest = ids.shift();
-      delete byTab[oldest];
-      delete meta[oldest];
-    }
-    byTab[CATALOG_META_KEY] = meta;
-    return byTab;
   }
 
   function handleEvent(sink, d, throttleMinutes) {
@@ -372,7 +365,31 @@
         } else {
           var lastSlotDetail = result[detailLastSlotKey];
           if (lastSlotDetail === slotKey) {
-            if (logger) logger.log(PREFIX + ' [详情] item ' + d.itemId + ' │ 本' + throttleMinutes + '分钟槽已上报过 → 跳过');
+            if (logger) {
+              var toPct2 = function (v) {
+                if (v == null) return '—';
+                var n = Number(v);
+                if (n !== n) return String(v);
+                return (Math.round(n * 10000) / 100).toFixed(2) + '%';
+              };
+              var p = d.payload || {};
+              logger.log(
+                PREFIX +
+                  ' [详情] item ' +
+                  d.itemId +
+                  ' │ 搜索UV=' +
+                  (p.search_uv != null ? p.search_uv : '—') +
+                  ' 搜索支付转化率=' +
+                  toPct2(p.search_pay_rate) +
+                  ' │ 购物车UV=' +
+                  (p.cart_uv != null ? p.cart_uv : '—') +
+                  ' 购物车支付转化率=' +
+                  toPct2(p.cart_pay_rate) +
+                  ' │ 本' +
+                  throttleMinutes +
+                  '分钟槽已上报过 → 跳过'
+              );
+            }
             return;
           }
           if (!d.itemId) {
@@ -392,7 +409,27 @@
           mergeGoodsDetailSlot(row, credentials, logOpts).then(function (res) {
             if (res && res.ok) {
               setLastSlot(sink.eventName + '_' + d.itemId, slotKey, function () { });
-              if (logger) logger.log(PREFIX + ' 已捕获 [详情]，已 merge item ' + d.itemId);
+              if (logger) {
+                var toPct = function (v) {
+                  if (v == null) return '—';
+                  var n = Number(v);
+                  if (n !== n) return String(v);
+                  return (Math.round(n * 10000) / 100).toFixed(2) + '%';
+                };
+                logger.log(
+                  PREFIX +
+                    ' 已捕获 [详情]，已 merge item ' +
+                    d.itemId +
+                    ' │ 搜索UV=' +
+                    (row.search_uv != null ? row.search_uv : '—') +
+                    ' 搜索支付转化率=' +
+                    toPct(row.search_pay_rate) +
+                    ' │ 购物车UV=' +
+                    (row.cart_uv != null ? row.cart_uv : '—') +
+                    ' 购物车支付转化率=' +
+                    toPct(row.cart_pay_rate)
+                );
+              }
             }
           });
         }
@@ -421,17 +458,26 @@
 
   function registerListeners() {
     var throttleMinutes = DEFAULTS.THROTTLE_MINUTES;
+    // 监听节流粒度变更，避免每次事件都读 storage
+    try {
+      chrome.storage.onChanged.addListener(function (changes, areaName) {
+        if (areaName !== 'local') return;
+        var ch = changes && changes[STORAGE_KEYS.throttleMinutes];
+        if (ch && typeof ch.newValue === 'number' && ch.newValue > 0) throttleMinutes = ch.newValue;
+      });
+    } catch (e) { }
+
+    // 先挂事件监听，读取到 storage 后再更新 throttleMinutes 变量
+    PIPELINES.forEach(function (sink) {
+      document.addEventListener(sink.eventName, function (e) {
+        var d = e.detail;
+        if (!d || !d.recordedAt) return;
+        handleEvent(sink, d, throttleMinutes);
+      });
+    });
+
     getThrottleMinutes(function (stored) {
       if (stored != null) throttleMinutes = stored;
-      PIPELINES.forEach(function (sink) {
-        document.addEventListener(sink.eventName, function (e) {
-          var d = e.detail;
-          if (!d || !d.recordedAt) return;
-          getThrottleMinutes(function (current) {
-            handleEvent(sink, d, (current != null && current > 0) ? current : throttleMinutes);
-          });
-        });
-      });
     });
   }
 
@@ -444,6 +490,43 @@
       if (d && d.level != null && d.msg != null) logger.appendLog(d.level, d.msg);
     });
   }
+
+  // ========== 捕获详情 flow-source 模板 URL（用于列表页批量重放） ==========
+  try {
+    document.addEventListener('sycm-flow-source-template', function (e) {
+      var d = e && e.detail ? e.detail : null;
+      var url = d && d.url ? String(d.url) : '';
+      if (!url || url.indexOf('/flow/v6/live/item/source/v4.json') === -1) return;
+      function normalizeTemplateUrl(raw) {
+        try {
+          var u = new URL(raw, document.location.origin);
+          // 轮询会不断变化的参数：_（时间戳）、itemId（具体商品）
+          u.searchParams.delete('_');
+          u.searchParams.set('itemId', '{itemId}');
+          return u.toString();
+        } catch (err) {
+          return raw;
+        }
+      }
+      var normalized = normalizeTemplateUrl(url);
+      resolveTabId(function (tabId) {
+        if (tabId == null) return;
+        chrome.storage.local.get([STORAGE_KEYS.flowSourceTemplateByTab], function (r) {
+          var byTab = (r && r[STORAGE_KEYS.flowSourceTemplateByTab]) ? r[STORAGE_KEYS.flowSourceTemplateByTab] : {};
+          var key = String(tabId);
+          var prev = byTab[key];
+          // 去重：模板没变就不刷屏（轮询会频繁命中同一接口）
+          if (prev && prev.url && String(prev.url) === normalized) return;
+          byTab[key] = { url: normalized, capturedAt: new Date().toISOString() };
+          var o = {};
+          o[STORAGE_KEYS.flowSourceTemplateByTab] = byTab;
+          safeSet(o, function () {
+            if (logger) logger.log(PREFIX + ' 已捕获 flow-source 模板（可用于列表页轮询）');
+          });
+        });
+      });
+    });
+  } catch (e) { }
 
   // ========== 仅通过 script 注入：先 config 再 inject ==========
   try {
@@ -459,10 +542,89 @@
       injectScript.onload = function () { this.remove(); };
       injectScript.onerror = function () { if (logger) logger.warn(PREFIX + ' inject.js 加载失败，请检查扩展资源'); };
       (document.head || document.documentElement).appendChild(injectScript);
+
+      // 轮询器：用于列表页批量拉取 flow-source（方案 A）
+      var poller = document.createElement('script');
+      poller.src = chrome.runtime.getURL('flow-source-poller.js');
+      poller.onload = function () { this.remove(); };
+      poller.onerror = function () { if (logger) logger.warn(PREFIX + ' flow-source-poller.js 加载失败'); };
+      (document.head || document.documentElement).appendChild(poller);
     };
     configScript.onerror = function () { if (logger) logger.warn(PREFIX + ' constants/config.js 加载失败'); };
     (document.head || document.documentElement).appendChild(configScript);
   } catch (e) {
     if (logger) logger.warn(PREFIX + ' 注入出错 ' + String(e));
   }
+
+  // ========== popup 控制：开始/停止 flow-source 轮询 ==========
+  try {
+    chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
+      if (!msg || !msg.type) return false;
+      if (msg.type === 'SYCM_FLOW_POLL_START') {
+        var intervalSec = typeof msg.intervalSec === 'number' ? msg.intervalSec : 30;
+        var concurrency = 1;
+        intervalSec = Math.max(5, Math.min(600, intervalSec));
+        concurrency = 1;
+        resolveTabId(function (tabId) {
+          chrome.storage.local.get(
+            [
+              STORAGE_KEYS.liveJsonFilter,
+              STORAGE_KEYS.liveJsonFilterByTab,
+              STORAGE_KEYS.flowSourceTemplateByTab
+            ],
+            function (r) {
+              var filt = pickFilterForTab(r, tabId);
+              var ids = filt && Array.isArray(filt.itemIds) ? filt.itemIds.map(function (x) { return String(x); }) : [];
+              if (ids.length === 0) {
+                if (logger) logger.warn(PREFIX + ' 未勾选任何商品，无法开始轮询');
+                sendResponse({ ok: false, error: 'no_items' });
+                return;
+              }
+              var byTab = r[STORAGE_KEYS.flowSourceTemplateByTab] || {};
+              var tpl = tabId != null ? byTab[String(tabId)] : null;
+              var tplUrl = tpl && tpl.url ? String(tpl.url) : '';
+              if (!tplUrl) {
+                // 回落：取最近一次捕获的模板（可能在别的 tab 打开的详情页）
+                var best = null;
+                Object.keys(byTab).forEach(function (k) {
+                  var v = byTab[k];
+                  if (!v || !v.url) return;
+                  if (!best) best = v;
+                  else {
+                    var ta = best.capturedAt || '';
+                    var tb = v.capturedAt || '';
+                    if (String(ta).localeCompare(String(tb)) < 0) best = v;
+                  }
+                });
+                if (best && best.url) tplUrl = String(best.url);
+              }
+              if (!tplUrl) {
+                if (logger) logger.warn(PREFIX + ' 未捕获详情接口模板：请先打开任意商品详情页触发一次接口');
+                sendResponse({ ok: false, error: 'no_template' });
+                return;
+              }
+              window.postMessage(
+                {
+                  type: 'SYCM_FLOW_POLL_START',
+                  itemIds: ids,
+                  templateUrl: tplUrl,
+                  intervalMs: intervalSec * 1000,
+                  maxConcurrency: concurrency
+                },
+                '*'
+              );
+              sendResponse({ ok: true, itemCount: ids.length });
+            }
+          );
+        });
+        return true;
+      }
+      if (msg.type === 'SYCM_FLOW_POLL_STOP') {
+        window.postMessage({ type: 'SYCM_FLOW_POLL_STOP' }, '*');
+        sendResponse({ ok: true });
+        return true;
+      }
+      return false;
+    });
+  } catch (e) { }
 })();

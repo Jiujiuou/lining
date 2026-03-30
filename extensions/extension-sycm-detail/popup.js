@@ -5,6 +5,7 @@
  */
 (function () {
   var logger = typeof __SYCM_LOGGER__ !== 'undefined' ? __SYCM_LOGGER__ : null;
+  var common = typeof __SYCM_COMMON__ !== 'undefined' ? __SYCM_COMMON__ : null;
   var KEYS =
     typeof __SYCM_DEFAULTS__ !== 'undefined' && __SYCM_DEFAULTS__.STORAGE_KEYS
       ? __SYCM_DEFAULTS__.STORAGE_KEYS
@@ -24,35 +25,28 @@
       ? __SYCM_DEFAULTS__.LIVE_JSON_MAX_ITEMS
       : 200;
   var FILTER_META_KEY = '__meta';
-
-  function isQuotaError(err) {
-    if (!err) return false;
-    var msg = String(err.message || err);
-    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(msg);
-  }
-
-  function safeSet(payload, onDone, onQuota) {
-    chrome.storage.local.set(payload, function () {
-      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError) && typeof onQuota === 'function') {
-        onQuota(function () {
-          chrome.storage.local.set(payload, function () {
-            if (typeof onDone === 'function') onDone();
-          });
+  var safeSet = common && typeof common.safeSet === 'function'
+    ? common.safeSet
+    : function (payload, onDone, onQuota) {
+        chrome.storage.local.set(payload, function () {
+          if (typeof onDone === 'function') onDone();
         });
-        return;
-      }
-      if (typeof onDone === 'function') onDone();
-    });
-  }
+      };
 
   var logsListEl = document.getElementById('logs-list');
   var logsClearBtn = document.getElementById('logs-clear');
+  var logsExportBtn = document.getElementById('logs-export');
   var goodsListEl = document.getElementById('goods-list');
   var goodsMetaEl = document.getElementById('goods-meta');
   var goodsRefreshBtn = document.getElementById('goods-refresh');
   var goodsSelectAllBtn = document.getElementById('goods-select-all');
   var goodsSelectNoneBtn = document.getElementById('goods-select-none');
   var goodsSaveBtn = document.getElementById('goods-save');
+  var pollIntervalValueEl = document.getElementById('poll-interval-value');
+  var pollIntervalUnitEl = document.getElementById('poll-interval-unit');
+  var pollStartBtn = document.getElementById('poll-start');
+  var pollStopBtn = document.getElementById('poll-stop');
+  var pollMetaEl = document.getElementById('poll-meta');
 
   var lastCatalogItems = [];
   /** null = 以 storage 为准；非 null = 本会话内用户已操作过，重绘时优先用此数组（同步） */
@@ -118,12 +112,69 @@
     });
   }
 
+  function copyTextToClipboard(text, onDone) {
+    if (!text) text = '';
+    if (navigator && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard
+        .writeText(text)
+        .then(function () {
+          if (typeof onDone === 'function') onDone(true);
+        })
+        .catch(function () {
+          fallbackCopy(text, onDone);
+        });
+      return;
+    }
+    fallbackCopy(text, onDone);
+  }
+
+  function fallbackCopy(text, onDone) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = false;
+      try {
+        ok = document.execCommand('copy');
+      } catch (e) {}
+      document.body.removeChild(ta);
+      if (typeof onDone === 'function') onDone(ok);
+    } catch (e2) {
+      if (typeof onDone === 'function') onDone(false);
+    }
+  }
+
+  function exportLogsToClipboard() {
+    if (!logger) return;
+    getActiveTabId(function (tabId) {
+      logger.getLogs(function (entries) {
+        var lines = [];
+        if (Array.isArray(entries)) {
+          for (var i = 0; i < entries.length; i++) {
+            var it = entries[i] || {};
+            var t = it.t ? String(it.t) : '';
+            var level = it.level ? String(it.level) : 'log';
+            var msg = it.msg != null ? String(it.msg) : '';
+            lines.push('[' + level + '] ' + t + ' ' + msg);
+          }
+        }
+        var text = lines.join('\n');
+        copyTextToClipboard(text, function (ok) {
+          if (ok) setPollMeta('日志已复制到剪贴板（共 ' + lines.length + ' 条）');
+          else setPollMeta('复制失败：请检查浏览器剪贴板权限');
+        });
+      }, tabId);
+    });
+  }
+
   function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+    if (common && typeof common.escapeHtml === 'function') return common.escapeHtml(s);
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function formatCatalogTime(isoStr) {
@@ -198,30 +249,16 @@
         var o = {};
         o[KEYS.liveJsonFilterByTab] = byTab;
         safeSet(o, function () {}, function (retry) {
-          byTab = pruneFilterByTab(byTab, Math.max(1, MAX_LIVE_JSON_TABS - 1));
+          byTab =
+            common && typeof common.pruneByTabWithMeta === 'function'
+              ? common.pruneByTabWithMeta(byTab, FILTER_META_KEY, Math.max(1, MAX_LIVE_JSON_TABS - 1))
+              : byTab;
           var o2 = {};
           o2[KEYS.liveJsonFilterByTab] = byTab;
           safeSet(o2, retry);
         });
       });
     });
-  }
-
-  function pruneFilterByTab(byTab, maxTabs) {
-    var meta = byTab[FILTER_META_KEY] && typeof byTab[FILTER_META_KEY] === 'object' ? byTab[FILTER_META_KEY] : {};
-    var ids = Object.keys(byTab).filter(function (k) { return k !== FILTER_META_KEY; });
-    ids.sort(function (a, b) {
-      var ta = meta[a] || '';
-      var tb = meta[b] || '';
-      return String(ta).localeCompare(String(tb));
-    });
-    while (ids.length > maxTabs) {
-      var oldest = ids.shift();
-      delete byTab[oldest];
-      delete meta[oldest];
-    }
-    byTab[FILTER_META_KEY] = meta;
-    return byTab;
   }
 
   /** 从当前 DOM 同步会话并写入 storage（勾选、全选、全不选） */
@@ -357,10 +394,80 @@
     }, 200);
   }
 
+  function getNumberInput(el, fallback, min, max) {
+    if (!el) return fallback;
+    var v = Number(el.value);
+    if (v !== v) return fallback;
+    if (typeof min === 'number') v = Math.max(min, v);
+    if (typeof max === 'number') v = Math.min(max, v);
+    return v;
+  }
+
+  function calcIntervalSec() {
+    var v = getNumberInput(pollIntervalValueEl, 5, 1, 999);
+    var unit = pollIntervalUnitEl ? String(pollIntervalUnitEl.value || 'min') : 'min';
+    if (unit === 'sec') return Math.max(5, Math.floor(v));
+    if (unit === 'hour') return Math.max(5, Math.floor(v * 3600));
+    // default min
+    return Math.max(5, Math.floor(v * 60));
+  }
+
+  function setPollMeta(msg) {
+    if (!pollMetaEl) return;
+    pollMetaEl.textContent = msg ? String(msg) : '';
+  }
+
+  function sendToActiveSycmTab(message, callback) {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      var tab = tabs && tabs[0] ? tabs[0] : null;
+      if (!tab || !tab.id) {
+        callback && callback({ ok: false, error: 'no_tab' });
+        return;
+      }
+      chrome.tabs.sendMessage(tab.id, message, function (res) {
+        if (chrome.runtime.lastError) {
+          callback && callback({ ok: false, error: 'no_content' });
+          return;
+        }
+        callback && callback(res || { ok: true });
+      });
+    });
+  }
+
+  function onPollStart() {
+    var intervalSec = calcIntervalSec();
+    var maxConcurrency = 1;
+    setPollMeta('正在启动…请保持该生意参谋页面打开');
+    sendToActiveSycmTab(
+      { type: 'SYCM_FLOW_POLL_START', intervalSec: intervalSec, maxConcurrency: maxConcurrency },
+      function (res) {
+        if (!res || !res.ok) {
+          if (res && res.error === 'no_items') {
+            setPollMeta('未勾选商品：请先在列表中勾选并保存设置');
+          } else if (res && res.error === 'no_template') {
+            setPollMeta('未捕获详情接口模板：请先打开任意商品详情页触发一次详情接口');
+          } else {
+            setPollMeta('无法启动：请在 sycm.taobao.com 页面打开扩展后重试');
+          }
+          return;
+        }
+        setPollMeta('已启动：当前勾选 ' + (res.itemCount || 0) + ' 个商品');
+      }
+    );
+  }
+
+  function onPollStop() {
+    setPollMeta('正在停止…');
+    sendToActiveSycmTab({ type: 'SYCM_FLOW_POLL_STOP' }, function () {
+      setPollMeta('已停止');
+    });
+  }
+
   loadLogs();
   loadGoodsUi();
 
   if (logsClearBtn) logsClearBtn.addEventListener('click', clearLogs);
+  if (logsExportBtn) logsExportBtn.addEventListener('click', exportLogsToClipboard);
   if (goodsRefreshBtn) {
     goodsRefreshBtn.addEventListener('click', function () {
       sessionSelection = null;
@@ -380,6 +487,8 @@
     });
   }
   if (goodsSaveBtn) goodsSaveBtn.addEventListener('click', saveFilterSettings);
+  if (pollStartBtn) pollStartBtn.addEventListener('click', onPollStart);
+  if (pollStopBtn) pollStopBtn.addEventListener('click', onPollStop);
 
   if (goodsListEl) {
     goodsListEl.addEventListener('change', function (e) {

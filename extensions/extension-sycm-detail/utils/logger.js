@@ -10,49 +10,27 @@
   var LOG_KEY = KEYS.logs || 'sycm_logs';
   var LOGS_BY_TAB_KEY = KEYS.logsByTab || 'sycm_logs_by_tab';
   var LOG_META_KEY = '__meta';
-  function isQuotaError(err) {
-    if (!err) return false;
-    return /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err));
-  }
-  function safeSet(payload, cb) {
+  var common = typeof __SYCM_COMMON__ !== 'undefined' ? __SYCM_COMMON__ : null;
+
+  function safeSet(payload, onDone, onQuota) {
+    if (common && typeof common.safeSet === 'function') return common.safeSet(payload, onDone, onQuota);
+    // 兜底：common.js 未加载时的极简 set
     chrome.storage.local.set(payload, function () {
-      if (chrome.runtime && chrome.runtime.lastError && isQuotaError(chrome.runtime.lastError)) {
-        return cb && cb(true);
-      }
-      if (cb) cb(false);
+      if (typeof onDone === 'function') onDone();
     });
   }
 
   function pruneByTab(byTab) {
-    if (!byTab || typeof byTab !== 'object') return {};
-    var meta = byTab[LOG_META_KEY] && typeof byTab[LOG_META_KEY] === 'object' ? byTab[LOG_META_KEY] : {};
-    var ids = Object.keys(byTab).filter(function (k) { return k !== LOG_META_KEY; });
-    if (ids.length <= MAX_TABS) {
-      byTab[LOG_META_KEY] = meta;
-      return byTab;
-    }
-    ids.sort(function (a, b) {
-      var ta = meta[a] || '';
-      var tb = meta[b] || '';
-      return String(ta).localeCompare(String(tb));
-    });
-    while (ids.length > MAX_TABS) {
-      var oldest = ids.shift();
-      delete byTab[oldest];
-      delete meta[oldest];
-    }
-    byTab[LOG_META_KEY] = meta;
-    return byTab;
+    if (common && typeof common.pruneByTabWithMeta === 'function') return common.pruneByTabWithMeta(byTab, LOG_META_KEY, MAX_TABS);
+    return byTab || {};
   }
 
   function resolveTabId(callback) {
+    if (common && typeof common.resolveTabIdByMessage === 'function') return common.resolveTabIdByMessage(callback);
     try {
       chrome.runtime.sendMessage({ type: 'SYCM_GET_TAB_ID' }, function (res) {
-        if (chrome.runtime.lastError || !res || res.tabId == null) {
-          callback(null);
-        } else {
-          callback(res.tabId);
-        }
+        if (chrome.runtime.lastError || !res || res.tabId == null) callback(null);
+        else callback(res.tabId);
       });
     } catch (e) {
       callback(null);
@@ -89,10 +67,12 @@
         byTab = pruneByTab(byTab);
         var o = {};
         o[LOGS_BY_TAB_KEY] = byTab;
-        safeSet(o, function (quotaErr) {
-          if (!quotaErr) return;
+        safeSet(o, function () {}, function (retry) {
+          // storage quota 时裁剪后重试
           byTab = pruneByTab(byTab);
-          safeSet(o, function () {});
+          safeSet(o, function () {}, function () {
+            // 第二次仍 quota：忽略
+          });
         });
       });
     });
