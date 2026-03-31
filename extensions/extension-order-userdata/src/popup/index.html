@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>订单用户数据导出</title>
-    <link rel="stylesheet" href="popup.css" />
+    <link rel="stylesheet" href="./popup.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -14,16 +14,26 @@
   </head>
   <body>
     <div class="ou-popup">
-      <section class="ou-section ou-section--left" aria-label="获取用户数据">
-        <h2 class="ou-title">获取用户数据</h2>
+      <section class="ou-section ou-section--left" aria-label="获取订单用户数据">
+        <h2 class="ou-title">获取订单用户数据</h2>
         <div class="ou-filters">
           <label class="ou-label">
             <span class="ou-label-text">联盟/店铺 ID</span>
-            <input type="text" id="userdata-union-search" class="ou-input" placeholder="可选，如 1017849608938" />
+            <input
+              type="text"
+              id="userdata-union-search"
+              class="ou-input"
+              placeholder="可选，例如 1017849608938"
+            />
           </label>
           <label class="ou-label">
             <span class="ou-label-text">搜索词</span>
-            <input type="text" id="userdata-buyer-nick" class="ou-input" placeholder="可选，买家昵称/宝贝关键词" />
+            <input
+              type="text"
+              id="userdata-buyer-nick"
+              class="ou-input"
+              placeholder="可选，买家昵称或商品关键词"
+            />
           </label>
           <label class="ou-label">
             <span class="ou-label-text">订单状态</span>
@@ -37,9 +47,7 @@
             </select>
           </label>
         </div>
-        <button type="button" id="btn-get-userdata" class="ou-btn">
-          获取用户数据
-        </button>
+        <button type="button" id="btn-get-userdata" class="ou-btn">获取用户数据</button>
         <div id="ou-progress-wrap" class="ou-progress-wrap ou-progress-wrap--hidden" aria-hidden="true">
           <div class="ou-progress-meta">
             <span id="ou-progress-label" class="ou-progress-label">准备中…</span>
@@ -65,8 +73,6 @@
         <div id="logs-list" class="ou-logs-list" role="log" aria-live="polite"></div>
       </section>
     </div>
-    <script src="constants/defaults.js"></script>
-    <script src="utils/logger.js"></script>
-    <script src="popup.js"></script>
+    <script type="module" src="./popup.js"></script>
   </body>
 </html>

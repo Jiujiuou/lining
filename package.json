@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:ext:order-userdata": "node scripts/build-extension-order-userdata.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "icons:extensions": "node scripts/render-extension-icons.mjs"
