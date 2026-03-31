@@ -30,7 +30,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["constants/config.js", "inject.js", "flow-source-poller.js"],
+      "resources": ["constants/config.js", "constants/time.js", "inject.js", "flow-source-poller.js"],
       "matches": ["https://sycm.taobao.com/*"]
     }
   ],

@@ -86,78 +86,28 @@
         };
   var LIVE_JSON_EVENT = 'sycm-goods-live';
 
-  /** 解析当前标签 id（content 无 tabs API，经 background 回复；结果缓存） */
-  var tabIdCache = '__pending__';
-  var tabIdWaiters = [];
+  /** 使用统一的 resolveTabId（来自 __SYCM_COMMON__） */
   function resolveTabId(callback) {
-    if (typeof tabIdCache === 'number') {
-      callback(tabIdCache);
+    if (common && typeof common.resolveTabIdByMessage === 'function') {
+      try { common.resolveTabIdByMessage(callback); } catch (e) { callback(null); }
       return;
     }
-    if (tabIdCache === false) {
-      callback(null);
-      return;
-    }
-    tabIdWaiters.push(callback);
-    if (tabIdWaiters.length > 1) return;
+    // 兜底：直接询问 background
     try {
       chrome.runtime.sendMessage({ type: 'SYCM_GET_TAB_ID' }, function (res) {
-        if (chrome.runtime.lastError || !res || res.tabId == null) {
-          tabIdCache = false;
-        } else {
-          tabIdCache = res.tabId;
-        }
-        var tid = typeof tabIdCache === 'number' ? tabIdCache : null;
-        var w = tabIdWaiters.slice();
-        tabIdWaiters = [];
-        for (var wi = 0; wi < w.length; wi++) w[wi](tid);
+        if (chrome.runtime.lastError || !res || res.tabId == null) callback(null);
+        else callback(res.tabId);
       });
-    } catch (e) {
-      tabIdCache = false;
-      var w2 = tabIdWaiters.slice();
-      tabIdWaiters = [];
-      for (var wj = 0; wj < w2.length; wj++) w2[wj](null);
-    }
+    } catch (e) { callback(null); }
   }
-
-  function pickFilterForTab(result, tabId) {
-    var byTab = result[STORAGE_KEYS.liveJsonFilterByTab] || {};
-    if (tabId != null && Object.prototype.hasOwnProperty.call(byTab, String(tabId))) {
-      return byTab[String(tabId)];
-    }
-    return result[STORAGE_KEYS.liveJsonFilter];
-  }
-
-  function pickCatalogForTab(result, tabId) {
-    var byTab = result[STORAGE_KEYS.liveJsonCatalogByTab] || {};
-    if (tabId != null && Object.prototype.hasOwnProperty.call(byTab, String(tabId))) {
-      return byTab[String(tabId)];
-    }
-    return result[STORAGE_KEYS.liveJsonCatalog];
-  }
-
-  /**
-   * 上报用商品名：trim 后非空用名称，否则用 item_id，与 RPC 回落一致，满足 item_name NOT NULL
-   */
-  function ensureItemName(itemId, rawName) {
-    var id = itemId != null ? String(itemId).trim() : '';
-    if (!id) return '';
-    var n = rawName != null ? String(rawName).trim() : '';
-    return n || id;
-  }
-
-  /** 从 popup 同步的 live 列表缓存中解析标题（详情页 merge 用） */
-  function itemNameFromCatalog(catalog, itemId) {
-    var items = catalog && catalog.items;
-    if (!Array.isArray(items) || itemId == null) return null;
-    var id = String(itemId);
-    for (var i = 0; i < items.length; i++) {
-      var it = items[i];
-      if (!it || String(it.item_id) !== id) continue;
-      var n = it.item_name;
-      if (n != null && String(n).trim() !== '') return String(n).trim();
-    }
-    return null;
+  var safeSet = (common && typeof common.safeSet === 'function')
+    ? common.safeSet
+    : function (payload, onDone, onQuota) {
+        // minimal fallback
+        try {
+          chrome.storage.local.set(payload, function () { if (typeof onDone === 'function') onDone(); });
+        } catch (e) { if (typeof onDone === 'function') onDone(); }
+      };
   }
 
   /** 日志只展示 item_id，避免标题过长撑爆弹窗 */
