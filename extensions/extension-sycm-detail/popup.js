@@ -3,7 +3,7 @@
  *
  * 勾选状态：按当前标签页写入分桶 storage（多开互不覆盖）；sessionSelection 在 catalog 频繁刷新时避免重绘冲掉勾选。
  */
-(function () {
+// Module version: removed IIFE wrapper for bundling/migration
   var logger = typeof __SYCM_LOGGER__ !== "undefined" ? __SYCM_LOGGER__ : null;
   var common = typeof __SYCM_COMMON__ !== "undefined" ? __SYCM_COMMON__ : null;
   var KEYS =
@@ -623,4 +623,4 @@
       return false;
     });
   } catch (e) {}
-})();
+// End module
