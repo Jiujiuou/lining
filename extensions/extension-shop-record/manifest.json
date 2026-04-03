@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "theme_color": "#0d9488",
-  "name": "店铺记录数据",
+  "name": "Shop Record",
   "version": "0.4.2",
-  "description": "店铺侧数据记录（日志 + 各页采集合并写入本地）",
+  "description": "Shop-side data recorder (logs + multi-page collectors + local writes).",
   "permissions": ["storage", "tabs"],
   "background": {
     "service_worker": "background.js"
@@ -26,7 +26,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "店铺记录数据",
+    "default_title": "Shop Record",
     "default_icon": {
       "16": "assets/icon-16.png",
       "32": "assets/icon-32.png",
@@ -37,12 +37,12 @@
   "content_scripts": [
     {
       "matches": ["https://qn.taobao.com/*", "https://trade.taobao.com/*"],
-      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content.js"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://rate.taobao.com/*"],
-      "js": ["constants/defaults.js", "content-rate-refund-bridge.js"],
+      "js": ["content-rate-refund-bridge.js"],
       "run_at": "document_start"
     },
     {
@@ -53,17 +53,17 @@
     },
     {
       "matches": ["https://rate.taobao.com/*"],
-      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content.js"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://ad.alimama.com/*"],
-      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content-alimama.js"],
+      "js": ["content-shop-metrics.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://one.alimama.com/*"],
-      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content-onebp-bridge.js"],
+      "js": ["content-onebp-bridge.js"],
       "run_at": "document_start"
     },
     {
@@ -74,22 +74,18 @@
     },
     {
       "matches": ["https://sycm.taobao.com/*"],
-      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content-sycm.js"],
+      "js": ["content-shop-metrics.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://oa1.ilanhe.com/*"],
-      "js": [
-        "constants/defaults.js",
-        "utils/report-page-fill.js",
-        "content-report-submit-main.js"
-      ],
+      "js": ["content-report-submit-main.js"],
       "run_at": "document_idle",
       "world": "MAIN"
     },
     {
       "matches": ["https://oa1.ilanhe.com/*"],
-      "js": ["constants/defaults.js", "content-report-submit.js"],
+      "js": ["content-report-submit.js"],
       "run_at": "document_idle"
     }
   ]

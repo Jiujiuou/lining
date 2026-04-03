@@ -1,10 +1,10 @@
 import path from 'node:path';
 import { buildExtension as buildChromeExtension } from './build-extension-lib.mjs';
 
-async function buildOrderUserdataExtension() {
+async function buildCampaignRegisterExtension() {
   const workspaceRoot = process.cwd();
-  const extensionRoot = path.resolve(workspaceRoot, 'extensions', 'extension-order-userdata');
-  const distDir = path.resolve(workspaceRoot, 'extensions', 'dists', 'dist-order-userdata');
+  const extensionRoot = path.resolve(workspaceRoot, 'extensions', 'extension-campaign-register');
+  const distDir = path.resolve(workspaceRoot, 'extensions', 'dists', 'dist-campaign-register');
 
   await buildChromeExtension({
     extensionRoot,
@@ -14,7 +14,7 @@ async function buildOrderUserdataExtension() {
       { from: 'assets', to: 'assets', directory: true },
       { from: 'popup/popup.css', to: 'popup.css' },
     ],
-    popupHtml: { title: 'Order Userdata' },
+    popupHtml: { title: 'Campaign Register' },
     entries: [
       { entry: 'background/index.js', fileName: 'background.js', format: 'es' },
       { entry: 'popup/index.jsx', fileName: 'popup.js', format: 'es' },
@@ -25,7 +25,7 @@ async function buildOrderUserdataExtension() {
       },
       {
         entry: 'main/index.js',
-        fileName: 'order-userdata-main.js',
+        fileName: 'main.js',
         format: 'es',
       },
     ],
@@ -40,22 +40,28 @@ async function buildOrderUserdataExtension() {
         default_popup: 'popup.html',
       };
 
-      manifest.content_scripts = (manifest.content_scripts || []).map((contentScript) => ({
-        ...contentScript,
-        js: ['content.js'],
-      }));
-
-      manifest.web_accessible_resources = (manifest.web_accessible_resources || []).map((resource) => ({
-        ...resource,
-        resources: ['order-userdata-main.js'],
-      }));
+      manifest.content_scripts = [
+        {
+          matches: ['https://one.alimama.com/*'],
+          js: ['content.js'],
+          run_at: 'document_start',
+          all_frames: true,
+        },
+        {
+          matches: ['https://one.alimama.com/*'],
+          js: ['main.js'],
+          run_at: 'document_start',
+          all_frames: true,
+          world: 'MAIN',
+        },
+      ];
 
       return manifest;
     },
   });
 }
 
-buildOrderUserdataExtension().catch((error) => {
+buildCampaignRegisterExtension().catch((error) => {
   process.stderr.write(`${String(error)}\n`);
   process.exitCode = 1;
 });

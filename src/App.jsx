@@ -81,16 +81,6 @@ async function fetchDistinctGoodsFromSlotLog(supabaseClient, dayEndIso) {
   const out = [];
   for (const [item_id, cands] of byId) {
     const picked = resolveBestItemNameFromCandidates(cands, item_id);
-    if (import.meta.env.DEV && cands.length > 1) {
-      const first = cands[0];
-      if (picked !== first) {
-        console.log(
-          "[goodsList] 商品展示名优选（非仅取最新 slot）",
-          String(item_id),
-          { picked, firstOfDesc: first, candidates: cands.length },
-        );
-      }
-    }
     out.push({ item_id, item_name: picked });
   }
   return out.sort((a, b) => a.item_name.localeCompare(b.item_name, "zh-CN"));
@@ -202,11 +192,6 @@ function App() {
   const [showCampaignSummary, setShowCampaignSummary] = useState(false);
   /** 当前商品在「选中日期所在自然月」内有 slot 的日期（补全月历圆点，不依赖 load 窗口上界） */
   const [itemMonthSlotDates, setItemMonthSlotDates] = useState([]);
-
-  useEffect(() => {
-    const today = getTodayEast8();
-    console.log("今天日期（东八区）:", today);
-  }, []);
 
   /** 仅在数据区 /data 记住下拉选项（首页推广数据不写入，避免覆盖） */
   useEffect(() => {
@@ -993,16 +978,11 @@ function App() {
           setError("该日期范围内无商品数据，无法导出");
           return;
         }
-        console.log(
-          "[导出表格] Supabase 原始行样例（前 5 条，用于核对 item_id/item_name）：",
-          JSON.stringify(rows.slice(0, 5), null, 2),
-        );
         const tableRows = goodsDetailRowsToTableRows(rows);
         const name = `小贝壳作战-表格-${safeExportFileSuffix(plan.fileSuffix)}.xlsx`;
         downloadTableXlsx(tableRows, name);
         setExportModalOpen(false);
       } catch (err) {
-        console.error("导出表格失败", err);
         setError("导出表格失败：" + (err.message || String(err)));
       } finally {
         setExporting(false);

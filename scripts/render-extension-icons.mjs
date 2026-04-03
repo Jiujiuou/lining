@@ -54,4 +54,4 @@ for (const { dir, lines } of exts) {
     await fs.writeFile(path.join(base, `icon-${size}.png`), png);
   }
 }
-console.log("ok");
+process.stdout.write("ok\n");

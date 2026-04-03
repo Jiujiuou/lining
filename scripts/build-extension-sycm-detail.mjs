@@ -1,10 +1,10 @@
 import path from 'node:path';
 import { buildExtension as buildChromeExtension } from './build-extension-lib.mjs';
 
-async function buildOrderUserdataExtension() {
+async function buildSycmDetailExtension() {
   const workspaceRoot = process.cwd();
-  const extensionRoot = path.resolve(workspaceRoot, 'extensions', 'extension-order-userdata');
-  const distDir = path.resolve(workspaceRoot, 'extensions', 'dists', 'dist-order-userdata');
+  const extensionRoot = path.resolve(workspaceRoot, 'extensions', 'extension-sycm-detail');
+  const distDir = path.resolve(workspaceRoot, 'extensions', 'dists', 'dist-sycm-detail');
 
   await buildChromeExtension({
     extensionRoot,
@@ -14,7 +14,7 @@ async function buildOrderUserdataExtension() {
       { from: 'assets', to: 'assets', directory: true },
       { from: 'popup/popup.css', to: 'popup.css' },
     ],
-    popupHtml: { title: 'Order Userdata' },
+    popupHtml: { title: 'Sycm Detail' },
     entries: [
       { entry: 'background/index.js', fileName: 'background.js', format: 'es' },
       { entry: 'popup/index.jsx', fileName: 'popup.js', format: 'es' },
@@ -24,8 +24,13 @@ async function buildOrderUserdataExtension() {
         format: 'es',
       },
       {
-        entry: 'main/index.js',
-        fileName: 'order-userdata-main.js',
+        entry: 'main/inject.js',
+        fileName: 'inject.js',
+        format: 'es',
+      },
+      {
+        entry: 'main/flow-source-poller.js',
+        fileName: 'flow-source-poller.js',
         format: 'es',
       },
     ],
@@ -40,22 +45,28 @@ async function buildOrderUserdataExtension() {
         default_popup: 'popup.html',
       };
 
-      manifest.content_scripts = (manifest.content_scripts || []).map((contentScript) => ({
-        ...contentScript,
-        js: ['content.js'],
-      }));
+      manifest.content_scripts = [
+        {
+          matches: ['https://sycm.taobao.com/*'],
+          js: ['content.js'],
+          run_at: 'document_start',
+          all_frames: true,
+        },
+      ];
 
-      manifest.web_accessible_resources = (manifest.web_accessible_resources || []).map((resource) => ({
-        ...resource,
-        resources: ['order-userdata-main.js'],
-      }));
+      manifest.web_accessible_resources = [
+        {
+          resources: ['inject.js', 'flow-source-poller.js'],
+          matches: ['https://sycm.taobao.com/*'],
+        },
+      ];
 
       return manifest;
     },
   });
 }
 
-buildOrderUserdataExtension().catch((error) => {
+buildSycmDetailExtension().catch((error) => {
   process.stderr.write(`${String(error)}\n`);
   process.exitCode = 1;
 });

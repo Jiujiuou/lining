@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "theme_color": "#0d9488",
-  "name": "万相台推广登记",
+  "name": "Campaign Register",
   "version": "1.1.15",
-  "description": "万相台推广列表捕获与本地登记快照（可与「生意参谋详情数据」扩展并行安装）",
+  "description": "Capture campaign lists from one.alimama.com and maintain local register snapshots.",
   "permissions": ["storage", "tabs"],
   "background": {
     "service_worker": "background.js"
@@ -17,7 +17,7 @@
   "host_permissions": ["https://one.alimama.com/*"],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "万相台推广登记",
+    "default_title": "Campaign Register",
     "default_icon": {
       "16": "assets/icon-16.png",
       "32": "assets/icon-32.png",
@@ -28,13 +28,13 @@
   "content_scripts": [
     {
       "matches": ["https://one.alimama.com/*"],
-      "js": ["capture-findpage-cs.js"],
+      "js": ["content.js"],
       "run_at": "document_start",
       "all_frames": true
     },
     {
       "matches": ["https://one.alimama.com/*"],
-      "js": ["capture-findpage-main.js"],
+      "js": ["main.js"],
       "run_at": "document_start",
       "all_frames": true,
       "world": "MAIN"

@@ -115,15 +115,7 @@ export default function MarketRankChart({ data, shopNames, compact = false }) {
                 stroke={SERIES_COLORS[i % SERIES_COLORS.length]}
                 strokeWidth={compact ? 1.5 : 2}
                 dot={{ r: compact ? 2 : 4 }}
-                activeDot={{
-                  r: compact ? 3 : 6,
-                  onClick: (data, index) =>
-                    console.log("MarketRankChart 高亮点点击", {
-                      data,
-                      index,
-                      shop: name,
-                    }),
-                }}
+                activeDot={{ r: compact ? 3 : 6 }}
                 connectNulls
                 isAnimationActive={!compact}
               />

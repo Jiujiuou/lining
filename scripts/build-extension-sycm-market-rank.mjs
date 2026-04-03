@@ -1,10 +1,10 @@
 import path from 'node:path';
 import { buildExtension as buildChromeExtension } from './build-extension-lib.mjs';
 
-async function buildOrderUserdataExtension() {
+async function buildSycmMarketRankExtension() {
   const workspaceRoot = process.cwd();
-  const extensionRoot = path.resolve(workspaceRoot, 'extensions', 'extension-order-userdata');
-  const distDir = path.resolve(workspaceRoot, 'extensions', 'dists', 'dist-order-userdata');
+  const extensionRoot = path.resolve(workspaceRoot, 'extensions', 'extension-sycm-market-rank');
+  const distDir = path.resolve(workspaceRoot, 'extensions', 'dists', 'dist-sycm-market-rank');
 
   await buildChromeExtension({
     extensionRoot,
@@ -14,7 +14,7 @@ async function buildOrderUserdataExtension() {
       { from: 'assets', to: 'assets', directory: true },
       { from: 'popup/popup.css', to: 'popup.css' },
     ],
-    popupHtml: { title: 'Order Userdata' },
+    popupHtml: { title: 'Sycm Market Rank' },
     entries: [
       { entry: 'background/index.js', fileName: 'background.js', format: 'es' },
       { entry: 'popup/index.jsx', fileName: 'popup.js', format: 'es' },
@@ -24,8 +24,8 @@ async function buildOrderUserdataExtension() {
         format: 'es',
       },
       {
-        entry: 'main/index.js',
-        fileName: 'order-userdata-main.js',
+        entry: 'main/inject.js',
+        fileName: 'inject.js',
         format: 'es',
       },
     ],
@@ -47,7 +47,7 @@ async function buildOrderUserdataExtension() {
 
       manifest.web_accessible_resources = (manifest.web_accessible_resources || []).map((resource) => ({
         ...resource,
-        resources: ['order-userdata-main.js'],
+        resources: ['inject.js'],
       }));
 
       return manifest;
@@ -55,7 +55,7 @@ async function buildOrderUserdataExtension() {
   });
 }
 
-buildOrderUserdataExtension().catch((error) => {
+buildSycmMarketRankExtension().catch((error) => {
   process.stderr.write(`${String(error)}\n`);
   process.exitCode = 1;
 });

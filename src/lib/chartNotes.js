@@ -34,8 +34,7 @@ export async function fetchGoodsItemPointNotes(client, itemId, pointDates) {
         .order('point_slot')
         .range(from, to),
     );
-  } catch (error) {
-    console.error('fetchGoodsItemPointNotes', error);
+  } catch (_error) {
     return {};
   }
   const map = {};
@@ -95,8 +94,7 @@ export async function fetchChartNotes(client, chartKeys, pointDates) {
         .order('point_slot')
         .range(from, to),
     );
-  } catch (error) {
-    console.error('fetchChartNotes', error);
+  } catch (_error) {
     return {};
   }
 
