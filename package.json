@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "icons:extensions": "node scripts/render-extension-icons.mjs"
+    "icons:extensions": "node ReactExtensions/scripts/build/render-extension-icons.mjs",
+    "build:all": "node ReactExtensions/scripts/build/build-all.mjs && npm run icons:extensions && node ReactExtensions/scripts/build/verify-dist.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",

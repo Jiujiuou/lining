@@ -1,0 +1,96 @@
+{
+  "manifest_version": 3,
+  "theme_color": "#0d9488",
+  "name": "店铺记录数据",
+  "version": "0.4.2",
+  "description": "店铺侧数据记录（日志 + 各页采集合并写入本地）",
+  "permissions": ["storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "host_permissions": [
+    "https://*.supabase.co/*",
+    "https://qn.taobao.com/*",
+    "https://trade.taobao.com/*",
+    "https://rate.taobao.com/*",
+    "https://ad.alimama.com/*",
+    "https://one.alimama.com/*",
+    "https://sycm.taobao.com/*",
+    "https://oa1.ilanhe.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "店铺记录数据",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://qn.taobao.com/*", "https://trade.taobao.com/*"],
+      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://rate.taobao.com/*"],
+      "js": ["constants/defaults.js", "content-rate-refund-bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://rate.taobao.com/*"],
+      "js": ["content-rate-refund-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://rate.taobao.com/*"],
+      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://ad.alimama.com/*"],
+      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content-alimama.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://one.alimama.com/*"],
+      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content-onebp-bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://one.alimama.com/*"],
+      "js": ["content-onebp-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://sycm.taobao.com/*"],
+      "js": ["constants/defaults.js", "utils/local-daily-store.js", "content-sycm.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://oa1.ilanhe.com/*"],
+      "js": [
+        "constants/defaults.js",
+        "utils/report-page-fill.js",
+        "content-report-submit-main.js"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://oa1.ilanhe.com/*"],
+      "js": ["constants/defaults.js", "content-report-submit.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

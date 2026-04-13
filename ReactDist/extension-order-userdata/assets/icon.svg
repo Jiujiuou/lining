@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" fill="#0d9488"/>
+  <text x="34" y="34" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-family="PingFang SC, Hiragino Sans GB, STHeiti, Microsoft YaHei, sans-serif" font-size="60" font-weight="700">订</text>
+  <text x="94" y="34" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-family="PingFang SC, Hiragino Sans GB, STHeiti, Microsoft YaHei, sans-serif" font-size="60" font-weight="700">单</text>
+  <text x="34" y="94" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-family="PingFang SC, Hiragino Sans GB, STHeiti, Microsoft YaHei, sans-serif" font-size="60" font-weight="700">导</text>
+  <text x="94" y="94" text-anchor="middle" dominant-baseline="central" fill="#ffffff" font-family="PingFang SC, Hiragino Sans GB, STHeiti, Microsoft YaHei, sans-serif" font-size="60" font-weight="700">出</text>
+</svg>

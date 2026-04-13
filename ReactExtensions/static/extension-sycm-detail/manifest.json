@@ -1,0 +1,55 @@
+{
+  "manifest_version": 3,
+  "theme_color": "#0d9488",
+  "name": "生意参谋详情数据",
+  "version": "1.2.1",
+  "description": "在生意参谋商品详情页采集加购/搜索等指标并同步至 Supabase",
+  "permissions": ["storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://sycm.taobao.com/*",
+    "https://*.supabase.co/*"
+  ],
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "生意参谋详情数据",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["constants/config.js", "constants/time.js", "inject.js", "flow-source-poller.js"],
+      "matches": ["https://sycm.taobao.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://sycm.taobao.com/*"],
+      "js": [
+        "constants/defaults.js",
+        "utils/common.js",
+        "constants/config.js",
+        "constants/supabase.js",
+        "utils/time.js",
+        "utils/supabase.js",
+        "utils/storage.js",
+        "utils/logger.js",
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}

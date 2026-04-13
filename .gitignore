@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+ReactExtensions/static/*/assets/icon.svg
+ReactExtensions/static/*/assets/icon-*.png
