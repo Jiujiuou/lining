@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "theme_color": "#0d9488",
+  "name": "抖音关注管理",
+  "version": "0.1.0",
+  "description": "采集抖音网页版关注列表，在 popup 里批量打开主页并标记查看状态",
+  "permissions": ["storage", "tabs"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": ["https://www.douyin.com/*", "https://www-hj.douyin.com/*"],
+  "icons": {
+    "16": "assets/icon-16.png",
+    "32": "assets/icon-32.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "抖音关注管理",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "32": "assets/icon-32.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["https://www.douyin.com/*", "https://www-hj.douyin.com/*"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.douyin.com/*", "https://www-hj.douyin.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

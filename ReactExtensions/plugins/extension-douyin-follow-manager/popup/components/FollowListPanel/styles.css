@@ -1,0 +1,96 @@
+.dy-list-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--dy-border);
+  border-radius: 8px;
+  background: var(--dy-bg);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dy-list-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--dy-border);
+  background: #fff;
+  border-radius: 8px;
+  height: 64px;
+  padding: 8px 10px;
+}
+
+.dy-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--dy-border);
+  background: #f3f4f6;
+}
+
+.dy-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.dy-name {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dy-text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dy-status {
+  font-size: 11px;
+  color: var(--dy-text-muted);
+  border: 1px solid var(--dy-border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.dy-status--已查看 {
+  color: #0d9488;
+  border-color: #99f6e4;
+  background: #f0fdfa;
+}
+
+.dy-status--候选取关 {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.dy-signature {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dy-text-muted);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dy-list-empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dy-text-muted);
+  border: 1px solid var(--dy-border);
+  border-radius: 8px;
+  background: var(--dy-bg);
+}

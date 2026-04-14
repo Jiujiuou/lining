@@ -19,6 +19,7 @@ const PLUGIN_ICON_LABELS = {
   'extension-campaign-register': ['推广', '登记'],
   'extension-sycm-detail': ['实时', '详情'],
   'extension-shop-record': ['店铺', '记录'],
+  'extension-douyin-follow-manager': ['抖音', '关注'],
 };
 
 const FALLBACK_POPUP_TEMPLATE = `<!doctype html>

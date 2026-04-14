@@ -1,0 +1,70 @@
+.dy-log-panel {
+  width: 280px;
+  min-width: 280px;
+  min-height: 0;
+  border-left: 1px solid var(--dy-border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dy-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dy-log-title {
+  margin: 0;
+  font-size: 14px;
+}
+
+.dy-log-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--dy-border);
+  border-radius: 8px;
+  background: var(--dy-bg);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dy-log-item {
+  border: 1px solid var(--dy-border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 10px;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.dy-log-time {
+  margin-right: 8px;
+  color: #0d9488;
+  font-weight: 600;
+}
+
+.dy-log-text {
+  color: var(--dy-text);
+}
+
+.dy-log-item--warn .dy-log-text {
+  color: #b45309;
+}
+
+.dy-log-item--error .dy-log-text {
+  color: #b91c1c;
+}
+
+.dy-log-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dy-text-muted);
+}
+

@@ -1,0 +1,13 @@
+.dy-batch-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.dy-batch-count {
+  font-size: 12px;
+  color: var(--dy-text-muted);
+  margin-right: auto;
+}
+

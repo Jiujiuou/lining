@@ -1,0 +1,38 @@
+.dy-toolbar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dy-toolbar-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.dy-toolbar-row--actions .dy-btn {
+  flex: 0 0 auto;
+}
+
+.dy-toolbar-row--filters .dy-input {
+  flex: 1 1 auto;
+}
+
+.dy-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid var(--dy-border);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.dy-select {
+  width: 120px;
+  height: 34px;
+  border: 1px solid var(--dy-border);
+  border-radius: 8px;
+  font-size: 12px;
+}

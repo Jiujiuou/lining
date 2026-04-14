@@ -76,5 +76,15 @@
     staticDir: 'ReactExtensions/static/extension-sycm-market-rank',
     outDir: 'ReactDist/extension-sycm-market-rank',
   },
+  'extension-douyin-follow-manager': {
+    popupEntry: '.rext-popup.html',
+    scriptEntries: {
+      background: 'entries/background.js',
+      content: 'entries/content.js',
+      inject: 'entries/inject.js',
+    },
+    staticDir: 'ReactExtensions/static/extension-douyin-follow-manager',
+    outDir: 'ReactDist/extension-douyin-follow-manager',
+  },
 };
 
