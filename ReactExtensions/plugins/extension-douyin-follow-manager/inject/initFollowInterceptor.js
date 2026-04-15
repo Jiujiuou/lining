@@ -4,6 +4,10 @@ function followingListHit(url) {
   return typeof url === 'string' && url.includes('/aweme/v1/web/user/following/list/');
 }
 
+function postListHit(url) {
+  return typeof url === 'string' && url.includes('/aweme/v1/web/aweme/post/');
+}
+
 function resolveUrl(url) {
   if (!url || typeof url !== 'string') {
     return '';
@@ -59,7 +63,7 @@ export function initFollowInterceptor() {
         const url = getUrl(arguments[0]);
         return rawFetch.apply(this, arguments).then((response) => {
           try {
-            if (!followingListHit(url)) {
+            if (!followingListHit(url) && !postListHit(url)) {
               return response;
             }
             const clone1 = response.clone();
@@ -100,7 +104,7 @@ export function initFollowInterceptor() {
     };
     XMLHttpRequest.prototype.send = function sendWithCapture() {
       const requestUrl = this._dyFollowUrl || '';
-      if (followingListHit(requestUrl)) {
+      if (followingListHit(requestUrl) || postListHit(requestUrl)) {
         this.addEventListener('load', () => {
           try {
             const data = this.responseText ? JSON.parse(this.responseText) : null;
@@ -119,4 +123,3 @@ export function initFollowInterceptor() {
     // 忽略注入失败
   }
 }
-

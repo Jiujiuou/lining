@@ -13,15 +13,35 @@ export function PopupPage() {
           keyword={controller.keyword}
           statusFilter={controller.statusFilter}
           statusOptions={controller.statusOptions}
+          sortField={controller.sortField}
+          sortDirection={controller.sortDirection}
+          openByAwemeLimit={controller.openByAwemeLimit}
           onKeywordChange={controller.setKeyword}
           onStatusFilterChange={controller.setStatusFilter}
+          onSortFieldChange={controller.setSortField}
+          onSortDirectionChange={controller.setSortDirection}
+          onOpenByAwemeLimitChange={controller.setOpenByAwemeLimit}
           onStartCrawl={controller.onStartCrawl}
+          onStartPostCrawl={controller.onStartPostCrawl}
           onStopCrawl={controller.onStopCrawl}
+          onFilterPostAll={controller.onFilterPostAll}
+          onFilterPostVideo={controller.onFilterPostVideo}
+          onFilterPostImage={controller.onFilterPostImage}
           onRefresh={controller.onRefresh}
           onClearList={controller.onClearList}
           onOpenRandomTen={controller.onOpenRandomTen}
+          onOpenRandomTwenty={controller.onOpenRandomTwenty}
+          onOpenByAwemeLimit={controller.onOpenByAwemeLimit}
+          onExportPostImageUrls={controller.onExportPostImageUrls}
+          viewedCount={controller.viewedCount}
+          totalCount={controller.totalCount}
         />
-        <FollowListPanel rows={controller.rows} />
+        <FollowListPanel
+          rows={controller.rows}
+          onOpenUserHome={controller.onOpenUserHome}
+          initialScrollTop={controller.listScrollTop}
+          onScrollTopChange={controller.onListScrollTopChange}
+        />
       </section>
       <LogPanel logs={controller.logs} onClearLogs={controller.onClearLogs} />
     </div>

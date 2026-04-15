@@ -7,17 +7,20 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background: #fcfdfd;
 }
 
 .dy-log-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-height: 34px;
 }
 
 .dy-log-title {
   margin: 0;
   font-size: 14px;
+  line-height: 1;
 }
 
 .dy-log-list {
@@ -39,7 +42,8 @@
   background: #fff;
   padding: 8px 10px;
   font-size: 12px;
-  word-break: break-all;
+  word-break: break-word;
+  line-height: 1.5;
 }
 
 .dy-log-time {
@@ -67,4 +71,3 @@
   justify-content: center;
   color: var(--dy-text-muted);
 }
-

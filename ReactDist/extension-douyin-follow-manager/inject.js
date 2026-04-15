@@ -3,13 +3,22 @@
   const DY_FOLLOW_RUNTIME = {
     GET_TAB_ID_MESSAGE: "DY_FOLLOW_GET_TAB_ID",
     FOLLOW_CAPTURE: "DY_FOLLOW_CAPTURE",
+    POST_CAPTURE: "DY_FOLLOW_POST_CAPTURE",
     START_CRAWL: "DY_FOLLOW_START_CRAWL",
     STOP_CRAWL: "DY_FOLLOW_STOP_CRAWL",
+    START_POST_CRAWL: "DY_FOLLOW_START_POST_CRAWL",
+    STOP_POST_CRAWL: "DY_FOLLOW_STOP_POST_CRAWL",
+    SET_POST_FILTER: "DY_FOLLOW_SET_POST_FILTER",
+    EXPORT_POST_IMAGE_URLS: "DY_FOLLOW_EXPORT_POST_IMAGE_URLS",
     SCROLL_TICK: "DY_FOLLOW_SCROLL_TICK",
+    POST_SCROLL_TICK: "DY_FOLLOW_POST_SCROLL_TICK",
     POST_MESSAGE_SOURCE: "dy-follow-extension"
   };
   function followingListHit(url) {
     return typeof url === "string" && url.includes("/aweme/v1/web/user/following/list/");
+  }
+  function postListHit(url) {
+    return typeof url === "string" && url.includes("/aweme/v1/web/aweme/post/");
   }
   function resolveUrl(url) {
     if (!url || typeof url !== "string") {
@@ -61,7 +70,7 @@
           const url = getUrl(arguments[0]);
           return rawFetch.apply(this, arguments).then((response) => {
             try {
-              if (!followingListHit(url)) {
+              if (!followingListHit(url) && !postListHit(url)) {
                 return response;
               }
               const clone1 = response.clone();
@@ -95,7 +104,7 @@
       };
       XMLHttpRequest.prototype.send = function sendWithCapture() {
         const requestUrl = this._dyFollowUrl || "";
-        if (followingListHit(requestUrl)) {
+        if (followingListHit(requestUrl) || postListHit(requestUrl)) {
           this.addEventListener("load", () => {
             try {
               const data = this.responseText ? JSON.parse(this.responseText) : null;

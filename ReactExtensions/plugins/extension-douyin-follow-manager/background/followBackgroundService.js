@@ -7,6 +7,7 @@ import {
 
 const META_KEY = '__meta';
 const requestStatsByTab = new Map();
+const postRequestStatsByTab = new Map();
 
 function userKey(user, index) {
   if (user && user.uid) {
@@ -14,6 +15,13 @@ function userKey(user, index) {
   }
   if (user && user.secUid) {
     return `sec:${user.secUid}`;
+  }
+  return `idx:${index}`;
+}
+
+function postKey(post, index) {
+  if (post && post.awemeId) {
+    return `aweme:${post.awemeId}`;
   }
   return `idx:${index}`;
 }
@@ -39,6 +47,22 @@ function buildSummaryLine(payload, mergedCount) {
   const totalText = payload.total != null ? String(payload.total) : '?';
   const offsetText = payload.requestOffset != null ? String(payload.requestOffset) : '?';
   return `关注列表分页：offset=${offsetText}，本页=${payload.users.length}，合并后=${mergedCount}/${totalText}`;
+}
+
+function buildPostSummaryLine(payload, mergedCount) {
+  const totalText = payload.total != null ? String(payload.total) : '?';
+  const cursorText = payload.requestCursor != null ? String(payload.requestCursor) : '?';
+  let imageCount = 0;
+  let videoCount = 0;
+  for (let i = 0; i < payload.posts.length; i += 1) {
+    const type = payload.posts[i] && payload.posts[i].postType ? String(payload.posts[i].postType) : '';
+    if (type === 'image') {
+      imageCount += 1;
+    } else if (type === 'video') {
+      videoCount += 1;
+    }
+  }
+  return `作品列表分页：cursor=${cursorText}，本页=${payload.posts.length}（图文=${imageCount}，视频=${videoCount}），合并后=${mergedCount}/${totalText}`;
 }
 
 function upsertCrawlState(tabId, patch) {
@@ -67,15 +91,15 @@ function upsertCrawlState(tabId, patch) {
   });
 }
 
-function getNextRequestStats(tabId, success) {
+function getNextStats(map, tabId, success) {
   const key = tabId == null ? 'global' : String(tabId);
-  const prev = requestStatsByTab.get(key) || { attempt: 0, success: 0, fail: 0 };
+  const prev = map.get(key) || { attempt: 0, success: 0, fail: 0 };
   const next = {
     attempt: prev.attempt + 1,
     success: prev.success + (success ? 1 : 0),
     fail: prev.fail + (success ? 0 : 1),
   };
-  requestStatsByTab.set(key, next);
+  map.set(key, next);
   return next;
 }
 
@@ -144,6 +168,28 @@ function mergeUsers(oldUsers, nextUsers) {
   return Array.from(map.values()).slice(0, DY_FOLLOW_LIMITS.USER_MAX_ITEMS);
 }
 
+function mergePosts(oldPosts, nextPosts) {
+  const source = Array.isArray(oldPosts) ? oldPosts : [];
+  const incoming = Array.isArray(nextPosts) ? nextPosts : [];
+  const map = new Map();
+  for (let i = 0; i < source.length; i += 1) {
+    const row = source[i];
+    map.set(postKey(row, i), row);
+  }
+  for (let i = 0; i < incoming.length; i += 1) {
+    const row = incoming[i];
+    const key = postKey(row, i);
+    const prev = map.get(key) || {};
+    map.set(key, {
+      ...prev,
+      ...row,
+      firstCapturedAt: prev.firstCapturedAt || new Date().toISOString(),
+      lastCapturedAt: new Date().toISOString(),
+    });
+  }
+  return Array.from(map.values()).slice(0, DY_FOLLOW_LIMITS.POST_MAX_ITEMS);
+}
+
 async function saveSnapshot(tabId, payload) {
   const result = await getLocalAsync([
     DY_FOLLOW_STORAGE_KEYS.snapshotByTab,
@@ -181,87 +227,244 @@ async function saveSnapshot(tabId, payload) {
   return nextSnapshot;
 }
 
+async function savePostSnapshot(payload) {
+  const secUid = payload.secUid ? String(payload.secUid) : '';
+  if (!secUid) {
+    return { posts: [] };
+  }
+
+  const result = await getLocalAsync([DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]);
+  const bySecUid =
+    result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] &&
+    typeof result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] === 'object'
+      ? { ...result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] }
+      : {};
+
+  const current = bySecUid[secUid] && typeof bySecUid[secUid] === 'object' ? bySecUid[secUid] : {};
+  const mergedPosts = mergePosts(current.posts, payload.posts);
+
+  let imageCount = 0;
+  let videoCount = 0;
+  for (let i = 0; i < mergedPosts.length; i += 1) {
+    if (mergedPosts[i].postType === 'image') {
+      imageCount += 1;
+    } else if (mergedPosts[i].postType === 'video') {
+      videoCount += 1;
+    }
+  }
+
+  bySecUid[secUid] = {
+    secUid,
+    posts: mergedPosts,
+    total: payload.total != null ? payload.total : current.total || null,
+    hasMore: Boolean(payload.hasMore),
+    nextCursor: payload.maxCursor != null ? payload.maxCursor : null,
+    requestCursor: payload.requestCursor != null ? payload.requestCursor : null,
+    requestUrl: payload.requestUrl ? String(payload.requestUrl) : '',
+    imageCount,
+    videoCount,
+    lastCapturedAt: payload.capturedAt || new Date().toISOString(),
+  };
+
+  const keys = Object.keys(bySecUid);
+  if (keys.length > DY_FOLLOW_LIMITS.POST_MAX_SEC_UID) {
+    keys.sort((a, b) => {
+      const ta = bySecUid[a] && bySecUid[a].lastCapturedAt ? String(bySecUid[a].lastCapturedAt) : '';
+      const tb = bySecUid[b] && bySecUid[b].lastCapturedAt ? String(bySecUid[b].lastCapturedAt) : '';
+      return ta.localeCompare(tb);
+    });
+    while (keys.length > DY_FOLLOW_LIMITS.POST_MAX_SEC_UID) {
+      const oldest = keys.shift();
+      delete bySecUid[oldest];
+    }
+  }
+
+  safeSet({ [DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]: bySecUid });
+  return bySecUid[secUid];
+}
+
+function handleOpenUrlsBatch(message, sender, sendResponse) {
+  const urls = Array.isArray(message.urls)
+    ? message.urls.filter((item) => typeof item === 'string' && item)
+    : [];
+  const tabId =
+    message.tabId != null
+      ? Number(message.tabId)
+      : sender.tab && sender.tab.id != null
+        ? sender.tab.id
+        : null;
+  if (urls.length === 0) {
+    sendResponse({ ok: false, opened: 0 });
+    return true;
+  }
+  appendLogByTab(tabId, 'log', `开始批量打开：共 ${urls.length} 个主页`);
+  let finished = 0;
+  let failed = 0;
+  for (let i = 0; i < urls.length; i += 1) {
+    chrome.tabs.create({ url: urls[i], active: false }, () => {
+      const err = chrome.runtime && chrome.runtime.lastError ? chrome.runtime.lastError : null;
+      if (err) {
+        failed += 1;
+      }
+      finished += 1;
+      if (finished >= urls.length) {
+        const okCount = urls.length - failed;
+        if (failed > 0) {
+          appendLogByTab(tabId, 'warn', `批量打开完成：成功 ${okCount}，失败 ${failed}`);
+        } else {
+          appendLogByTab(tabId, 'log', `批量打开完成：成功 ${okCount}`);
+        }
+      }
+    });
+  }
+  sendResponse({ ok: true, opened: urls.length });
+  return true;
+}
+
+function stopPostCrawlInTab(tabId) {
+  if (tabId == null) {
+    return;
+  }
+  chrome.tabs.sendMessage(tabId, { type: DY_FOLLOW_RUNTIME.STOP_POST_CRAWL }, () => {});
+}
+
 export function initFollowBackgroundService() {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message) {
       return false;
     }
+
     if (message.type === DY_FOLLOW_RUNTIME.GET_TAB_ID_MESSAGE) {
-      if (sender.tab && sender.tab.id != null) {
-        sendResponse({ tabId: sender.tab.id });
-      } else {
-        sendResponse({ tabId: null });
-      }
+      sendResponse({ tabId: sender.tab && sender.tab.id != null ? sender.tab.id : null });
       return true;
     }
-    if (message.type !== DY_FOLLOW_RUNTIME.FOLLOW_CAPTURE) {
-      if (message.type === DY_FOLLOW_RUNTIME.SCROLL_TICK) {
-        const tabId = sender.tab && sender.tab.id != null ? sender.tab.id : null;
-        const payload = message.payload || {};
+
+    if (message.type === DY_FOLLOW_RUNTIME.OPEN_URLS_BATCH) {
+      return handleOpenUrlsBatch(message, sender, sendResponse);
+    }
+
+    if (message.type === DY_FOLLOW_RUNTIME.SCROLL_TICK || message.type === DY_FOLLOW_RUNTIME.POST_SCROLL_TICK) {
+      const tabId = sender.tab && sender.tab.id != null ? sender.tab.id : null;
+      const payload = message.payload || {};
+      const isPostTick = message.type === DY_FOLLOW_RUNTIME.POST_SCROLL_TICK;
+      upsertCrawlState(tabId, {
+        running: !Boolean(payload.stopped),
+        ticks: payload.ticks != null ? Number(payload.ticks) : 0,
+        href: payload.href ? String(payload.href) : '',
+        lastTickAt: payload.sentAt || new Date().toISOString(),
+        mode: isPostTick ? 'post' : 'follow',
+      });
+      sendResponse({ ok: true });
+      return true;
+    }
+
+    if (message.type === DY_FOLLOW_RUNTIME.FOLLOW_CAPTURE) {
+      const tabId = sender.tab && sender.tab.id != null ? sender.tab.id : null;
+      if (!message.payload || !Array.isArray(message.payload.users)) {
+        const reason = message.meta && message.meta.parseError ? String(message.meta.parseError) : '无有效 payload';
+        const stats = getNextStats(requestStatsByTab, tabId, false);
         upsertCrawlState(tabId, {
-          running: !Boolean(payload.stopped),
-          ticks: payload.ticks != null ? Number(payload.ticks) : 0,
-          href: payload.href ? String(payload.href) : '',
-          lastTickAt: payload.sentAt || new Date().toISOString(),
+          running: true,
+          requestAttempt: stats.attempt,
+          requestSuccess: stats.success,
+          requestFail: stats.fail,
+          lastRequestAt: new Date().toISOString(),
+          mode: 'follow',
         });
-        sendResponse({ ok: true });
+        appendLogByTab(tabId, 'warn', `第 ${stats.attempt} 次关注请求失败：${reason}`);
+        sendResponse({ ok: false });
         return true;
       }
-      return false;
-    }
 
-    const tabId = sender.tab && sender.tab.id != null ? sender.tab.id : null;
-    if (!message.payload || !Array.isArray(message.payload.users)) {
-      const reason = message.meta && message.meta.parseError ? String(message.meta.parseError) : '无有效 payload';
-      const stats = getNextRequestStats(tabId, false);
-      upsertCrawlState(tabId, {
-        running: true,
-        requestAttempt: stats.attempt,
-        requestSuccess: stats.success,
-        requestFail: stats.fail,
-        lastRequestAt: new Date().toISOString(),
-      });
-      appendLogByTab(tabId, 'warn', `第 ${stats.attempt} 次请求：失败（${reason}）`);
-      appendLogByTab(tabId, 'warn', `关注列表采集失败：${reason}`);
-      sendResponse({ ok: false });
+      const stats = getNextStats(requestStatsByTab, tabId, true);
+      saveSnapshot(tabId, message.payload)
+        .then((snapshot) => {
+          upsertCrawlState(tabId, {
+            running: snapshot.hasMore,
+            capturedCount: Array.isArray(snapshot.users) ? snapshot.users.length : 0,
+            total: snapshot.total != null ? snapshot.total : null,
+            hasMore: Boolean(snapshot.hasMore),
+            nextOffset: snapshot.nextOffset != null ? snapshot.nextOffset : null,
+            requestAttempt: stats.attempt,
+            requestSuccess: stats.success,
+            requestFail: stats.fail,
+            lastRequestAt: new Date().toISOString(),
+            lastCaptureAt: new Date().toISOString(),
+            mode: 'follow',
+          });
+          appendLogByTab(tabId, 'log', buildSummaryLine(message.payload, snapshot.users.length));
+          sendResponse({ ok: true, count: snapshot.users.length });
+        })
+        .catch((error) => {
+          upsertCrawlState(tabId, {
+            requestAttempt: stats.attempt,
+            requestSuccess: stats.success,
+            requestFail: stats.fail,
+            lastRequestAt: new Date().toISOString(),
+            mode: 'follow',
+          });
+          appendLogByTab(tabId, 'error', `保存关注列表失败：${String(error)}`);
+          sendResponse({ ok: false });
+        });
       return true;
     }
 
-    const stats = getNextRequestStats(tabId, true);
-    saveSnapshot(tabId, message.payload)
-      .then((snapshot) => {
+    if (message.type === DY_FOLLOW_RUNTIME.POST_CAPTURE) {
+      const tabId = sender.tab && sender.tab.id != null ? sender.tab.id : null;
+      if (!message.payload || !Array.isArray(message.payload.posts)) {
+        const reason = message.meta && message.meta.parseError ? String(message.meta.parseError) : '无有效 payload';
+        const stats = getNextStats(postRequestStatsByTab, tabId, false);
         upsertCrawlState(tabId, {
-          running: snapshot.hasMore,
-          capturedCount: Array.isArray(snapshot.users) ? snapshot.users.length : 0,
-          total: snapshot.total != null ? snapshot.total : null,
-          hasMore: Boolean(snapshot.hasMore),
-          nextOffset: snapshot.nextOffset != null ? snapshot.nextOffset : null,
-          requestAttempt: stats.attempt,
-          requestSuccess: stats.success,
-          requestFail: stats.fail,
-          lastRequestAt: new Date().toISOString(),
-          lastCaptureAt: new Date().toISOString(),
+          postRequestAttempt: stats.attempt,
+          postRequestSuccess: stats.success,
+          postRequestFail: stats.fail,
+          postLastRequestAt: new Date().toISOString(),
+          mode: 'post',
         });
-        appendLogByTab(
-          tabId,
-          'log',
-          `第 ${stats.attempt} 次请求：成功（offset=${message.payload.requestOffset != null ? message.payload.requestOffset : '?'}，返回 ${message.payload.users.length} 条）`,
-        );
-        appendLogByTab(tabId, 'log', buildSummaryLine(message.payload, snapshot.users.length));
-        sendResponse({ ok: true, count: snapshot.users.length });
-      })
-      .catch((error) => {
-        upsertCrawlState(tabId, {
-          requestAttempt: stats.attempt,
-          requestSuccess: stats.success,
-          requestFail: stats.fail,
-          lastRequestAt: new Date().toISOString(),
-        });
-        appendLogByTab(tabId, 'error', `第 ${stats.attempt} 次请求：失败（保存异常）`);
-        appendLogByTab(tabId, 'error', `保存关注列表失败：${String(error)}`);
+        appendLogByTab(tabId, 'warn', `第 ${stats.attempt} 次作品请求失败：${reason}`);
         sendResponse({ ok: false });
-      });
-    return true;
+        return true;
+      }
+
+      const stats = getNextStats(postRequestStatsByTab, tabId, true);
+      savePostSnapshot(message.payload)
+        .then((snapshot) => {
+          upsertCrawlState(tabId, {
+            mode: 'post',
+            postCapturedCount: Array.isArray(snapshot.posts) ? snapshot.posts.length : 0,
+            postTotal: snapshot.total != null ? snapshot.total : null,
+            postHasMore: Boolean(snapshot.hasMore),
+            postNextCursor: snapshot.nextCursor != null ? snapshot.nextCursor : null,
+            postImageCount: snapshot.imageCount != null ? snapshot.imageCount : 0,
+            postVideoCount: snapshot.videoCount != null ? snapshot.videoCount : 0,
+            postRequestAttempt: stats.attempt,
+            postRequestSuccess: stats.success,
+            postRequestFail: stats.fail,
+            postLastRequestAt: new Date().toISOString(),
+            postLastCaptureAt: new Date().toISOString(),
+          });
+          appendLogByTab(tabId, 'log', buildPostSummaryLine(message.payload, snapshot.posts.length));
+          if (!snapshot.hasMore) {
+            stopPostCrawlInTab(tabId);
+            appendLogByTab(tabId, 'log', '作品分页已到末页，已自动停止滚动');
+          }
+          sendResponse({ ok: true, count: snapshot.posts.length });
+        })
+        .catch((error) => {
+          upsertCrawlState(tabId, {
+            mode: 'post',
+            postRequestAttempt: stats.attempt,
+            postRequestSuccess: stats.success,
+            postRequestFail: stats.fail,
+            postLastRequestAt: new Date().toISOString(),
+          });
+          appendLogByTab(tabId, 'error', `保存作品列表失败：${String(error)}`);
+          sendResponse({ ok: false });
+        });
+      return true;
+    }
+
+    return false;
   });
 
   chrome.tabs.onRemoved.addListener(async (tabId) => {

@@ -12486,60 +12486,171 @@ function ToolbarPanel({
   keyword,
   statusFilter,
   statusOptions,
+  sortField,
+  sortDirection,
+  openByAwemeLimit,
   onKeywordChange,
   onStatusFilterChange,
+  onSortFieldChange,
+  onSortDirectionChange,
+  onOpenByAwemeLimitChange,
   onStartCrawl,
+  onStartPostCrawl,
   onStopCrawl,
+  onFilterPostAll,
+  onFilterPostVideo,
+  onFilterPostImage,
   onRefresh,
   onClearList,
-  onOpenRandomTen
+  onOpenRandomTen,
+  onOpenRandomTwenty,
+  onOpenByAwemeLimit,
+  onExportPostImageUrls,
+  viewedCount,
+  totalCount
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("section", { className: "dy-toolbar-panel", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-toolbar-row dy-toolbar-row--actions", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-primary", onClick: onStartCrawl, children: "开始采集" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onStopCrawl, children: "停止采集" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onRefresh, children: "刷新" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onClearList, children: "清空列表" })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-action-groups", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-action-group", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-primary", onClick: onStartCrawl, children: "开始采集" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onStartPostCrawl, children: "滚动作品" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onStopCrawl, children: "停止" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-action-group", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onFilterPostAll, children: "全部" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onFilterPostVideo, children: "视频" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onFilterPostImage, children: "图文" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onRefresh, children: "刷新" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onClearList, children: "清空" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onExportPostImageUrls, children: "导出URL" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dy-toolbar-counter", title: "已查看 / 总关注数", children: `${viewedCount}/${totalCount}` })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-toolbar-row dy-toolbar-row--filters", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
-        {
-          type: "text",
-          className: "dy-input",
-          value: keyword,
-          placeholder: "搜索昵称 / 简介 / uid",
-          onChange: (event) => onKeywordChange(event.target.value)
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "select",
-        {
-          className: "dy-select",
-          value: statusFilter,
-          onChange: (event) => onStatusFilterChange(event.target.value),
-          children: statusOptions.map((status) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: status, children: status }, status))
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenRandomTen, children: "随机打开 10 个" })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-filter-main", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "input",
+          {
+            type: "text",
+            className: "dy-input",
+            value: keyword,
+            placeholder: "搜索昵称 / 简介 / uid",
+            onChange: (event) => onKeywordChange(event.target.value)
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "select",
+          {
+            className: "dy-select dy-select--status",
+            value: statusFilter,
+            onChange: (event) => onStatusFilterChange(event.target.value),
+            children: statusOptions.map((status) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: status, children: status }, status))
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "dy-select dy-select--sort", value: sortField, onChange: (event) => onSortFieldChange(event.target.value), children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "default", children: "默认顺序" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "followerCount", children: "粉丝数" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "followingCount", children: "关注数" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "awemeCount", children: "作品数" })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "select",
+          {
+            className: "dy-select dy-select--short",
+            value: sortDirection,
+            onChange: (event) => onSortDirectionChange(event.target.value),
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "desc", children: "降序" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "asc", children: "升序" })
+            ]
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-batch-main", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenRandomTen, children: "随机10" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenRandomTwenty, children: "随机20" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "dy-inline-limit", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "作品≤" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              type: "number",
+              min: "0",
+              step: "1",
+              className: "dy-limit-input",
+              value: openByAwemeLimit,
+              onChange: (event) => onOpenByAwemeLimitChange(event.target.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenByAwemeLimit, children: "一键打开" })
+      ] })
     ] })
   ] });
 }
-function FollowRow({ row }) {
+function formatCount(value) {
+  if (value == null || !Number.isFinite(Number(value))) {
+    return "-";
+  }
+  const n = Number(value);
+  if (n >= 1e8) {
+    return `${(n / 1e8).toFixed(1)}亿`;
+  }
+  if (n >= 1e4) {
+    return `${(n / 1e4).toFixed(1)}万`;
+  }
+  return String(n);
+}
+function FollowRow({ row, onOpenUserHome }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-list-row", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("img", { className: "dy-avatar", src: row.avatar || "", alt: "", loading: "lazy" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-avatar-btn", onClick: () => onOpenUserHome(row), title: "打开主页", children: /* @__PURE__ */ jsxRuntimeExports.jsx("img", { className: "dy-avatar", src: row.avatar || "", alt: "", loading: "lazy" }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-main", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "dy-name", children: row.nickname }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "dy-signature", children: row.signature || "（无简介）" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "dy-signature", children: row.signature || "（无简介）" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "dy-metrics", children: [
+        "粉丝 ",
+        formatCount(row.followerCount),
+        " · 作品 ",
+        formatCount(row.awemeCount)
+      ] })
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `dy-status dy-status--${row.viewStatus}`, children: row.viewStatus })
   ] });
 }
-function FollowListPanel({ rows }) {
+function FollowListPanel({ rows, onOpenUserHome, initialScrollTop = 0, onScrollTopChange }) {
+  const listRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    const node = listRef.current;
+    if (!node) {
+      return;
+    }
+    const nextTop = Number(initialScrollTop);
+    if (!Number.isFinite(nextTop) || nextTop < 0) {
+      return;
+    }
+    if (Math.abs(node.scrollTop - nextTop) > 2) {
+      node.scrollTop = nextTop;
+    }
+  }, [initialScrollTop, rows.length]);
   if (!rows || rows.length === 0) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dy-list-empty", children: "暂无可展示的关注用户" });
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("section", { className: "dy-list-panel", children: rows.map((row) => /* @__PURE__ */ jsxRuntimeExports.jsx(FollowRow, { row }, row.id)) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "section",
+    {
+      ref: listRef,
+      className: "dy-list-panel",
+      onScroll: (event) => {
+        if (typeof onScrollTopChange !== "function") {
+          return;
+        }
+        onScrollTopChange(event.currentTarget.scrollTop);
+      },
+      children: rows.map((row) => /* @__PURE__ */ jsxRuntimeExports.jsx(FollowRow, { row, onOpenUserHome }, row.id))
+    }
+  );
 }
 function pad2(num) {
   return (num < 10 ? "0" : "") + num;
@@ -12843,11 +12954,16 @@ const DY_FOLLOW_STORAGE_KEYS = {
   selectionByTab: "dy_follow_selection_by_tab",
   selectionGlobal: "dy_follow_selection_global",
   viewState: "dy_follow_view_state",
-  crawlStateByTab: "dy_follow_crawl_state_by_tab"
+  crawlStateByTab: "dy_follow_crawl_state_by_tab",
+  popupViewStateByTab: "dy_follow_popup_view_state_by_tab",
+  postSnapshotBySecUid: "dy_follow_post_snapshot_by_sec_uid"
 };
 const DY_FOLLOW_RUNTIME = {
   START_CRAWL: "DY_FOLLOW_START_CRAWL",
-  STOP_CRAWL: "DY_FOLLOW_STOP_CRAWL"
+  STOP_CRAWL: "DY_FOLLOW_STOP_CRAWL",
+  START_POST_CRAWL: "DY_FOLLOW_START_POST_CRAWL",
+  STOP_POST_CRAWL: "DY_FOLLOW_STOP_POST_CRAWL",
+  SET_POST_FILTER: "DY_FOLLOW_SET_POST_FILTER"
 };
 function useFollowSnapshotLoader({ tabId, setSnapshot, setSelection, setViewState, setCrawlState }) {
   return reactExports.useCallback(async () => {
@@ -12857,7 +12973,8 @@ function useFollowSnapshotLoader({ tabId, setSnapshot, setSelection, setViewStat
       DY_FOLLOW_STORAGE_KEYS.selectionByTab,
       DY_FOLLOW_STORAGE_KEYS.selectionGlobal,
       DY_FOLLOW_STORAGE_KEYS.viewState,
-      DY_FOLLOW_STORAGE_KEYS.crawlStateByTab
+      DY_FOLLOW_STORAGE_KEYS.crawlStateByTab,
+      DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid
     ]);
     const byTab = result[DY_FOLLOW_STORAGE_KEYS.snapshotByTab] || {};
     const selectedByTab = result[DY_FOLLOW_STORAGE_KEYS.selectionByTab] || {};
@@ -12867,7 +12984,27 @@ function useFollowSnapshotLoader({ tabId, setSnapshot, setSelection, setViewStat
     const viewState = result[DY_FOLLOW_STORAGE_KEYS.viewState] || {};
     const crawlByTab = result[DY_FOLLOW_STORAGE_KEYS.crawlStateByTab] || {};
     const crawlState = tabKey && crawlByTab[tabKey] || {};
-    setSnapshot(snapshot);
+    const postBySecUid = result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] && typeof result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] === "object" ? result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] : {};
+    const users = Array.isArray(snapshot && snapshot.users) ? snapshot.users : [];
+    const mergedUsers = users.map((user) => {
+      const secUid = user && user.secUid ? String(user.secUid) : "";
+      if (!secUid) {
+        return user;
+      }
+      const postSnapshot = postBySecUid[secUid] && typeof postBySecUid[secUid] === "object" ? postBySecUid[secUid] : null;
+      const postTotal = postSnapshot && postSnapshot.total != null ? Number(postSnapshot.total) : null;
+      if (!Number.isFinite(postTotal) || postTotal < 0) {
+        return user;
+      }
+      return {
+        ...user,
+        awemeCount: postTotal
+      };
+    });
+    setSnapshot({
+      ...snapshot && typeof snapshot === "object" ? snapshot : { users: [] },
+      users: mergedUsers
+    });
     setViewState(viewState && typeof viewState === "object" ? viewState : {});
     setCrawlState(crawlState && typeof crawlState === "object" ? crawlState : {});
   }, [setCrawlState, setSelection, setSnapshot, setViewState, tabId]);
@@ -12935,19 +13072,27 @@ function appendUiLog(tabId, level, message) {
     safeSet({ [key]: byTab });
   });
 }
-async function sendMessageToActiveTab(tabId, type) {
+async function sendMessageToActiveTab(tabId, type, payload) {
   function sendToTab(targetTabId) {
     return new Promise((resolve) => {
-      chrome.tabs.sendMessage(targetTabId, { type }, () => {
+      chrome.tabs.sendMessage(targetTabId, { type, payload }, (response) => {
         const error = chrome.runtime && chrome.runtime.lastError ? chrome.runtime.lastError : null;
-        resolve(!error);
+        if (error) {
+          resolve({ ok: false, reason: String(error.message || error) });
+          return;
+        }
+        if (response && typeof response === "object") {
+          resolve(response);
+          return;
+        }
+        resolve({ ok: true });
       });
     });
   }
   if (tabId != null) {
-    const ok = await sendToTab(tabId);
-    if (ok) {
-      return true;
+    const first = await sendToTab(tabId);
+    if (first && first.ok) {
+      return first;
     }
   }
   const tabs = await new Promise((resolve) => {
@@ -12965,22 +13110,12 @@ async function sendMessageToActiveTab(tabId, type) {
     if (!item || item.id == null) {
       continue;
     }
-    const ok = await sendToTab(item.id);
-    if (ok) {
-      return true;
+    const ret = await sendToTab(item.id);
+    if (ret && ret.ok) {
+      return ret;
     }
   }
-  return false;
-}
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-function createTabInactive(url) {
-  return new Promise((resolve) => {
-    chrome.tabs.create({ url, active: false }, () => {
-      resolve();
-    });
-  });
+  return { ok: false, reason: "no_tab" };
 }
 function pickRandomRows(rows, size) {
   const list = Array.isArray(rows) ? [...rows] : [];
@@ -12992,21 +13127,124 @@ function pickRandomRows(rows, size) {
   }
   return list.slice(0, size);
 }
-function useFollowPopupActions({ tabId, rows, loadAll, markByKeys }) {
+function chooseBestImageUrl(image) {
+  const row = image || {};
+  const downloadList = Array.isArray(row.downloadUrlList) ? row.downloadUrlList : [];
+  const normalList = Array.isArray(row.urlList) ? row.urlList : [];
+  const cleanNormalList = normalList.filter((item) => !/water-v2/i.test(String(item || "")));
+  const cleanDownloadList = downloadList.filter((item) => !/water-v2/i.test(String(item || "")));
+  const preferred = cleanNormalList.length > 0 ? cleanNormalList : cleanDownloadList;
+  const fallback = normalList.length > 0 ? normalList : downloadList;
+  const all = preferred.length > 0 ? preferred : fallback;
+  if (all.length === 0) {
+    return "";
+  }
+  const noopJpeg = all.find((item) => /~noop\.jpe?g(\?|$)/i.test(String(item || "")));
+  if (noopJpeg) {
+    return String(noopJpeg);
+  }
+  const jpeg = all.find((item) => /\.jpe?g(\?|$)/i.test(String(item || "")));
+  if (jpeg) {
+    return String(jpeg);
+  }
+  return String(all[0] || "");
+}
+function buildImageExportRows(snapshot) {
+  const posts = snapshot && Array.isArray(snapshot.posts) ? snapshot.posts : [];
+  const rows = [];
+  let bloggerName = "";
+  for (let i = 0; i < posts.length; i += 1) {
+    const post = posts[i] || {};
+    if (String(post.postType || "") !== "image") {
+      continue;
+    }
+    if (!bloggerName && post.authorNickname) {
+      bloggerName = String(post.authorNickname);
+    }
+    const awemeId = post.awemeId != null ? String(post.awemeId) : "";
+    const images = Array.isArray(post.images) ? post.images : [];
+    for (let j = 0; j < images.length; j += 1) {
+      const url = chooseBestImageUrl(images[j]);
+      if (!url) {
+        continue;
+      }
+      rows.push({
+        awemeId,
+        imageIndex: j + 1,
+        url
+      });
+    }
+  }
+  return {
+    rows,
+    bloggerName: bloggerName || ""
+  };
+}
+function useFollowPopupActions({ tabId, rows, loadAll, markByKeys, openByAwemeLimit }) {
+  const onOpenUserHome = reactExports.useCallback(
+    async (row) => {
+      if (!row) {
+        return;
+      }
+      const url = buildUserUrl(row);
+      if (!url) {
+        appendUiLog(tabId, "warn", "打开主页失败：无有效链接");
+        return;
+      }
+      await markByKeys([row.id], "已查看");
+      chrome.tabs.create({ url, active: true });
+      appendUiLog(tabId, "log", `已打开主页：${row.nickname || row.id}`);
+      loadAll();
+    },
+    [loadAll, markByKeys, tabId]
+  );
   const onStartCrawl = reactExports.useCallback(async () => {
-    const ok = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.START_CRAWL);
-    if (ok) {
-      appendUiLog(tabId, "log", "已开始自动滚动采集，请保持在抖音关注页");
+    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.START_CRAWL);
+    if (ret && ret.ok) {
+      appendUiLog(tabId, "log", "已开始自动滚动采集关注列表，请保持在抖音关注页");
     } else {
       appendUiLog(tabId, "warn", "开始采集失败：请先打开抖音主页并切到关注列表");
     }
   }, [tabId]);
+  const onStartPostCrawl = reactExports.useCallback(async () => {
+    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.START_POST_CRAWL);
+    if (ret && ret.ok) {
+      appendUiLog(tabId, "log", "已开始滚动获取作品，请保持在博主个人主页作品区");
+    } else {
+      appendUiLog(tabId, "warn", "滚动获取作品失败：请先打开抖音博主主页");
+    }
+  }, [tabId]);
   const onStopCrawl = reactExports.useCallback(async () => {
-    const ok = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.STOP_CRAWL);
-    if (ok) {
+    const follow = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.STOP_CRAWL);
+    const post = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.STOP_POST_CRAWL);
+    if (follow && follow.ok || post && post.ok) {
       appendUiLog(tabId, "log", "已停止自动滚动采集");
     } else {
       appendUiLog(tabId, "warn", "停止采集失败：当前标签页不可通信");
+    }
+  }, [tabId]);
+  const onFilterPostAll = reactExports.useCallback(async () => {
+    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.SET_POST_FILTER, { mode: "all" });
+    if (ret && ret.ok) {
+      appendUiLog(tabId, "log", `作品筛选：全部（显示 ${ret.show || 0}/${ret.total || 0}）`);
+    } else {
+      appendUiLog(tabId, "warn", "切换全部失败：请先打开博主主页作品区");
+    }
+  }, [tabId]);
+  const onFilterPostVideo = reactExports.useCallback(async () => {
+    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.SET_POST_FILTER, { mode: "video" });
+    if (ret && ret.ok) {
+      appendUiLog(tabId, "log", `作品筛选：只看视频（显示 ${ret.show || 0}/${ret.total || 0}）`);
+    } else {
+      appendUiLog(tabId, "warn", "切换只看视频失败：请先滚动采集作品");
+    }
+  }, [tabId]);
+  const onFilterPostImage = reactExports.useCallback(async () => {
+    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.SET_POST_FILTER, { mode: "image" });
+    if (ret && ret.ok) {
+      appendUiLog(tabId, "log", `作品筛选：只看图片（显示 ${ret.show || 0}/${ret.total || 0}）`);
+    } else {
+      appendUiLog(tabId, "warn", "切换只看图片失败：请先滚动采集作品");
     }
   }, [tabId]);
   const onRefresh = reactExports.useCallback(() => {
@@ -13042,9 +13280,12 @@ function useFollowPopupActions({ tabId, rows, loadAll, markByKeys }) {
         [DY_FOLLOW_STORAGE_KEYS.snapshotLatest]: { users: [] },
         [DY_FOLLOW_STORAGE_KEYS.crawlStateByTab]: crawlByTab,
         [DY_FOLLOW_STORAGE_KEYS.selectionByTab]: selectionByTab,
-        [DY_FOLLOW_STORAGE_KEYS.selectionGlobal]: { ids: [] }
+        [DY_FOLLOW_STORAGE_KEYS.selectionGlobal]: { ids: [] },
+        [DY_FOLLOW_STORAGE_KEYS.viewState]: {},
+        [DY_FOLLOW_STORAGE_KEYS.popupViewStateByTab]: {},
+        [DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]: {}
       });
-      appendUiLog(tabId, "log", "已清空列表缓存，可重新开始采集");
+      appendUiLog(tabId, "log", "已清空列表缓存与查看状态，可重新开始采集");
       loadAll();
     });
   }, [loadAll, tabId]);
@@ -13052,19 +13293,102 @@ function useFollowPopupActions({ tabId, rows, loadAll, markByKeys }) {
     const candidates = rows.filter((row) => row.viewStatus !== "已查看");
     const pool = candidates.length > 0 ? candidates : rows;
     const targets = pickRandomRows(pool, 10);
+    const urls = targets.map((row) => buildUserUrl(row)).filter(Boolean);
     const targetIds = targets.map((row) => row.id);
     await markByKeys(targetIds, "已查看");
-    for (let i = 0; i < targets.length; i += 1) {
-      const url = buildUserUrl(targets[i]);
-      if (!url) {
-        continue;
-      }
-      await createTabInactive(url);
-      await sleep(280);
-    }
+    chrome.runtime.sendMessage({
+      type: DY_FOLLOW_RUNTIME.OPEN_URLS_BATCH,
+      tabId,
+      urls
+    });
     appendUiLog(tabId, "log", `已随机打开 ${targets.length} 个主页`);
     loadAll();
   }, [loadAll, markByKeys, rows, tabId]);
+  const onOpenRandomTwenty = reactExports.useCallback(async () => {
+    const candidates = rows.filter((row) => row.viewStatus !== "已查看");
+    const pool = candidates.length > 0 ? candidates : rows;
+    const targets = pickRandomRows(pool, 20);
+    const urls = targets.map((row) => buildUserUrl(row)).filter(Boolean);
+    const targetIds = targets.map((row) => row.id);
+    await markByKeys(targetIds, "已查看");
+    chrome.runtime.sendMessage({
+      type: DY_FOLLOW_RUNTIME.OPEN_URLS_BATCH,
+      tabId,
+      urls
+    });
+    appendUiLog(tabId, "log", `已随机打开 ${targets.length} 个主页`);
+    loadAll();
+  }, [loadAll, markByKeys, rows, tabId]);
+  const onOpenByAwemeLimit = reactExports.useCallback(async () => {
+    const limit = Number(openByAwemeLimit);
+    if (!Number.isFinite(limit) || limit < 0) {
+      appendUiLog(tabId, "warn", "请输入有效的作品数阈值（>=0）");
+      return;
+    }
+    const targets = rows.filter((row) => {
+      if (row.awemeCount == null || row.awemeCount === "") {
+        return false;
+      }
+      const awemeCount = Number(row.awemeCount);
+      if (!Number.isFinite(awemeCount) || awemeCount < 0) {
+        return false;
+      }
+      return awemeCount <= limit;
+    });
+    if (targets.length === 0) {
+      appendUiLog(tabId, "warn", `没有作品数 <= ${limit} 的博主`);
+      return;
+    }
+    const urls = targets.map((row) => buildUserUrl(row)).filter(Boolean);
+    chrome.runtime.sendMessage({
+      type: DY_FOLLOW_RUNTIME.OPEN_URLS_BATCH,
+      tabId,
+      urls
+    });
+    appendUiLog(tabId, "log", `已打开作品数 <= ${limit} 的博主：${targets.length} 个`);
+  }, [openByAwemeLimit, rows, tabId]);
+  const onExportPostImageUrls = reactExports.useCallback(() => {
+    getLocalAsync([DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]).then((result) => {
+      const bySecUid = result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] && typeof result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] === "object" ? result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] : {};
+      const secUids = Object.keys(bySecUid);
+      if (secUids.length === 0) {
+        appendUiLog(tabId, "warn", "导出失败：暂无作品采集数据，请先滚动获取作品");
+        return;
+      }
+      secUids.sort((left, right) => {
+        const leftTime = bySecUid[left] && bySecUid[left].lastCapturedAt ? String(bySecUid[left].lastCapturedAt) : "";
+        const rightTime = bySecUid[right] && bySecUid[right].lastCapturedAt ? String(bySecUid[right].lastCapturedAt) : "";
+        return rightTime.localeCompare(leftTime);
+      });
+      const targetSecUid = secUids[0];
+      const target = bySecUid[targetSecUid] && typeof bySecUid[targetSecUid] === "object" ? bySecUid[targetSecUid] : {};
+      const exportResult = buildImageExportRows(target);
+      const exportRows = exportResult.rows;
+      if (exportRows.length === 0) {
+        appendUiLog(tabId, "warn", "导出失败：当前博主暂无图文图片URL");
+        return;
+      }
+      const bloggerName = exportResult.bloggerName || `secuid_${targetSecUid}`;
+      const payload = JSON.stringify(
+        {
+          bloggerName,
+          secUid: targetSecUid,
+          count: exportRows.length,
+          rows: exportRows
+        },
+        null,
+        2
+      );
+      const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
+      const href = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = href;
+      anchor.download = "images.json";
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(href), 8e3);
+      appendUiLog(tabId, "log", `导出成功：共 ${exportRows.length} 条图片URL`);
+    });
+  }, [tabId]);
   const onClearLogs = reactExports.useCallback(() => {
     if (tabId == null) {
       safeSet({ [DY_FOLLOW_STORAGE_KEYS.logs]: { entries: [] } });
@@ -13081,11 +13405,19 @@ function useFollowPopupActions({ tabId, rows, loadAll, markByKeys }) {
     });
   }, [tabId]);
   return {
+    onOpenUserHome,
     onStartCrawl,
+    onStartPostCrawl,
     onStopCrawl,
+    onFilterPostAll,
+    onFilterPostVideo,
+    onFilterPostImage,
     onRefresh,
     onClearList,
     onOpenRandomTen,
+    onOpenRandomTwenty,
+    onOpenByAwemeLimit,
+    onExportPostImageUrls,
     onClearLogs
   };
 }
@@ -13103,15 +13435,24 @@ function includesKeyword(user, keyword) {
   return text.includes(k);
 }
 const STATUS_OPTIONS = ["全部", "未查看", "已查看"];
+const POPUP_VIEW_GLOBAL_KEY = "__global";
 function normalizeStatus(viewState, id) {
   if (!viewState || !viewState[id] || !viewState[id].status) {
     return "未查看";
   }
-  const raw = String(viewState[id].status);
-  if (raw === "已查看") {
-    return "已查看";
+  return String(viewState[id].status) === "已查看" ? "已查看" : "未查看";
+}
+function normalizeStatusFilter(value) {
+  return STATUS_OPTIONS.includes(value) ? value : "全部";
+}
+function pickGlobalPopupView(rawValue) {
+  if (!rawValue || typeof rawValue !== "object") {
+    return {};
   }
-  return "未查看";
+  if (rawValue[POPUP_VIEW_GLOBAL_KEY] && typeof rawValue[POPUP_VIEW_GLOBAL_KEY] === "object") {
+    return rawValue[POPUP_VIEW_GLOBAL_KEY];
+  }
+  return {};
 }
 function useFollowPopupController() {
   const [snapshot, setSnapshot] = reactExports.useState({ users: [] });
@@ -13119,6 +13460,11 @@ function useFollowPopupController() {
   const [crawlState, setCrawlState] = reactExports.useState({});
   const [keyword, setKeyword] = reactExports.useState("");
   const [statusFilter, setStatusFilter] = reactExports.useState("全部");
+  const [sortField, setSortField] = reactExports.useState("default");
+  const [sortDirection, setSortDirection] = reactExports.useState("desc");
+  const [openByAwemeLimit, setOpenByAwemeLimit] = reactExports.useState("30");
+  const [listScrollTop, setListScrollTop] = reactExports.useState(0);
+  const [viewStateLoaded, setViewStateLoaded] = reactExports.useState(false);
   const { tabId } = useActiveTabId();
   const { entries: logs, refresh: refreshLogs } = useTabLogs({
     tabId,
@@ -13138,6 +13484,67 @@ function useFollowPopupController() {
   reactExports.useEffect(() => {
     loadAll();
   }, [loadAll]);
+  reactExports.useEffect(() => {
+    let cancelled = false;
+    getLocalAsync([DY_FOLLOW_STORAGE_KEYS.popupViewStateByTab]).then((result) => {
+      if (cancelled) {
+        return;
+      }
+      const allView = result[DY_FOLLOW_STORAGE_KEYS.popupViewStateByTab];
+      const globalView = pickGlobalPopupView(allView);
+      if (typeof globalView.sortField === "string") {
+        setSortField(globalView.sortField);
+      }
+      if (globalView.sortDirection === "asc" || globalView.sortDirection === "desc") {
+        setSortDirection(globalView.sortDirection);
+      }
+      setStatusFilter(normalizeStatusFilter(String(globalView.statusFilter || "全部")));
+      if (Number.isFinite(Number(globalView.listScrollTop)) && Number(globalView.listScrollTop) >= 0) {
+        setListScrollTop(Number(globalView.listScrollTop));
+      }
+      if (globalView.openByAwemeLimit != null) {
+        setOpenByAwemeLimit(String(globalView.openByAwemeLimit));
+      }
+      setViewStateLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const updatePopupViewState = reactExports.useCallback((patch) => {
+    getLocalAsync([DY_FOLLOW_STORAGE_KEYS.popupViewStateByTab]).then((result) => {
+      const byTab = result[DY_FOLLOW_STORAGE_KEYS.popupViewStateByTab] && typeof result[DY_FOLLOW_STORAGE_KEYS.popupViewStateByTab] === "object" ? { ...result[DY_FOLLOW_STORAGE_KEYS.popupViewStateByTab] } : {};
+      const prevGlobal = byTab[POPUP_VIEW_GLOBAL_KEY] && typeof byTab[POPUP_VIEW_GLOBAL_KEY] === "object" ? { ...byTab[POPUP_VIEW_GLOBAL_KEY] } : {};
+      byTab[POPUP_VIEW_GLOBAL_KEY] = {
+        ...prevGlobal,
+        ...patch,
+        updatedAt: Date.now()
+      };
+      safeSet({ [DY_FOLLOW_STORAGE_KEYS.popupViewStateByTab]: byTab });
+    });
+  }, []);
+  reactExports.useEffect(() => {
+    if (!viewStateLoaded) {
+      return;
+    }
+    updatePopupViewState({
+      statusFilter,
+      sortField,
+      sortDirection,
+      openByAwemeLimit
+    });
+  }, [openByAwemeLimit, statusFilter, sortDirection, sortField, updatePopupViewState, viewStateLoaded]);
+  const onListScrollTopChange = reactExports.useCallback(
+    (scrollTop) => {
+      const next = Number(scrollTop);
+      if (!Number.isFinite(next) || next < 0) {
+        return;
+      }
+      setListScrollTop(next);
+      updatePopupViewState({ listScrollTop: next });
+    },
+    [updatePopupViewState]
+  );
   useChromeStorageChange(
     () => {
       loadAll();
@@ -13151,7 +13558,8 @@ function useFollowPopupController() {
         DY_FOLLOW_STORAGE_KEYS.selectionGlobal,
         DY_FOLLOW_STORAGE_KEYS.viewState,
         DY_FOLLOW_STORAGE_KEYS.logsByTab,
-        DY_FOLLOW_STORAGE_KEYS.crawlStateByTab
+        DY_FOLLOW_STORAGE_KEYS.crawlStateByTab,
+        DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid
       ]
     }
   );
@@ -13175,26 +13583,66 @@ function useFollowPopupController() {
         nickname: user.nickname || "（无昵称）",
         signature: user.signature || "",
         avatar: user.avatar || "",
+        followerCount: user.followerCount != null ? Number(user.followerCount) : null,
+        followingCount: user.followingCount != null ? Number(user.followingCount) : null,
+        awemeCount: user.awemeCount != null ? Number(user.awemeCount) : null,
         viewStatus
       });
     }
-    return list;
-  }, [keyword, snapshot.users, statusFilter, viewState]);
+    if (sortField === "default") {
+      return list;
+    }
+    const next = [...list];
+    next.sort((left, right) => {
+      const lv = Number(left[sortField]);
+      const rv = Number(right[sortField]);
+      const l = Number.isFinite(lv) ? lv : -1;
+      const r = Number.isFinite(rv) ? rv : -1;
+      return sortDirection === "asc" ? l - r : r - l;
+    });
+    return next;
+  }, [keyword, snapshot.users, sortDirection, sortField, statusFilter, viewState]);
+  const totalCount = reactExports.useMemo(() => {
+    const users = Array.isArray(snapshot.users) ? snapshot.users : [];
+    return users.length;
+  }, [snapshot.users]);
+  const viewedCount = reactExports.useMemo(() => {
+    const users = Array.isArray(snapshot.users) ? snapshot.users : [];
+    let count = 0;
+    for (let i = 0; i < users.length; i += 1) {
+      const id = rowKey(users[i], i);
+      if (normalizeStatus(viewState, id) === "已查看") {
+        count += 1;
+      }
+    }
+    return count;
+  }, [snapshot.users, viewState]);
   const actions = useFollowPopupActions({
     tabId,
     rows,
     loadAll,
-    markByKeys
+    markByKeys,
+    openByAwemeLimit
   });
   return {
     rows,
     logs,
     crawlState,
+    totalCount,
+    viewedCount,
     statusOptions: STATUS_OPTIONS,
     keyword,
     statusFilter,
+    sortField,
+    sortDirection,
+    openByAwemeLimit,
+    listScrollTop,
     setKeyword,
     setStatusFilter,
+    setSortField,
+    setSortDirection,
+    setOpenByAwemeLimit,
+    onListScrollTopChange,
     ...actions
   };
 }
@@ -13208,16 +13656,39 @@ function PopupPage() {
           keyword: controller.keyword,
           statusFilter: controller.statusFilter,
           statusOptions: controller.statusOptions,
+          sortField: controller.sortField,
+          sortDirection: controller.sortDirection,
+          openByAwemeLimit: controller.openByAwemeLimit,
           onKeywordChange: controller.setKeyword,
           onStatusFilterChange: controller.setStatusFilter,
+          onSortFieldChange: controller.setSortField,
+          onSortDirectionChange: controller.setSortDirection,
+          onOpenByAwemeLimitChange: controller.setOpenByAwemeLimit,
           onStartCrawl: controller.onStartCrawl,
+          onStartPostCrawl: controller.onStartPostCrawl,
           onStopCrawl: controller.onStopCrawl,
+          onFilterPostAll: controller.onFilterPostAll,
+          onFilterPostVideo: controller.onFilterPostVideo,
+          onFilterPostImage: controller.onFilterPostImage,
           onRefresh: controller.onRefresh,
           onClearList: controller.onClearList,
-          onOpenRandomTen: controller.onOpenRandomTen
+          onOpenRandomTen: controller.onOpenRandomTen,
+          onOpenRandomTwenty: controller.onOpenRandomTwenty,
+          onOpenByAwemeLimit: controller.onOpenByAwemeLimit,
+          onExportPostImageUrls: controller.onExportPostImageUrls,
+          viewedCount: controller.viewedCount,
+          totalCount: controller.totalCount
         }
       ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(FollowListPanel, { rows: controller.rows })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        FollowListPanel,
+        {
+          rows: controller.rows,
+          onOpenUserHome: controller.onOpenUserHome,
+          initialScrollTop: controller.listScrollTop,
+          onScrollTopChange: controller.onListScrollTopChange
+        }
+      )
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(LogPanel, { logs: controller.logs, onClearLogs: controller.onClearLogs })
   ] });
