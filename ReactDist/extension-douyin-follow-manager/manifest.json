@@ -3,7 +3,7 @@
   "theme_color": "#0d9488",
   "name": "抖音关注管理",
   "version": "0.1.0",
-  "description": "采集抖音网页版关注列表，在 popup 里批量打开主页并标记查看状态",
+  "description": "采集抖音网页关注列表与博主作品，支持筛选、打开主页与导出图文URL。",
   "permissions": ["storage", "tabs"],
   "background": {
     "service_worker": "background.js"
@@ -25,17 +25,17 @@
       "128": "assets/icon-128.png"
     }
   },
-  "web_accessible_resources": [
-    {
-      "resources": ["inject.js"],
-      "matches": ["https://www.douyin.com/*", "https://www-hj.douyin.com/*"]
-    }
-  ],
   "content_scripts": [
     {
       "matches": ["https://www.douyin.com/*", "https://www-hj.douyin.com/*"],
+      "js": ["inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://www.douyin.com/*", "https://www-hj.douyin.com/*"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     }
   ]
 }

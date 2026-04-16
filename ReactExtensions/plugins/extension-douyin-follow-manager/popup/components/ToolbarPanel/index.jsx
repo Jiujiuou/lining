@@ -6,23 +6,19 @@ export function ToolbarPanel({
   statusOptions,
   sortField,
   sortDirection,
-  openByAwemeLimit,
+  useHighQualityDownload,
   onKeywordChange,
   onStatusFilterChange,
   onSortFieldChange,
   onSortDirectionChange,
-  onOpenByAwemeLimitChange,
+  onUseHighQualityDownloadChange,
   onStartCrawl,
   onStartPostCrawl,
   onStopCrawl,
-  onFilterPostAll,
-  onFilterPostVideo,
-  onFilterPostImage,
   onRefresh,
   onClearList,
   onOpenRandomTen,
   onOpenRandomTwenty,
-  onOpenByAwemeLimit,
   onExportPostImageUrls,
   viewedCount,
   totalCount,
@@ -44,15 +40,6 @@ export function ToolbarPanel({
           </div>
 
           <div className="dy-action-group">
-            <button type="button" className="dy-btn dy-btn-secondary" onClick={onFilterPostAll}>
-              全部
-            </button>
-            <button type="button" className="dy-btn dy-btn-secondary" onClick={onFilterPostVideo}>
-              视频
-            </button>
-            <button type="button" className="dy-btn dy-btn-secondary" onClick={onFilterPostImage}>
-              图文
-            </button>
             <button type="button" className="dy-btn dy-btn-secondary" onClick={onRefresh}>
               刷新
             </button>
@@ -62,6 +49,24 @@ export function ToolbarPanel({
             <button type="button" className="dy-btn dy-btn-secondary" onClick={onExportPostImageUrls}>
               导出URL
             </button>
+            <label className="dy-url-mode-switch" title="开启后优先导出最高清 down_url（可能有水印）">
+              <input
+                type="checkbox"
+                className="dy-url-mode-switch__input"
+                checked={useHighQualityDownload}
+                onChange={(event) => onUseHighQualityDownloadChange(Boolean(event.target.checked))}
+              />
+              <span className="dy-url-mode-switch__track" />
+              <span className="dy-url-mode-switch__label">{useHighQualityDownload ? '高清URL' : '无水印'}</span>
+            </label>
+            <span className="dy-random-group">
+              <button type="button" className="dy-btn dy-btn-secondary" onClick={onOpenRandomTen}>
+                随机10
+              </button>
+              <button type="button" className="dy-btn dy-btn-secondary" onClick={onOpenRandomTwenty}>
+                随机20
+              </button>
+            </span>
           </div>
         </div>
 
@@ -107,29 +112,6 @@ export function ToolbarPanel({
             <option value="desc">降序</option>
             <option value="asc">升序</option>
           </select>
-        </div>
-
-        <div className="dy-batch-main">
-          <button type="button" className="dy-btn dy-btn-secondary" onClick={onOpenRandomTen}>
-            随机10
-          </button>
-          <button type="button" className="dy-btn dy-btn-secondary" onClick={onOpenRandomTwenty}>
-            随机20
-          </button>
-          <label className="dy-inline-limit">
-            <span>作品≤</span>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              className="dy-limit-input"
-              value={openByAwemeLimit}
-              onChange={(event) => onOpenByAwemeLimitChange(event.target.value)}
-            />
-          </label>
-          <button type="button" className="dy-btn dy-btn-secondary" onClick={onOpenByAwemeLimit}>
-            一键打开
-          </button>
         </div>
       </div>
     </section>

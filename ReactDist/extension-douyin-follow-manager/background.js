@@ -54,7 +54,8 @@
     snapshotLatest: "dy_follow_snapshot_latest",
     selectionByTab: "dy_follow_selection_by_tab",
     crawlStateByTab: "dy_follow_crawl_state_by_tab",
-    postSnapshotBySecUid: "dy_follow_post_snapshot_by_sec_uid"
+    postSnapshotBySecUid: "dy_follow_post_snapshot_by_sec_uid",
+    postRecentSecUidByTab: "dy_follow_post_recent_sec_uid_by_tab"
   };
   const DY_FOLLOW_RUNTIME = {
     GET_TAB_ID_MESSAGE: "DY_FOLLOW_GET_TAB_ID",
@@ -62,7 +63,8 @@
     POST_CAPTURE: "DY_FOLLOW_POST_CAPTURE",
     STOP_POST_CRAWL: "DY_FOLLOW_STOP_POST_CRAWL",
     SCROLL_TICK: "DY_FOLLOW_SCROLL_TICK",
-    POST_SCROLL_TICK: "DY_FOLLOW_POST_SCROLL_TICK"
+    POST_SCROLL_TICK: "DY_FOLLOW_POST_SCROLL_TICK",
+    POST_BOOTSTRAP_STATUS: "DY_FOLLOW_POST_BOOTSTRAP_STATUS"
   };
   const DY_FOLLOW_LIMITS = {
     LOG_MAX_TABS: 10,
@@ -74,12 +76,17 @@
   const META_KEY = "__meta";
   const requestStatsByTab = /* @__PURE__ */ new Map();
   const postRequestStatsByTab = /* @__PURE__ */ new Map();
+  function parseSecUidFromTabUrl(url) {
+    const text = String(url || "");
+    const match = text.match(/\/user\/([^/?#]+)/);
+    return match && match[1] ? String(match[1]) : "";
+  }
   function userKey(user, index) {
-    if (user && user.uid) {
-      return `uid:${user.uid}`;
-    }
     if (user && user.secUid) {
       return `sec:${user.secUid}`;
+    }
+    if (user && user.uid) {
+      return `uid:${user.uid}`;
     }
     return `idx:${index}`;
   }
@@ -157,6 +164,56 @@
     map.set(key, next);
     return next;
   }
+  function upsertPostRecentSecUidByTab(tabId, secUid) {
+    if (tabId == null || !secUid) {
+      return;
+    }
+    getLocalAsync([DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab]).then((result) => {
+      const byTab = result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] && typeof result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] === "object" ? { ...result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] } : {};
+      const tabKey = String(tabId);
+      byTab[tabKey] = {
+        secUid: String(secUid),
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      const meta = byTab[META_KEY] && typeof byTab[META_KEY] === "object" ? { ...byTab[META_KEY] } : {};
+      meta[tabKey] = (/* @__PURE__ */ new Date()).toISOString();
+      byTab[META_KEY] = meta;
+      safeSet({
+        [DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab]: pruneByMeta(byTab, DY_FOLLOW_LIMITS.SNAPSHOT_MAX_TABS)
+      });
+    });
+  }
+  async function setPostSnapshotWithQuotaRetry(bySecUid, keepSecUid) {
+    let working = bySecUid && typeof bySecUid === "object" ? { ...bySecUid } : {};
+    let pruned = 0;
+    while (true) {
+      const saved = await new Promise((resolve) => {
+        chrome.storage.local.set({ [DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]: working }, () => {
+          const err = chrome.runtime && chrome.runtime.lastError ? chrome.runtime.lastError : null;
+          if (err && /quota|QUOTA_BYTES|Resource::kQuotaBytes/i.test(String(err.message || err))) {
+            resolve(false);
+            return;
+          }
+          resolve(true);
+        });
+      });
+      if (saved) {
+        return { ok: true, pruned };
+      }
+      const removable = Object.keys(working).filter((key) => key !== keepSecUid);
+      if (removable.length === 0) {
+        return { ok: false, pruned };
+      }
+      removable.sort((left, right) => {
+        const leftTime = working[left] && working[left].lastCapturedAt ? String(working[left].lastCapturedAt) : "";
+        const rightTime = working[right] && working[right].lastCapturedAt ? String(working[right].lastCapturedAt) : "";
+        return leftTime.localeCompare(rightTime);
+      });
+      const oldest = removable[0];
+      delete working[oldest];
+      pruned += 1;
+    }
+  }
   function appendLogByTab(tabId, level, message) {
     const entry = {
       t: (/* @__PURE__ */ new Date()).toISOString(),
@@ -201,9 +258,31 @@
       const row = incoming[i];
       const key = userKey(row, i);
       const prev = map.get(key) || {};
+      const nextUid = row && row.uid != null ? String(row.uid) : "";
+      const nextSecUid = row && row.secUid != null ? String(row.secUid) : "";
+      const nextNickname = row && row.nickname != null ? String(row.nickname) : "";
+      const nextSignature = row && row.signature != null ? String(row.signature) : "";
+      const nextAvatar = row && row.avatar != null ? String(row.avatar) : "";
+      const nextFollowerCount = row && row.followerCount != null ? Number(row.followerCount) : null;
+      const nextFollowingCount = row && row.followingCount != null ? Number(row.followingCount) : null;
+      const nextAwemeCount = row && row.awemeCount != null ? Number(row.awemeCount) : null;
+      const nextTotalFavorited = row && row.totalFavorited != null ? Number(row.totalFavorited) : null;
+      const nextVerificationType = row && row.verificationType != null ? Number(row.verificationType) : null;
       map.set(key, {
         ...prev,
         ...row,
+        // 兜底采集（DOM）字段较稀时，不要覆盖已有接口字段
+        uid: nextUid || (prev.uid != null ? String(prev.uid) : ""),
+        secUid: nextSecUid || (prev.secUid != null ? String(prev.secUid) : ""),
+        nickname: nextNickname || (prev.nickname != null ? String(prev.nickname) : ""),
+        signature: nextSignature || (prev.signature != null ? String(prev.signature) : ""),
+        avatar: nextAvatar || (prev.avatar != null ? String(prev.avatar) : ""),
+        followerCount: Number.isFinite(nextFollowerCount) && nextFollowerCount >= 0 ? nextFollowerCount : prev.followerCount != null ? Number(prev.followerCount) : null,
+        followingCount: Number.isFinite(nextFollowingCount) && nextFollowingCount >= 0 ? nextFollowingCount : prev.followingCount != null ? Number(prev.followingCount) : null,
+        awemeCount: Number.isFinite(nextAwemeCount) && nextAwemeCount >= 0 ? nextAwemeCount : prev.awemeCount != null ? Number(prev.awemeCount) : null,
+        totalFavorited: Number.isFinite(nextTotalFavorited) && nextTotalFavorited >= 0 ? nextTotalFavorited : prev.totalFavorited != null ? Number(prev.totalFavorited) : null,
+        verificationType: Number.isFinite(nextVerificationType) ? nextVerificationType : prev.verificationType != null ? Number(prev.verificationType) : null,
+        isVerified: row && typeof row.isVerified === "boolean" ? row.isVerified : Boolean(prev && prev.isVerified),
         firstCapturedAt: prev.firstCapturedAt || (/* @__PURE__ */ new Date()).toISOString(),
         lastCapturedAt: (/* @__PURE__ */ new Date()).toISOString()
       });
@@ -264,7 +343,7 @@
   async function savePostSnapshot(payload) {
     const secUid = payload.secUid ? String(payload.secUid) : "";
     if (!secUid) {
-      return { posts: [] };
+      throw new Error("post_capture_sec_uid_empty");
     }
     const result = await getLocalAsync([DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]);
     const bySecUid = result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] && typeof result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] === "object" ? { ...result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] } : {};
@@ -303,8 +382,14 @@
         delete bySecUid[oldest];
       }
     }
-    safeSet({ [DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]: bySecUid });
-    return bySecUid[secUid];
+    const saveResult = await setPostSnapshotWithQuotaRetry(bySecUid, secUid);
+    if (!saveResult.ok) {
+      throw new Error("post_snapshot_storage_quota_exceeded");
+    }
+    return {
+      ...bySecUid[secUid],
+      __prunedCount: saveResult.pruned || 0
+    };
   }
   function handleOpenUrlsBatch(message, sender, sendResponse) {
     const urls = Array.isArray(message.urls) ? message.urls.filter((item) => typeof item === "string" && item) : [];
@@ -402,6 +487,13 @@
             mode: "follow"
           });
           appendLogByTab(tabId, "log", buildSummaryLine(message.payload, snapshot.users.length));
+          if (message.meta && typeof message.meta === "object" && String(message.meta.source || "") === "dom_visible") {
+            appendLogByTab(
+              tabId,
+              "log",
+              `DOM增量采集：本次可见=${Array.isArray(message.payload.users) ? message.payload.users.length : 0}，合并后=${snapshot.users.length}`
+            );
+          }
           sendResponse({ ok: true, count: snapshot.users.length });
         }).catch((error) => {
           upsertCrawlState(tabId, {
@@ -416,8 +508,24 @@
         });
         return true;
       }
+      if (message.type === DY_FOLLOW_RUNTIME.POST_BOOTSTRAP_STATUS) {
+        const tabId = sender.tab && sender.tab.id != null ? sender.tab.id : null;
+        const payload = message.payload || {};
+        const ok = Boolean(payload.ok);
+        const mode = payload.mode ? String(payload.mode) : "request";
+        const secUid = payload.secUid ? String(payload.secUid) : "";
+        if (ok) {
+          appendLogByTab(tabId, "log", `第一页补抓成功：mode=${mode}，secUid=${secUid || "-"}`);
+        } else {
+          const reason = payload.reason ? String(payload.reason) : "unknown";
+          appendLogByTab(tabId, "warn", `第一页补抓失败：mode=${mode}，reason=${reason}，secUid=${secUid || "-"}`);
+        }
+        sendResponse({ ok: true });
+        return true;
+      }
       if (message.type === DY_FOLLOW_RUNTIME.POST_CAPTURE) {
         const tabId = sender.tab && sender.tab.id != null ? sender.tab.id : null;
+        const tabSecUid = parseSecUidFromTabUrl(sender && sender.tab ? sender.tab.url : "");
         if (!message.payload || !Array.isArray(message.payload.posts)) {
           const reason = message.meta && message.meta.parseError ? String(message.meta.parseError) : "无有效 payload";
           const stats2 = getNextStats(postRequestStatsByTab, tabId, false);
@@ -433,7 +541,19 @@
           return true;
         }
         const stats = getNextStats(postRequestStatsByTab, tabId, true);
-        savePostSnapshot(message.payload).then((snapshot) => {
+        const payload = {
+          ...message.payload,
+          secUid: tabSecUid || (message.payload && message.payload.secUid ? String(message.payload.secUid) : "")
+        };
+        savePostSnapshot(payload).then((snapshot) => {
+          upsertPostRecentSecUidByTab(tabId, payload.secUid || snapshot.secUid || "");
+          if (Number(snapshot.__prunedCount || 0) > 0) {
+            appendLogByTab(
+              tabId,
+              "warn",
+              `作品缓存空间不足，已自动淘汰 ${Number(snapshot.__prunedCount)} 个历史博主快照`
+            );
+          }
           upsertCrawlState(tabId, {
             mode: "post",
             postCapturedCount: Array.isArray(snapshot.posts) ? snapshot.posts.length : 0,
@@ -448,10 +568,28 @@
             postLastRequestAt: (/* @__PURE__ */ new Date()).toISOString(),
             postLastCaptureAt: (/* @__PURE__ */ new Date()).toISOString()
           });
-          appendLogByTab(tabId, "log", buildPostSummaryLine(message.payload, snapshot.posts.length));
+          appendLogByTab(tabId, "log", buildPostSummaryLine(payload, snapshot.posts.length));
           if (!snapshot.hasMore) {
             stopPostCrawlInTab(tabId);
             appendLogByTab(tabId, "log", "作品分页已到末页，已自动停止滚动");
+            const totalCount = snapshot.total != null ? Number(snapshot.total) : Number(snapshot.posts.length || 0);
+            const imageCount = snapshot.imageCount != null ? Number(snapshot.imageCount) : 0;
+            const videoCount = snapshot.videoCount != null ? Number(snapshot.videoCount) : 0;
+            let imageUrlCount = 0;
+            const posts = Array.isArray(snapshot.posts) ? snapshot.posts : [];
+            for (let i = 0; i < posts.length; i += 1) {
+              const row = posts[i] || {};
+              if (String(row.postType || "") !== "image") {
+                continue;
+              }
+              const images = Array.isArray(row.images) ? row.images : [];
+              imageUrlCount += images.length;
+            }
+            appendLogByTab(
+              tabId,
+              "log",
+              `作品汇总：总数=${totalCount}，图文=${imageCount}，视频=${videoCount}，图片URL总数=${imageUrlCount}`
+            );
           }
           sendResponse({ ok: true, count: snapshot.posts.length });
         }).catch((error) => {
@@ -475,16 +613,19 @@
         DY_FOLLOW_STORAGE_KEYS.snapshotByTab,
         DY_FOLLOW_STORAGE_KEYS.logsByTab,
         DY_FOLLOW_STORAGE_KEYS.selectionByTab,
-        DY_FOLLOW_STORAGE_KEYS.crawlStateByTab
+        DY_FOLLOW_STORAGE_KEYS.crawlStateByTab,
+        DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab
       ]);
       const snapshotByTab = result[DY_FOLLOW_STORAGE_KEYS.snapshotByTab] && typeof result[DY_FOLLOW_STORAGE_KEYS.snapshotByTab] === "object" ? { ...result[DY_FOLLOW_STORAGE_KEYS.snapshotByTab] } : {};
       const logsByTab = result[DY_FOLLOW_STORAGE_KEYS.logsByTab] && typeof result[DY_FOLLOW_STORAGE_KEYS.logsByTab] === "object" ? { ...result[DY_FOLLOW_STORAGE_KEYS.logsByTab] } : {};
       const selectionByTab = result[DY_FOLLOW_STORAGE_KEYS.selectionByTab] && typeof result[DY_FOLLOW_STORAGE_KEYS.selectionByTab] === "object" ? { ...result[DY_FOLLOW_STORAGE_KEYS.selectionByTab] } : {};
       const crawlStateByTab = result[DY_FOLLOW_STORAGE_KEYS.crawlStateByTab] && typeof result[DY_FOLLOW_STORAGE_KEYS.crawlStateByTab] === "object" ? { ...result[DY_FOLLOW_STORAGE_KEYS.crawlStateByTab] } : {};
+      const postRecentSecUidByTab = result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] && typeof result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] === "object" ? { ...result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] } : {};
       delete snapshotByTab[tabKey];
       delete logsByTab[tabKey];
       delete selectionByTab[tabKey];
       delete crawlStateByTab[tabKey];
+      delete postRecentSecUidByTab[tabKey];
       if (snapshotByTab[META_KEY]) {
         delete snapshotByTab[META_KEY][tabKey];
       }
@@ -497,11 +638,15 @@
       if (crawlStateByTab[META_KEY]) {
         delete crawlStateByTab[META_KEY][tabKey];
       }
+      if (postRecentSecUidByTab[META_KEY]) {
+        delete postRecentSecUidByTab[META_KEY][tabKey];
+      }
       safeSet({
         [DY_FOLLOW_STORAGE_KEYS.snapshotByTab]: snapshotByTab,
         [DY_FOLLOW_STORAGE_KEYS.logsByTab]: logsByTab,
         [DY_FOLLOW_STORAGE_KEYS.selectionByTab]: selectionByTab,
-        [DY_FOLLOW_STORAGE_KEYS.crawlStateByTab]: crawlStateByTab
+        [DY_FOLLOW_STORAGE_KEYS.crawlStateByTab]: crawlStateByTab,
+        [DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab]: postRecentSecUidByTab
       });
     });
   }

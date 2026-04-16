@@ -12488,23 +12488,19 @@ function ToolbarPanel({
   statusOptions,
   sortField,
   sortDirection,
-  openByAwemeLimit,
+  useHighQualityDownload,
   onKeywordChange,
   onStatusFilterChange,
   onSortFieldChange,
   onSortDirectionChange,
-  onOpenByAwemeLimitChange,
+  onUseHighQualityDownloadChange,
   onStartCrawl,
   onStartPostCrawl,
   onStopCrawl,
-  onFilterPostAll,
-  onFilterPostVideo,
-  onFilterPostImage,
   onRefresh,
   onClearList,
   onOpenRandomTen,
   onOpenRandomTwenty,
-  onOpenByAwemeLimit,
   onExportPostImageUrls,
   viewedCount,
   totalCount
@@ -12518,76 +12514,69 @@ function ToolbarPanel({
           /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onStopCrawl, children: "停止" })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-action-group", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onFilterPostAll, children: "全部" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onFilterPostVideo, children: "视频" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onFilterPostImage, children: "图文" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onRefresh, children: "刷新" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onClearList, children: "清空" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onExportPostImageUrls, children: "导出URL" })
+          /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onExportPostImageUrls, children: "导出URL" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "dy-url-mode-switch", title: "开启后优先导出最高清 down_url（可能有水印）", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "input",
+              {
+                type: "checkbox",
+                className: "dy-url-mode-switch__input",
+                checked: useHighQualityDownload,
+                onChange: (event) => onUseHighQualityDownloadChange(Boolean(event.target.checked))
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dy-url-mode-switch__track" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dy-url-mode-switch__label", children: useHighQualityDownload ? "高清URL" : "无水印" })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "dy-random-group", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenRandomTen, children: "随机10" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenRandomTwenty, children: "随机20" })
+          ] })
         ] })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "dy-toolbar-counter", title: "已查看 / 总关注数", children: `${viewedCount}/${totalCount}` })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-toolbar-row dy-toolbar-row--filters", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-filter-main", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "input",
-          {
-            type: "text",
-            className: "dy-input",
-            value: keyword,
-            placeholder: "搜索昵称 / 简介 / uid",
-            onChange: (event) => onKeywordChange(event.target.value)
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "select",
-          {
-            className: "dy-select dy-select--status",
-            value: statusFilter,
-            onChange: (event) => onStatusFilterChange(event.target.value),
-            children: statusOptions.map((status) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: status, children: status }, status))
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "dy-select dy-select--sort", value: sortField, onChange: (event) => onSortFieldChange(event.target.value), children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "default", children: "默认顺序" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "followerCount", children: "粉丝数" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "followingCount", children: "关注数" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "awemeCount", children: "作品数" })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "select",
-          {
-            className: "dy-select dy-select--short",
-            value: sortDirection,
-            onChange: (event) => onSortDirectionChange(event.target.value),
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "desc", children: "降序" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "asc", children: "升序" })
-            ]
-          }
-        )
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dy-toolbar-row dy-toolbar-row--filters", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-filter-main", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "input",
+        {
+          type: "text",
+          className: "dy-input",
+          value: keyword,
+          placeholder: "搜索昵称 / 简介 / uid",
+          onChange: (event) => onKeywordChange(event.target.value)
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "select",
+        {
+          className: "dy-select dy-select--status",
+          value: statusFilter,
+          onChange: (event) => onStatusFilterChange(event.target.value),
+          children: statusOptions.map((status) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: status, children: status }, status))
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("select", { className: "dy-select dy-select--sort", value: sortField, onChange: (event) => onSortFieldChange(event.target.value), children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "default", children: "默认顺序" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "followerCount", children: "粉丝数" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "followingCount", children: "关注数" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "awemeCount", children: "作品数" })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dy-batch-main", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenRandomTen, children: "随机10" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenRandomTwenty, children: "随机20" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "dy-inline-limit", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "作品≤" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "input",
-            {
-              type: "number",
-              min: "0",
-              step: "1",
-              className: "dy-limit-input",
-              value: openByAwemeLimit,
-              onChange: (event) => onOpenByAwemeLimitChange(event.target.value)
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "dy-btn dy-btn-secondary", onClick: onOpenByAwemeLimit, children: "一键打开" })
-      ] })
-    ] })
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "select",
+        {
+          className: "dy-select dy-select--short",
+          value: sortDirection,
+          onChange: (event) => onSortDirectionChange(event.target.value),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "desc", children: "降序" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "asc", children: "升序" })
+          ]
+        }
+      )
+    ] }) })
   ] });
 }
 function formatCount(value) {
@@ -12692,9 +12681,16 @@ function getActiveTabId(callback) {
     return;
   }
   try {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
-      done(tabId);
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      const tabIdByFocusedWindow = tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
+      if (tabIdByFocusedWindow != null) {
+        done(tabIdByFocusedWindow);
+        return;
+      }
+      chrome.tabs.query({ active: true, currentWindow: true }, (fallbackTabs) => {
+        const tabId = fallbackTabs && fallbackTabs[0] && fallbackTabs[0].id != null ? fallbackTabs[0].id : null;
+        done(tabId);
+      });
     });
   } catch {
     done(null);
@@ -12956,14 +12952,18 @@ const DY_FOLLOW_STORAGE_KEYS = {
   viewState: "dy_follow_view_state",
   crawlStateByTab: "dy_follow_crawl_state_by_tab",
   popupViewStateByTab: "dy_follow_popup_view_state_by_tab",
-  postSnapshotBySecUid: "dy_follow_post_snapshot_by_sec_uid"
+  postSnapshotBySecUid: "dy_follow_post_snapshot_by_sec_uid",
+  postRecentSecUidByTab: "dy_follow_post_recent_sec_uid_by_tab"
 };
 const DY_FOLLOW_RUNTIME = {
   START_CRAWL: "DY_FOLLOW_START_CRAWL",
   STOP_CRAWL: "DY_FOLLOW_STOP_CRAWL",
+  BOOTSTRAP_FOLLOW_CAPTURE: "DY_FOLLOW_BOOTSTRAP_FOLLOW_CAPTURE",
   START_POST_CRAWL: "DY_FOLLOW_START_POST_CRAWL",
   STOP_POST_CRAWL: "DY_FOLLOW_STOP_POST_CRAWL",
-  SET_POST_FILTER: "DY_FOLLOW_SET_POST_FILTER"
+  BOOTSTRAP_POST_CAPTURE: "DY_FOLLOW_BOOTSTRAP_POST_CAPTURE",
+  BOOTSTRAP_POST_CAPTURE_FALLBACK: "DY_FOLLOW_BOOTSTRAP_POST_CAPTURE_FALLBACK",
+  GET_PAGE_CONTEXT: "DY_FOLLOW_GET_PAGE_CONTEXT"
 };
 function useFollowSnapshotLoader({ tabId, setSnapshot, setSelection, setViewState, setCrawlState }) {
   return reactExports.useCallback(async () => {
@@ -13078,44 +13078,37 @@ async function sendMessageToActiveTab(tabId, type, payload) {
       chrome.tabs.sendMessage(targetTabId, { type, payload }, (response) => {
         const error = chrome.runtime && chrome.runtime.lastError ? chrome.runtime.lastError : null;
         if (error) {
-          resolve({ ok: false, reason: String(error.message || error) });
+          resolve({ ok: false, reason: String(error.message || error), targetTabId });
           return;
         }
         if (response && typeof response === "object") {
-          resolve(response);
+          resolve({ ...response, targetTabId });
           return;
         }
-        resolve({ ok: true });
+        resolve({ ok: true, targetTabId });
       });
     });
   }
+  const preferred = [];
   if (tabId != null) {
-    const first = await sendToTab(tabId);
-    if (first && first.ok) {
-      return first;
-    }
+    preferred.push(Number(tabId));
   }
-  const tabs = await new Promise((resolve) => {
-    chrome.tabs.query(
-      {
-        url: ["https://www.douyin.com/*", "https://www-hj.douyin.com/*"]
-      },
-      (foundTabs) => {
-        resolve(Array.isArray(foundTabs) ? foundTabs : []);
-      }
-    );
+  const activeTab = await new Promise((resolve) => {
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      const first = Array.isArray(tabs) && tabs.length > 0 ? tabs[0] : null;
+      resolve(first && first.id != null ? Number(first.id) : null);
+    });
   });
-  for (let i = 0; i < tabs.length; i += 1) {
-    const item = tabs[i];
-    if (!item || item.id == null) {
-      continue;
-    }
-    const ret = await sendToTab(item.id);
+  if (activeTab != null && !preferred.includes(activeTab)) {
+    preferred.push(activeTab);
+  }
+  for (let i = 0; i < preferred.length; i += 1) {
+    const ret = await sendToTab(preferred[i]);
     if (ret && ret.ok) {
       return ret;
     }
   }
-  return { ok: false, reason: "no_tab" };
+  return { ok: false, reason: "no_active_douyin_tab" };
 }
 function pickRandomRows(rows, size) {
   const list = Array.isArray(rows) ? [...rows] : [];
@@ -13127,29 +13120,30 @@ function pickRandomRows(rows, size) {
   }
   return list.slice(0, size);
 }
-function chooseBestImageUrl(image) {
+function chooseBestImageUrl(image, useHighQualityDownload) {
   const row = image || {};
   const downloadList = Array.isArray(row.downloadUrlList) ? row.downloadUrlList : [];
   const normalList = Array.isArray(row.urlList) ? row.urlList : [];
   const cleanNormalList = normalList.filter((item) => !/water-v2/i.test(String(item || "")));
   const cleanDownloadList = downloadList.filter((item) => !/water-v2/i.test(String(item || "")));
-  const preferred = cleanNormalList.length > 0 ? cleanNormalList : cleanDownloadList;
-  const fallback = normalList.length > 0 ? normalList : downloadList;
-  const all = preferred.length > 0 ? preferred : fallback;
+  const highQualityMode = Boolean(useHighQualityDownload);
+  const primaryPool = highQualityMode ? downloadList.length > 0 ? downloadList : normalList : cleanNormalList.length > 0 ? cleanNormalList : cleanDownloadList;
+  const fallbackPool = highQualityMode ? normalList.length > 0 ? normalList : cleanDownloadList : normalList.length > 0 ? normalList : downloadList;
+  const all = primaryPool.length > 0 ? primaryPool : fallbackPool;
   if (all.length === 0) {
     return "";
   }
-  const noopJpeg = all.find((item) => /~noop\.jpe?g(\?|$)/i.test(String(item || "")));
-  if (noopJpeg) {
-    return String(noopJpeg);
-  }
-  const jpeg = all.find((item) => /\.jpe?g(\?|$)/i.test(String(item || "")));
-  if (jpeg) {
-    return String(jpeg);
-  }
-  return String(all[0] || "");
+  const nonQ75 = all.filter((item) => !/q75/i.test(String(item || "")));
+  const targetPool = nonQ75.length > 0 ? nonQ75 : all;
+  const noopJpeg = targetPool.find((item) => /~noop\.jpe?g(\?|$)/i.test(String(item || "")));
+  if (noopJpeg) return String(noopJpeg);
+  const jpeg = targetPool.find((item) => /\.jpe?g(\?|$)/i.test(String(item || "")));
+  if (jpeg) return String(jpeg);
+  const noop = targetPool.find((item) => /~noop\./i.test(String(item || "")));
+  if (noop) return String(noop);
+  return String(targetPool[0] || "");
 }
-function buildImageExportRows(snapshot) {
+function buildImageExportRows(snapshot, useHighQualityDownload) {
   const posts = snapshot && Array.isArray(snapshot.posts) ? snapshot.posts : [];
   const rows = [];
   let bloggerName = "";
@@ -13164,7 +13158,7 @@ function buildImageExportRows(snapshot) {
     const awemeId = post.awemeId != null ? String(post.awemeId) : "";
     const images = Array.isArray(post.images) ? post.images : [];
     for (let j = 0; j < images.length; j += 1) {
-      const url = chooseBestImageUrl(images[j]);
+      const url = chooseBestImageUrl(images[j], useHighQualityDownload);
       if (!url) {
         continue;
       }
@@ -13180,7 +13174,97 @@ function buildImageExportRows(snapshot) {
     bloggerName: bloggerName || ""
   };
 }
-function useFollowPopupActions({ tabId, rows, loadAll, markByKeys, openByAwemeLimit }) {
+function parseSecUidFromUrl(url) {
+  const text = String(url || "");
+  const match = text.match(/\/user\/([^/?#]+)/);
+  return match && match[1] ? String(match[1]) : "";
+}
+async function getPostSnapshotBySecUid() {
+  const result = await getLocalAsync([DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]);
+  return result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] && typeof result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] === "object" ? result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] : {};
+}
+async function getPostRecentSecUidByTab() {
+  const result = await getLocalAsync([DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab]);
+  return result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] && typeof result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] === "object" ? result[DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab] : {};
+}
+async function clearPostUrlCache() {
+  await new Promise((resolve) => {
+    safeSet(
+      {
+        [DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]: {},
+        [DY_FOLLOW_STORAGE_KEYS.postRecentSecUidByTab]: {}
+      },
+      () => resolve()
+    );
+  });
+}
+function getTabSecUid(tabId) {
+  function fromTab(candidateTab) {
+    if (!candidateTab || !candidateTab.url) {
+      return "";
+    }
+    const url = String(candidateTab.url);
+    if (!/^https:\/\/(www\.)?douyin\.com\/user\//i.test(url) && !/^https:\/\/www-hj\.douyin\.com\/user\//i.test(url)) {
+      return "";
+    }
+    return parseSecUidFromUrl(url);
+  }
+  function queryTabs(queryInfo) {
+    return new Promise((resolve) => {
+      chrome.tabs.query(queryInfo, (tabs) => {
+        resolve(Array.isArray(tabs) ? tabs : []);
+      });
+    });
+  }
+  async function pickFromLastFocusedWindow() {
+    const activeTabs = await queryTabs({ active: true, lastFocusedWindow: true });
+    if (activeTabs.length > 0) {
+      const secUid = fromTab(activeTabs[0]);
+      if (secUid) {
+        return secUid;
+      }
+    }
+    const userTabs = await queryTabs({
+      lastFocusedWindow: true,
+      url: ["https://www.douyin.com/user/*", "https://www-hj.douyin.com/user/*"]
+    });
+    for (let i = userTabs.length - 1; i >= 0; i -= 1) {
+      const secUid = fromTab(userTabs[i]);
+      if (secUid) {
+        return secUid;
+      }
+    }
+    return "";
+  }
+  return new Promise((resolve) => {
+    pickFromLastFocusedWindow().then((secUidFromActive) => {
+      if (secUidFromActive) {
+        resolve(secUidFromActive);
+        return;
+      }
+      if (tabId != null) {
+        chrome.tabs.get(tabId, (tab) => {
+          const err = chrome.runtime && chrome.runtime.lastError ? chrome.runtime.lastError : null;
+          if (!err) {
+            const secUid = fromTab(tab);
+            resolve(secUid || "");
+            return;
+          }
+          resolve("");
+        });
+        return;
+      }
+      resolve("");
+    });
+  });
+}
+function useFollowPopupActions({
+  tabId,
+  rows,
+  loadAll,
+  markByKeys,
+  useHighQualityDownload
+}) {
   const onOpenUserHome = reactExports.useCallback(
     async (row) => {
       if (!row) {
@@ -13199,6 +13283,13 @@ function useFollowPopupActions({ tabId, rows, loadAll, markByKeys, openByAwemeLi
     [loadAll, markByKeys, tabId]
   );
   const onStartCrawl = reactExports.useCallback(async () => {
+    const bootstrap = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.BOOTSTRAP_FOLLOW_CAPTURE);
+    if (bootstrap && bootstrap.ok) {
+      appendUiLog(tabId, "log", `关注首页补抓成功：本页 ${Number(bootstrap.count || 0)} 条`);
+    } else {
+      const reason = bootstrap && bootstrap.reason ? String(bootstrap.reason) : "unknown";
+      appendUiLog(tabId, "warn", `关注首页补抓未命中：${reason}（将继续滚动采集）`);
+    }
     const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.START_CRAWL);
     if (ret && ret.ok) {
       appendUiLog(tabId, "log", "已开始自动滚动采集关注列表，请保持在抖音关注页");
@@ -13207,11 +13298,25 @@ function useFollowPopupActions({ tabId, rows, loadAll, markByKeys, openByAwemeLi
     }
   }, [tabId]);
   const onStartPostCrawl = reactExports.useCallback(async () => {
-    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.START_POST_CRAWL);
-    if (ret && ret.ok) {
-      appendUiLog(tabId, "log", "已开始滚动获取作品，请保持在博主个人主页作品区");
-    } else {
+    const ctx = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.GET_PAGE_CONTEXT);
+    if (!ctx || !ctx.ok || !ctx.secUid) {
       appendUiLog(tabId, "warn", "滚动获取作品失败：请先打开抖音博主主页");
+      return;
+    }
+    await clearPostUrlCache();
+    appendUiLog(tabId, "log", "已清空历史作品URL缓存，将采集当前博主新数据");
+    const ret = await sendMessageToActiveTab(
+      ctx && ctx.targetTabId != null ? ctx.targetTabId : tabId,
+      DY_FOLLOW_RUNTIME.START_POST_CRAWL
+    );
+    if (ret && ret.ok) {
+      const secUidText = ctx && ctx.secUid ? `，secUid=${ctx.secUid}` : "";
+      appendUiLog(tabId, "log", `已开始接口分页采集作品，请保持在博主个人主页作品区${secUidText}`);
+      if (ret.alreadyRunning) {
+        appendUiLog(tabId, "log", "作品采集任务已在运行中，无需重复启动");
+      }
+    } else {
+      appendUiLog(tabId, "warn", "接口分页采集作品失败：请先打开抖音博主主页");
     }
   }, [tabId]);
   const onStopCrawl = reactExports.useCallback(async () => {
@@ -13221,30 +13326,6 @@ function useFollowPopupActions({ tabId, rows, loadAll, markByKeys, openByAwemeLi
       appendUiLog(tabId, "log", "已停止自动滚动采集");
     } else {
       appendUiLog(tabId, "warn", "停止采集失败：当前标签页不可通信");
-    }
-  }, [tabId]);
-  const onFilterPostAll = reactExports.useCallback(async () => {
-    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.SET_POST_FILTER, { mode: "all" });
-    if (ret && ret.ok) {
-      appendUiLog(tabId, "log", `作品筛选：全部（显示 ${ret.show || 0}/${ret.total || 0}）`);
-    } else {
-      appendUiLog(tabId, "warn", "切换全部失败：请先打开博主主页作品区");
-    }
-  }, [tabId]);
-  const onFilterPostVideo = reactExports.useCallback(async () => {
-    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.SET_POST_FILTER, { mode: "video" });
-    if (ret && ret.ok) {
-      appendUiLog(tabId, "log", `作品筛选：只看视频（显示 ${ret.show || 0}/${ret.total || 0}）`);
-    } else {
-      appendUiLog(tabId, "warn", "切换只看视频失败：请先滚动采集作品");
-    }
-  }, [tabId]);
-  const onFilterPostImage = reactExports.useCallback(async () => {
-    const ret = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.SET_POST_FILTER, { mode: "image" });
-    if (ret && ret.ok) {
-      appendUiLog(tabId, "log", `作品筛选：只看图片（显示 ${ret.show || 0}/${ret.total || 0}）`);
-    } else {
-      appendUiLog(tabId, "warn", "切换只看图片失败：请先滚动采集作品");
     }
   }, [tabId]);
   const onRefresh = reactExports.useCallback(() => {
@@ -13319,76 +13400,78 @@ function useFollowPopupActions({ tabId, rows, loadAll, markByKeys, openByAwemeLi
     appendUiLog(tabId, "log", `已随机打开 ${targets.length} 个主页`);
     loadAll();
   }, [loadAll, markByKeys, rows, tabId]);
-  const onOpenByAwemeLimit = reactExports.useCallback(async () => {
-    const limit = Number(openByAwemeLimit);
-    if (!Number.isFinite(limit) || limit < 0) {
-      appendUiLog(tabId, "warn", "请输入有效的作品数阈值（>=0）");
+  const onExportPostImageUrls = reactExports.useCallback(async () => {
+    const pageContext = await sendMessageToActiveTab(tabId, DY_FOLLOW_RUNTIME.GET_PAGE_CONTEXT);
+    const pageSecUid = pageContext && pageContext.ok && pageContext.secUid ? String(pageContext.secUid) : "";
+    const currentSecUid = pageSecUid || await getTabSecUid(tabId);
+    const targetTabId = pageContext && pageContext.targetTabId != null ? Number(pageContext.targetTabId) : tabId;
+    if (!currentSecUid) {
+      appendUiLog(tabId, "warn", "导出失败：当前激活页不是博主主页（未识别到 secUid）");
       return;
     }
-    const targets = rows.filter((row) => {
-      if (row.awemeCount == null || row.awemeCount === "") {
-        return false;
+    let bySecUid = await getPostSnapshotBySecUid();
+    let finalSecUid = currentSecUid;
+    if (!bySecUid[finalSecUid] && targetTabId != null) {
+      const byTab = await getPostRecentSecUidByTab();
+      const hit = byTab[String(targetTabId)] && byTab[String(targetTabId)].secUid ? String(byTab[String(targetTabId)].secUid) : "";
+      if (hit && bySecUid[hit]) {
+        finalSecUid = hit;
+        appendUiLog(tabId, "log", `导出路由修正：当前页=${currentSecUid}，最近捕获=${hit}`);
       }
-      const awemeCount = Number(row.awemeCount);
-      if (!Number.isFinite(awemeCount) || awemeCount < 0) {
-        return false;
-      }
-      return awemeCount <= limit;
-    });
-    if (targets.length === 0) {
-      appendUiLog(tabId, "warn", `没有作品数 <= ${limit} 的博主`);
-      return;
     }
-    const urls = targets.map((row) => buildUserUrl(row)).filter(Boolean);
-    chrome.runtime.sendMessage({
-      type: DY_FOLLOW_RUNTIME.OPEN_URLS_BATCH,
-      tabId,
-      urls
-    });
-    appendUiLog(tabId, "log", `已打开作品数 <= ${limit} 的博主：${targets.length} 个`);
-  }, [openByAwemeLimit, rows, tabId]);
-  const onExportPostImageUrls = reactExports.useCallback(() => {
-    getLocalAsync([DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid]).then((result) => {
-      const bySecUid = result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] && typeof result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] === "object" ? result[DY_FOLLOW_STORAGE_KEYS.postSnapshotBySecUid] : {};
-      const secUids = Object.keys(bySecUid);
-      if (secUids.length === 0) {
-        appendUiLog(tabId, "warn", "导出失败：暂无作品采集数据，请先滚动获取作品");
-        return;
+    if (!bySecUid[finalSecUid]) {
+      appendUiLog(tabId, "log", "当前博主暂无作品快照，正在尝试补抓第一页...");
+      await sendMessageToActiveTab(targetTabId, DY_FOLLOW_RUNTIME.BOOTSTRAP_POST_CAPTURE);
+      await sendMessageToActiveTab(targetTabId, DY_FOLLOW_RUNTIME.BOOTSTRAP_POST_CAPTURE_FALLBACK);
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      bySecUid = await getPostSnapshotBySecUid();
+      if (!bySecUid[finalSecUid] && targetTabId != null) {
+        const byTab = await getPostRecentSecUidByTab();
+        const hit = byTab[String(targetTabId)] && byTab[String(targetTabId)].secUid ? String(byTab[String(targetTabId)].secUid) : "";
+        if (hit && bySecUid[hit]) {
+          finalSecUid = hit;
+          appendUiLog(tabId, "log", `补抓后路由修正：当前页=${currentSecUid}，最近捕获=${hit}`);
+        }
       }
-      secUids.sort((left, right) => {
-        const leftTime = bySecUid[left] && bySecUid[left].lastCapturedAt ? String(bySecUid[left].lastCapturedAt) : "";
-        const rightTime = bySecUid[right] && bySecUid[right].lastCapturedAt ? String(bySecUid[right].lastCapturedAt) : "";
-        return rightTime.localeCompare(leftTime);
-      });
-      const targetSecUid = secUids[0];
-      const target = bySecUid[targetSecUid] && typeof bySecUid[targetSecUid] === "object" ? bySecUid[targetSecUid] : {};
-      const exportResult = buildImageExportRows(target);
-      const exportRows = exportResult.rows;
-      if (exportRows.length === 0) {
-        appendUiLog(tabId, "warn", "导出失败：当前博主暂无图文图片URL");
-        return;
-      }
-      const bloggerName = exportResult.bloggerName || `secuid_${targetSecUid}`;
-      const payload = JSON.stringify(
-        {
-          bloggerName,
-          secUid: targetSecUid,
-          count: exportRows.length,
-          rows: exportRows
-        },
-        null,
-        2
+    }
+    if (!bySecUid[finalSecUid]) {
+      const keys = Object.keys(bySecUid);
+      appendUiLog(
+        tabId,
+        "warn",
+        `导出失败：当前博主无快照（page=${currentSecUid}，tab=${String(targetTabId ?? "-")}，已存=${keys.length}）`
       );
-      const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
-      const href = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = href;
-      anchor.download = "images.json";
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(href), 8e3);
-      appendUiLog(tabId, "log", `导出成功：共 ${exportRows.length} 条图片URL`);
-    });
-  }, [tabId]);
+      return;
+    }
+    const targetSecUid = finalSecUid;
+    const target = bySecUid[targetSecUid] && typeof bySecUid[targetSecUid] === "object" ? bySecUid[targetSecUid] : {};
+    const exportResult = buildImageExportRows(target, useHighQualityDownload);
+    const exportRows = exportResult.rows;
+    if (exportRows.length === 0) {
+      appendUiLog(tabId, "warn", "导出失败：当前博主暂无图文图片URL");
+      return;
+    }
+    const bloggerName = exportResult.bloggerName || `secuid_${targetSecUid}`;
+    const exportMode = useHighQualityDownload ? "最高清down_url（可能有水印）" : "无水印优先";
+    const payload = JSON.stringify(
+      {
+        bloggerName,
+        secUid: targetSecUid,
+        count: exportRows.length,
+        rows: exportRows
+      },
+      null,
+      2
+    );
+    const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = "images.json";
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(href), 8e3);
+    appendUiLog(tabId, "log", `导出成功：${bloggerName}（${targetSecUid}），共 ${exportRows.length} 条图片URL，模式=${exportMode}`);
+  }, [tabId, useHighQualityDownload]);
   const onClearLogs = reactExports.useCallback(() => {
     if (tabId == null) {
       safeSet({ [DY_FOLLOW_STORAGE_KEYS.logs]: { entries: [] } });
@@ -13409,14 +13492,10 @@ function useFollowPopupActions({ tabId, rows, loadAll, markByKeys, openByAwemeLi
     onStartCrawl,
     onStartPostCrawl,
     onStopCrawl,
-    onFilterPostAll,
-    onFilterPostVideo,
-    onFilterPostImage,
     onRefresh,
     onClearList,
     onOpenRandomTen,
     onOpenRandomTwenty,
-    onOpenByAwemeLimit,
     onExportPostImageUrls,
     onClearLogs
   };
@@ -13462,7 +13541,7 @@ function useFollowPopupController() {
   const [statusFilter, setStatusFilter] = reactExports.useState("全部");
   const [sortField, setSortField] = reactExports.useState("default");
   const [sortDirection, setSortDirection] = reactExports.useState("desc");
-  const [openByAwemeLimit, setOpenByAwemeLimit] = reactExports.useState("30");
+  const [useHighQualityDownload, setUseHighQualityDownload] = reactExports.useState(false);
   const [listScrollTop, setListScrollTop] = reactExports.useState(0);
   const [viewStateLoaded, setViewStateLoaded] = reactExports.useState(false);
   const { tabId } = useActiveTabId();
@@ -13502,9 +13581,7 @@ function useFollowPopupController() {
       if (Number.isFinite(Number(globalView.listScrollTop)) && Number(globalView.listScrollTop) >= 0) {
         setListScrollTop(Number(globalView.listScrollTop));
       }
-      if (globalView.openByAwemeLimit != null) {
-        setOpenByAwemeLimit(String(globalView.openByAwemeLimit));
-      }
+      setUseHighQualityDownload(Boolean(globalView.useHighQualityDownload));
       setViewStateLoaded(true);
     });
     return () => {
@@ -13531,9 +13608,16 @@ function useFollowPopupController() {
       statusFilter,
       sortField,
       sortDirection,
-      openByAwemeLimit
+      useHighQualityDownload
     });
-  }, [openByAwemeLimit, statusFilter, sortDirection, sortField, updatePopupViewState, viewStateLoaded]);
+  }, [
+    statusFilter,
+    sortDirection,
+    sortField,
+    updatePopupViewState,
+    useHighQualityDownload,
+    viewStateLoaded
+  ]);
   const onListScrollTopChange = reactExports.useCallback(
     (scrollTop) => {
       const next = Number(scrollTop);
@@ -13622,7 +13706,7 @@ function useFollowPopupController() {
     rows,
     loadAll,
     markByKeys,
-    openByAwemeLimit
+    useHighQualityDownload
   });
   return {
     rows,
@@ -13635,13 +13719,13 @@ function useFollowPopupController() {
     statusFilter,
     sortField,
     sortDirection,
-    openByAwemeLimit,
+    useHighQualityDownload,
     listScrollTop,
     setKeyword,
     setStatusFilter,
     setSortField,
     setSortDirection,
-    setOpenByAwemeLimit,
+    setUseHighQualityDownload,
     onListScrollTopChange,
     ...actions
   };
@@ -13658,23 +13742,19 @@ function PopupPage() {
           statusOptions: controller.statusOptions,
           sortField: controller.sortField,
           sortDirection: controller.sortDirection,
-          openByAwemeLimit: controller.openByAwemeLimit,
+          useHighQualityDownload: controller.useHighQualityDownload,
           onKeywordChange: controller.setKeyword,
           onStatusFilterChange: controller.setStatusFilter,
           onSortFieldChange: controller.setSortField,
           onSortDirectionChange: controller.setSortDirection,
-          onOpenByAwemeLimitChange: controller.setOpenByAwemeLimit,
+          onUseHighQualityDownloadChange: controller.setUseHighQualityDownload,
           onStartCrawl: controller.onStartCrawl,
           onStartPostCrawl: controller.onStartPostCrawl,
           onStopCrawl: controller.onStopCrawl,
-          onFilterPostAll: controller.onFilterPostAll,
-          onFilterPostVideo: controller.onFilterPostVideo,
-          onFilterPostImage: controller.onFilterPostImage,
           onRefresh: controller.onRefresh,
           onClearList: controller.onClearList,
           onOpenRandomTen: controller.onOpenRandomTen,
           onOpenRandomTwenty: controller.onOpenRandomTwenty,
-          onOpenByAwemeLimit: controller.onOpenByAwemeLimit,
           onExportPostImageUrls: controller.onExportPostImageUrls,
           viewedCount: controller.viewedCount,
           totalCount: controller.totalCount

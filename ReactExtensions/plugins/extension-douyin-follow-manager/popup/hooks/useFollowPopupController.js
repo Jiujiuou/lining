@@ -40,7 +40,7 @@ export function useFollowPopupController() {
   const [statusFilter, setStatusFilter] = useState('全部');
   const [sortField, setSortField] = useState('default');
   const [sortDirection, setSortDirection] = useState('desc');
-  const [openByAwemeLimit, setOpenByAwemeLimit] = useState('30');
+  const [useHighQualityDownload, setUseHighQualityDownload] = useState(false);
   const [listScrollTop, setListScrollTop] = useState(0);
   const [viewStateLoaded, setViewStateLoaded] = useState(false);
 
@@ -84,9 +84,7 @@ export function useFollowPopupController() {
       if (Number.isFinite(Number(globalView.listScrollTop)) && Number(globalView.listScrollTop) >= 0) {
         setListScrollTop(Number(globalView.listScrollTop));
       }
-      if (globalView.openByAwemeLimit != null) {
-        setOpenByAwemeLimit(String(globalView.openByAwemeLimit));
-      }
+      setUseHighQualityDownload(Boolean(globalView.useHighQualityDownload));
       setViewStateLoaded(true);
     });
 
@@ -126,9 +124,16 @@ export function useFollowPopupController() {
       statusFilter,
       sortField,
       sortDirection,
-      openByAwemeLimit,
+      useHighQualityDownload,
     });
-  }, [openByAwemeLimit, statusFilter, sortDirection, sortField, updatePopupViewState, viewStateLoaded]);
+  }, [
+    statusFilter,
+    sortDirection,
+    sortField,
+    updatePopupViewState,
+    useHighQualityDownload,
+    viewStateLoaded,
+  ]);
 
   const onListScrollTopChange = useCallback(
     (scrollTop) => {
@@ -225,7 +230,7 @@ export function useFollowPopupController() {
     rows,
     loadAll,
     markByKeys,
-    openByAwemeLimit,
+    useHighQualityDownload,
   });
 
   return {
@@ -239,13 +244,13 @@ export function useFollowPopupController() {
     statusFilter,
     sortField,
     sortDirection,
-    openByAwemeLimit,
+    useHighQualityDownload,
     listScrollTop,
     setKeyword,
     setStatusFilter,
     setSortField,
     setSortDirection,
-    setOpenByAwemeLimit,
+    setUseHighQualityDownload,
     onListScrollTopChange,
     ...actions,
   };

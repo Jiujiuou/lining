@@ -16,10 +16,20 @@ export function getActiveTabId(callback) {
   }
 
   try {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId =
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      const tabIdByFocusedWindow =
         tabs && tabs[0] && tabs[0].id != null ? tabs[0].id : null;
-      done(tabId);
+      if (tabIdByFocusedWindow != null) {
+        done(tabIdByFocusedWindow);
+        return;
+      }
+
+      // 兼容兜底：极端情况下退回 currentWindow
+      chrome.tabs.query({ active: true, currentWindow: true }, (fallbackTabs) => {
+        const tabId =
+          fallbackTabs && fallbackTabs[0] && fallbackTabs[0].id != null ? fallbackTabs[0].id : null;
+        done(tabId);
+      });
     });
   } catch {
     done(null);
@@ -53,4 +63,3 @@ export function resolveTabIdByMessageAsync(messageType) {
     resolveTabIdByMessage(messageType, (tabId) => resolve(tabId));
   });
 }
-
